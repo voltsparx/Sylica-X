@@ -1,7 +1,8 @@
 # Silica-X ⚡
 
-**Silica-X** is an advanced OSINT username scanner, inspired by Sherlock, developed in Python.  
+**Silica-X** is an advanced OSINT username scanner, developed in Python.  
 It can scan multiple platforms, gather public info (bios, links), correlate results, generate HTML reports, and supports proxy/Tor anonymization.
+I'm still making it more powerful so you might receive constant updates for now.
 
 ---
 
