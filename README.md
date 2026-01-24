@@ -5,7 +5,6 @@ It can scan multiple platforms, gather public info (bios, links), correlate resu
 
 ---
 
-<<<<<<< HEAD
 ## Disclaimer
 
 - **Legal Use Only:** Silica-X is intended **solely for educational purposes, cybersecurity research, and authorized OSINT investigations**.  
@@ -54,7 +53,7 @@ It can scan multiple platforms, gather public info (bios, links), correlate resu
 - `live <username>` → Launch a live HTML dashboard for username scan results.
 - `help` → Show updated help menu with new commands.
 - `exit` → Quit Silica-X.
-=======
+
 ## Features
 
 - Scan multiple platforms (GitHub, Twitter, Instagram, Facebook, Reddit, YouTube, TikTok, StackOverflow, GitLab, Twitch)
@@ -67,7 +66,6 @@ It can scan multiple platforms, gather public info (bios, links), correlate resu
 - Fully editable ASCII banner
 - Async scanning for speed
 - Results saved in `output/<username>/` as JSON + HTML
->>>>>>> 598a85337b984cc52fdb1b937dc9abe1f14caa23
 
 ---
 
@@ -79,7 +77,7 @@ git clone https://github.com/voltsparx/Silica-X.git
 cd Silica-X
 pip install -r requirements.txt
 ```
-<<<<<<< HEAD
+
 ---
 
 ## Usage
@@ -160,7 +158,6 @@ setx HTTP_PROXY "http://127.0.0.1:8080"
 python silica-x.py
 ```
 
->>>>>>> 598a85337b984cc52fdb1b937dc9abe1f14caa23
 ## Author 
 
 voltsparx
