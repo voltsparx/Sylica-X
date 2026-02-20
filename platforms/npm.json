@@ -1,0 +1,6 @@
+{
+  "name": "NPM",
+  "url": "https://www.npmjs.com/~{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.8
+}

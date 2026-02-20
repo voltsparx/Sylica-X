@@ -1,0 +1,6 @@
+{
+  "name": "SoundCloud",
+  "url": "https://soundcloud.com/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.75
+}

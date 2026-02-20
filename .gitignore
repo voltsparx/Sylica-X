@@ -1,0 +1,30 @@
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Runtime output artifacts (keep folder structure only)
+output/**
+!output/.gitkeep
+!output/data/
+!output/data/.gitkeep
+!output/html/
+!output/html/.gitkeep
+!output/cli/
+!output/cli/.gitkeep
+!output/logs/
+!output/logs/.gitkeep

@@ -1,0 +1,6 @@
+{
+  "name": "TryHackMe",
+  "url": "https://tryhackme.com/p/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.85
+}

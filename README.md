@@ -1,172 +1,251 @@
-# Silica-X ⚡
+# Silica-X v7.0
 
-**Silica-X** is an advanced OSINT username scanner, developed in Python.  
-It can scan multiple platforms, gather public info (bios, links), correlate results, generate HTML reports, and supports proxy/Tor anonymization.
-I'm still making it more powerful so you might receive constant updates for now.
-
-<p align="center">
- <img src="https://github.com/Voltsparx/Silica-X/blob/main/docs/images/silica-x-help-menu.png" alt="silica-x" width="500" height="400">
-</p>
-
----
+Silica-X is an OSINT framework for profile intelligence, domain-surface reconnaissance, and fused correlation reporting.
 
 ## Disclaimer
 
-- **Legal Use Only:** Silica-X is intended **solely for educational purposes, cybersecurity research, and authorized OSINT investigations**.  
-- **User Responsibility:** You are responsible for complying with all local laws and regulations regarding data collection, privacy, and online scanning.  
-- **No Liability:** The developer is **not responsible** for misuse, damages, or legal consequences resulting from unauthorized scanning or data collection.  
-- **Ethical Use:** Only scan usernames/accounts you have permission to analyze or those publicly available for research.  
+- Legal and authorized use only.
+- You are responsible for compliance with local laws and platform Terms of Service.
+- Do not use this framework for harassment, stalking, or unauthorized collection.
 
----
+## Highlights
 
-## Features
+- Profile scan workflow (`profile`, `scan`, `persona`, `social`)
+- Domain surface workflow (`surface`, `domain`, `asset`)
+- Fusion workflow (`fusion`, `full`, `combo`)
+- Pluggable intelligence system (`core/signal_forge.py` + `plugins/`)
+- Pluggable filtering system (`core/signal_sieve.py` + `filters/`)
+- Prompt mode with keyword shortcuts, metasploit-style context prompt, and session defaults
+- Explain system (`--explain`, `explain`) for command/plugin/filter onboarding
+- HTML, JSON, CLI, CSV, and run-log outputs
+- Optional Tor/proxy routing with diagnostics and guided startup
 
-- **Contact Extraction:** Collect emails and phone numbers found on public profiles.
-- **Live Dashboard:** Launch a live HTML dashboard (`live <username>`) to visualize scan results interactively in the browser.
-- **Tor & Proxy Anonymization:** Configure Tor and HTTP proxy for anonymous scanning, improving privacy and security.
-- **Async Scanning:** Faster scans using asynchronous requests across all platforms.
-- **Enhanced Confidence Scoring:** Bio and contact information now contribute to reliability/confidence percentage.
-- **Correlation Analysis:** Detect bios appearing on multiple platforms to uncover linked accounts.
-- **Improved HTML Reports:** Detailed reports now include bios, public links, and collected contacts for each platform.
-- **Clear Screen Functionality:** Console display is cleaned before each run for professional presentation.
-- **Verbose Console Logging:** Each platform scan logs FOUND / NOT FOUND / ERROR with color-coded output.
-- **Fully Editable Banner:** ASCII banner shows current anonymity status dynamically.
-- **Error Handling:** Graceful handling of missing platforms, network errors, or invalid usernames.
+## Engineering Upgrades Included
 
----
+- Parser construction split into `core/cli_parsers.py`
+- Shared prompt presets/keywords split into `core/cli_config.py`
+- Prompt command handlers split into `core/prompt_handlers.py`
+- Centralized about/description renderer in `core/about.py`
+- Centralized explain renderer in `core/explain.py`
+- Native async engine (`core/async_engine.py`) with adaptive batch concurrency
+- Native thread engine (`core/thread_engine.py`) with shared executor + adaptive batch concurrency
+- TLS verification enabled by default in scan collectors
+- Tor routing uses `socks5h://127.0.0.1:9050` (DNS over Tor)
+- Proxy validation supports `HTTP_PROXY` and `HTTPS_PROXY` with scheme checks
+- Domain CT/RDAP collectors run concurrently with connector pooling
+- Profile scanner reuses tuned async connector limits + DNS cache
+- CI pipeline with tests + Ruff + mypy on Python 3.11/3.12/3.13
+- Full-repository mypy scope enabled
 
-## Key Changes / Enhancements
+## Verified Audit Snapshot (February 20, 2026)
 
-- **Contact Extraction:** Emails and phone numbers are now collected from profile pages.
-- **Live HTML Dashboard:** Launch a live interactive dashboard with `live <username>`.
-- **Tor & Proxy Support:** Configure anonymized scanning; both Tor and HTTP proxy supported.
-- **Async Scanning:** All platform requests are asynchronous for faster execution.
-- **Enhanced Confidence Scoring:** Bios and contacts increase confidence scores.
-- **Correlation Analysis:** Detect bios appearing on multiple platforms.
-- **Improved HTML Reports:** Reports now include bios, links, emails, phones, and correlations.
-- **Verbose Console Output:** Each platform scan shows FOUND / NOT FOUND / ERROR with color.
-- **Clear Screen Functionality:** Terminal is cleared before each run and on `clear` command.
-- **Professional Banner:** Shows current anonymity status dynamically.
-
----
-
-## New Commands
-
-- `scan <username>` → Scan a username across all platforms.
-- `anonymity` → Configure Tor and Proxy settings interactively.
-- `clear` → Clear the terminal screen and refresh banner.
-- `live <username>` → Launch a live HTML dashboard for username scan results.
-- `help` → Show updated help menu with new commands.
-- `exit` → Quit Silica-X.
-
-## Features
-
-- Scan multiple platforms (GitHub, Twitter, Instagram, Facebook, Reddit, YouTube, TikTok, StackOverflow, GitLab, Twitch)
-- Display results in terminal with color
-- Rich optional display
-- Cross-platform correlation
-- Confidence scoring + explanation
-- HTML report generation per username
-- Proxy/Tor support (interactive)
-- Fully editable ASCII banner
-- Async scanning for speed
-- Results saved in `output/<username>/` as JSON + HTML
-
----
+- Repository-wide file audit completed across 1,198 files (including generated output/cache artifacts).
+- File audit checks (readability + parser/compile validation) reported 0 errors.
+- Unit tests: 49/49 passing.
+- Ruff lint: passing.
+- mypy (full repository scope): passing on 44 source files.
+- Bytecode compile check (`compileall`): passing.
+- Wiring compatibility matrix: PASS (`root` commands=23, `prompt` commands=22, keyword/flag parity verified).
+- Platform manifests loaded: 47.
+- Runtime plugin/filter discovery: 6 plugins, 6 filters.
+- Scope compatibility inventory:
+  - plugins: profile=4, surface=3, fusion=6
+  - filters: profile=6, surface=1, fusion=6
 
 ## Installation
 
-```
-bash
+```bash
 git clone https://github.com/voltsparx/Silica-X.git
 cd Silica-X
 pip install -r requirements.txt
 ```
 
----
+Optional developer tooling:
 
-## Usage
+```bash
+pip install -r requirements-dev.txt
+```
 
-```terminal
+## Run
+
+```bash
 python silica-x.py
 ```
 
-### Available commands in console
+Running without flags starts prompt mode.
 
-```
-- `scan <username>` → Scan a username across all supported platforms.
-- `anonymity` → Configure Tor and Proxy settings interactively.
-- `clear` → Clear the terminal screen and refresh the ASCII banner.
-- `live <username>` → Launch the live HTML dashboard for the specified username.
-- `help` → Display the updated help menu with all commands.
-- `exit` → Quit Silica-X safely.
-```
+## Core Commands
 
----
+- `profile <username...> [flags]`
+- `surface <domain> [flags]`
+- `fusion <username> <domain> [flags]`
+- `plugins [--scope all|profile|surface|fusion]`
+- `filters [--scope all|profile|surface|fusion]`
+- `history [--limit N]` (aliases: `targets`, `scans`)
+- `anonymity [--tor|--no-tor] [--proxy|--no-proxy] [--check] [--prompt]`
+- `live <target> [--port PORT] [--no-browser]`
+- `wizard`
+- `keywords`
+- `about`
+- `explain`
+- `help`
 
-## Tor Setup
+## Key Flags
 
- 1. Make sure Tor service is running (Tor Browser or Tor daemon)
- 2. Set environment variable to enable Tor
+- Global:
+  - `--about` (print framework description and exit)
+  - `--explain` (print plain-language command/plugin/filter guide and exit)
+  - `--about` and `--explain` must be used alone (not combined with another command)
+- Runtime:
+  - `--preset`, `--profile-preset`, `--surface-preset`
+  - `--timeout`, `--max-concurrency`, `--max-subdomains`
+- Output:
+  - `--html`, `--csv`, `--live`, `--live-port`, `--no-browser`
+- Routing:
+  - `--tor`, `--no-tor`, `--proxy`, `--no-proxy`, `--check`, `--prompt`
+- Plugin/filter:
+  - `--plugin`, `--all-plugins`, `--list-plugins`
+  - `--filter`, `--all-filters`, `--list-filters`
 
-### Linux / macOS
+## Prompt Commands
+
+- `scan <username>`
+- `profile <username...>`
+- `surface <domain>`
+- `fusion <username> <domain>`
+- `plugins`, `filters`, `history`
+- `anonymity`, `config`
+- `about` (keywords: `about`, `info`, `details`)
+- `explain` (keywords: `explain`, `understand`, `describe`)
+- `banner` (prompt-only; reprints banner)
+- `use <profile|surface|fusion>`
+- `set plugins <none|all|id1,id2>` (module-compatible, alias-aware)
+- `set filters <none|all|id1,id2>` (module-compatible, alias-aware)
+- `set profile_preset <quick|balanced|deep>`
+- `set surface_preset <quick|balanced|deep>`
+- `help`, `clear` (screen only; banner stays hidden until `banner`), `exit`
+- Prompt format: `(console <module> plugins=<set> filters=<set>)>>`
+
+## Platform Coverage
+
+Silica-X currently ships with 47 platform manifests in `platforms/`:
+
+- Behance
+- Bitbucket
+- Blogger
+- BuyMeACoffee
+- Codeforces
+- CodePen
+- Dev.to
+- Discord
+- DockerHub
+- Dribbble
+- Facebook
+- Flickr
+- GitHub
+- GitLab
+- HackerOne
+- HackerRank
+- Instagram
+- Kaggle
+- Keybase
+- LeetCode
+- LinkedIn
+- Medium
+- NPM
+- Pastebin
+- Patreon
+- Pinterest
+- ProductHunt
+- PyPI
+- Quora
+- Reddit
+- Replit
+- Roblox
+- Snapchat
+- SoundCloud
+- SourceForge
+- Spotify
+- StackOverflow
+- SteamCommunity
+- Telegram
+- TikTok
+- TryHackMe
+- Twitch
+- Twitter/X
+- Unsplash
+- Vimeo
+- WordPress
+- YouTube
+
+## Output Structure
+
+- `output/data/<target>/results.json`
+- `output/html/<target>.html`
+- `output/cli/<target>.txt`
+- `output/cli/<target>.csv` (when `--csv`)
+- `output/logs/<target>_<timestamp>.txt`
+- `output/logs/framework.log.txt`
+
+## Examples
+
 ```bash
-export TOR_ENABLED=1
+python silica-x.py --about
+python silica-x.py --explain
+python silica-x.py anonymity --check
+python silica-x.py plugins --scope all
+python silica-x.py filters --scope all
+python silica-x.py profile alice --tor --plugin orbit_link_matrix --filter contact_canonicalizer --html
+python silica-x.py surface example.com --plugin header_hardening_probe --filter exposure_tier_matrix --html
+python silica-x.py fusion alice example.com --all-plugins --all-filters --html
+python silica-x.py history --limit 20
 ```
 
-### Windows 
-```powershell
-setx TOR_ENABLED 1
-```
+## Docker
 
----
-
-## Proxy Setup
-
- 1. Set your HTTP proxy URL
- Example: "http://127.0.0.1:8080"
-
-### Linux / macOS
 ```bash
-export HTTP_PROXY="http://127.0.0.1:8080"
+docker compose run --rm silica-x help
+docker compose run --rm silica-x profile alice --html
 ```
 
-### Windows 
-```powershell
-setx HTTP_PROXY "http://127.0.0.1:8080"
+Compose profile:
+
+- read-only root filesystem
+- non-root runtime
+- dropped Linux capabilities
+- no-new-privileges
+- writable output volume (`./output:/app/output`)
+
+## Quality Gates
+
+Unit tests:
+
+```bash
+python -m unittest discover -s tests -v
 ```
 
----
+Lint:
 
-## Notes
-
-  **Username Rules:** Usernames must not contain spaces. Invalid usernames will be rejected.
-- **Tor/Proxy Usage:**  
-  - Tor requires the environment variable `TOR_ENABLED` to be set.  
-  - Proxy requires `HTTP_PROXY` to be set.  
-  - If either is requested but not configured, Silica-X will display an error in red and disable anonymization.
-- **Live Dashboard:** The `live <username>` command opens the dashboard automatically in your default browser.
-- **Reports:**  
-  - JSON and HTML reports are saved under `output/<username>/`.  
-  - HTML reports include bios, links, emails, phone numbers, and correlation analysis.  
-- **Clear Screen:** Use the `clear` command to tidy the terminal, which also refreshes the banner with current anonymity status.
-- **Confidence Scores:** Scores reflect platform reliability, public bio presence, and collected contact info.
-- **Error Handling:** Any platform errors (network issues, invalid URLs, timeouts) are logged with `ERROR` status without stopping the scan.
-- **Async Scanning:** All platform checks run asynchronously for faster execution.
-
----
-
-=======
-## Uses
-
-```
-python silica-x.py
+```bash
+python -m ruff check .
 ```
 
-## Author 
+Type checking:
 
-voltsparx
+```bash
+python -m mypy
+```
 
-Contact: voltsparx@gmail.com or phanfronix@gmail.com
+Repository compile pass:
 
-GitHub: https://github.com/voltsparx/Silica-X
+```bash
+python -m compileall -q core filters plugins tests silica-x.py
+```
+
+CI workflow:
+
+- `.github/workflows/ci.yml`
+
+## Author
+
+- voltsparx

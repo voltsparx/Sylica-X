@@ -1,1 +1,6 @@
-{ "name": "StackOverflow", "url": "https://stackoverflow.com/users/{username}", "exists_status": 200, "confidence_weight": 0.80 }
+{
+  "name": "StackOverflow",
+  "url": "https://stackoverflow.com/users/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.85
+}

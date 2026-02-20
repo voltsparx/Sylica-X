@@ -1,0 +1,6 @@
+{
+  "name": "Behance",
+  "url": "https://www.behance.net/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.8
+}

@@ -1,0 +1,6 @@
+{
+  "name": "SourceForge",
+  "url": "https://sourceforge.net/u/{username}/profile",
+  "exists_status": 200,
+  "confidence_weight": 0.7
+}

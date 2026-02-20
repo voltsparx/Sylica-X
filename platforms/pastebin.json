@@ -1,0 +1,6 @@
+{
+  "name": "Pastebin",
+  "url": "https://pastebin.com/u/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.7
+}

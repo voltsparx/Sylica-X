@@ -1,0 +1,10 @@
+{
+  "name": "BuyMeACoffee",
+  "url": "https://buymeacoffee.com/{username}",
+  "errorType": "status_code",
+  "request_method": "GET",
+  "exists_status": [200, 301, 302],
+  "not_found_statuses": [404],
+  "regexCheck": "^[A-Za-z0-9_-]{1,50}$",
+  "confidence_weight": 0.78
+}

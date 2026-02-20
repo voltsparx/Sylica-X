@@ -1,0 +1,6 @@
+{
+  "name": "WordPress",
+  "url": "https://{username}.wordpress.com",
+  "exists_status": 200,
+  "confidence_weight": 0.75
+}

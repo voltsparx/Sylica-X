@@ -1,0 +1,6 @@
+{
+  "name": "Codeforces",
+  "url": "https://codeforces.com/profile/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.8
+}

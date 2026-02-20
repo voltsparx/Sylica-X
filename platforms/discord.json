@@ -1,0 +1,6 @@
+{
+  "name": "Discord",
+  "url": "https://discord.com/users/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.6
+}

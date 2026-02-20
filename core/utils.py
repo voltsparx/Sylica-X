@@ -1,6 +1,8 @@
 # core/utils.py
+from importlib.util import find_spec
+
+
 try:
-    from rich.console import Console
-    RICH_AVAILABLE = True
-except ImportError:
+    RICH_AVAILABLE = find_spec("rich.console") is not None
+except Exception:
     RICH_AVAILABLE = False

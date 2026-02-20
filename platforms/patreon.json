@@ -1,0 +1,6 @@
+{
+  "name": "Patreon",
+  "url": "https://www.patreon.com/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.75
+}

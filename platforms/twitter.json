@@ -1,1 +1,6 @@
-{ "name": "Twitter/X", "url": "https://x.com/{username}", "exists_status": 200, "confidence_weight": 0.90 }
+{
+  "name": "Twitter/X",
+  "url": "https://x.com/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.9
+}

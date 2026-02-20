@@ -1,1 +1,6 @@
-{ "name": "Facebook", "url": "https://www.facebook.com/{username}", "exists_status": 200, "confidence_weight": 0.85 }
+{
+  "name": "Facebook",
+  "url": "https://facebook.com/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.9
+}

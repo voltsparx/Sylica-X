@@ -1,0 +1,6 @@
+{
+  "name": "Blogger",
+  "url": "https://{username}.blogspot.com",
+  "exists_status": 200,
+  "confidence_weight": 0.75
+}

@@ -1,0 +1,10 @@
+{
+  "name": "CodePen",
+  "url": "https://codepen.io/{username}",
+  "errorType": "status_code",
+  "request_method": "HEAD",
+  "exists_status": [200, 301, 302],
+  "not_found_statuses": [404],
+  "regexCheck": "^[A-Za-z0-9_-]{1,40}$",
+  "confidence_weight": 0.8
+}

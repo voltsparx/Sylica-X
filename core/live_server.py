@@ -1,58 +1,47 @@
+"""Legacy standalone live server (optional utility)."""
+
+from __future__ import annotations
+
 import json
-import os
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-# ------------------------------
-# CONFIG
-# ------------------------------
-PORT = 8000  # You can change this port
-USERNAME = ""  # If blank, will ask at runtime
+from core.storage import results_json_path, sanitize_target
 
-# ------------------------------
-# Custom HTTP handler
-# ------------------------------
+
+PORT = 8000
+TARGET = ""
+
+
 class Handler(SimpleHTTPRequestHandler):
-    def do_GET(self):
-        global USERNAME
-
-        if self.path == "/":
-            if not USERNAME:
-                self.send_response(200)
-                self.send_header("Content-type", "text/html")
-                self.end_headers()
-                msg = "<h2>Please provide username in URL: /?user=<username></h2>"
-                self.wfile.write(msg.encode())
-                return
-
-            file_path = f"output/{USERNAME}/results.json"
-            if not os.path.exists(file_path):
-                self.send_response(404)
-                self.send_header("Content-type", "text/html")
-                self.end_headers()
-                msg = f"<h2>No results found for user: {USERNAME}</h2>"
-                self.wfile.write(msg.encode())
-                return
-
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(data, indent=2).encode())
-
-        else:
+    def do_GET(self):  # noqa: N802 - stdlib hook
+        target = sanitize_target(TARGET)
+        if self.path != "/":
             self.send_error(404)
+            return
 
-# ------------------------------
-# Run server
-# ------------------------------
+        file_path = results_json_path(target)
+        if not file_path.exists():
+            self.send_response(404)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(f"<h2>No results found for target: {target}</h2>".encode())
+            return
+
+        with file_path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(data, indent=2).encode())
+
+
 if __name__ == "__main__":
-    if not USERNAME:
-        USERNAME = input("Enter username to view live results: ").strip()
+    if not TARGET:
+        TARGET = input("Enter target to view live results: ").strip()
 
     server_address = ("", PORT)
-    print(f"Serving {USERNAME}'s results at http://localhost:{PORT}/")
+    print(f"Serving {sanitize_target(TARGET)} at http://localhost:{PORT}/")
     with HTTPServer(server_address, Handler) as httpd:
         try:
             httpd.serve_forever()

@@ -1,0 +1,10 @@
+{
+  "name": "DockerHub",
+  "url": "https://hub.docker.com/u/{username}",
+  "urlProbe": "https://hub.docker.com/v2/users/{username}/",
+  "errorType": "status_code",
+  "not_found_statuses": [404],
+  "request_method": "GET",
+  "exists_status": 200,
+  "confidence_weight": 0.75
+}

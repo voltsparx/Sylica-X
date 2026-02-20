@@ -1,0 +1,8 @@
+{
+  "name": "Bitbucket",
+  "url": "https://bitbucket.org/{username}",
+  "errorType": "status_code",
+  "regexCheck": "^[a-zA-Z0-9-_]{1,30}$",
+  "exists_status": 200,
+  "confidence_weight": 0.85
+}

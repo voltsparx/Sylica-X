@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Silica-X Platform Manifest Entry",
+  "type": "object",
+  "required": ["name", "url"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "url": { "type": "string", "pattern": "\\{username\\}" },
+    "urlProbe": { "type": "string", "pattern": "\\{username\\}" },
+    "errorType": {
+      "oneOf": [
+        { "type": "string", "enum": ["status_code", "message", "response_url"] },
+        {
+          "type": "array",
+          "items": { "type": "string", "enum": ["status_code", "message", "response_url"] },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
+    "errorMsg": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ]
+    },
+    "exists_status": {
+      "oneOf": [
+        { "type": "integer" },
+        { "type": "array", "items": { "type": "integer" }, "minItems": 1 }
+      ]
+    },
+    "exists_statuses": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "minItems": 1
+    },
+    "not_found_statuses": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "minItems": 1
+    },
+    "regexCheck": { "type": "string" },
+    "headers": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "request_method": { "type": "string", "enum": ["GET", "HEAD", "POST", "PUT"] },
+    "request_payload": { "type": "object" },
+    "confidence_weight": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+  },
+  "additionalProperties": true
+}

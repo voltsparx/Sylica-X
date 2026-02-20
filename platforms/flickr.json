@@ -1,0 +1,6 @@
+{
+  "name": "Flickr",
+  "url": "https://www.flickr.com/people/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.7
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Telegram",
+  "url": "https://t.me/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.9
+}

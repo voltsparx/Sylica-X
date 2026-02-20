@@ -1,0 +1,6 @@
+{
+  "name": "LinkedIn",
+  "url": "https://www.linkedin.com/in/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.9
+}

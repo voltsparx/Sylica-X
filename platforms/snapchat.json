@@ -1,0 +1,6 @@
+{
+  "name": "Snapchat",
+  "url": "https://www.snapchat.com/add/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.7
+}

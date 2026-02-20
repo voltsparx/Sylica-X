@@ -1,0 +1,22 @@
+services:
+  silica-x:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: silica-x
+    stdin_open: true
+    tty: true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/silica
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 1g
+    volumes:
+      - ./output:/app/output
+    environment:
+      - PYTHONUNBUFFERED=1

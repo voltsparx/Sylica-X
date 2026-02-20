@@ -1,1 +1,9 @@
-{ "name": "GitLab", "url": "https://gitlab.com/{username}", "exists_status": 200, "confidence_weight": 0.90 }
+{
+  "name": "GitLab",
+  "url": "https://gitlab.com/{username}",
+  "urlProbe": "https://gitlab.com/api/v4/users?username={username}",
+  "errorType": "message",
+  "errorMsg": "[]",
+  "request_method": "GET",
+  "confidence_weight": 0.9
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Spotify",
+  "url": "https://open.spotify.com/user/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.7
+}

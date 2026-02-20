@@ -1,0 +1,6 @@
+{
+  "name": "Pinterest",
+  "url": "https://www.pinterest.com/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.8
+}

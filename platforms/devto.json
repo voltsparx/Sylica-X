@@ -1,0 +1,6 @@
+{
+  "name": "Dev.to",
+  "url": "https://dev.to/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.85
+}

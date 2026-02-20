@@ -1,0 +1,243 @@
+Silica-X v7.0 Usage Guide
+=========================
+
+1) Installation
+---------------
+git clone https://github.com/voltsparx/Silica-X.git
+cd Silica-X
+pip install -r requirements.txt
+
+Optional dev tooling:
+pip install -r requirements-dev.txt
+
+
+2) Launch Modes
+---------------
+Interactive prompt mode (default):
+python silica-x.py
+
+Explicit prompt mode:
+python silica-x.py prompt
+
+Direct command mode:
+python silica-x.py <command> [flags]
+
+
+3) Core Commands
+----------------
+Global flags:
+--about
+- Print framework/tool description and exit.
+--explain
+- Print plain-language command/plugin/filter guide and exit.
+- Note: use these global flags alone (do not combine with another command).
+
+profile <username...>
+- Aliases: scan, persona, social
+- Key flags:
+  --preset quick|balanced|deep
+  --timeout <seconds>
+  --max-concurrency <n>
+  --csv
+  --html
+  --live
+  --live-port <1-65535>
+  --no-browser
+  --plugin <id> (repeatable) / --all-plugins / --list-plugins
+  --filter <id> (repeatable) / --all-filters / --list-filters
+  --tor|--no-tor, --proxy|--no-proxy
+
+surface <domain>
+- Aliases: domain, asset
+- Key flags:
+  --preset quick|balanced|deep
+  --timeout <seconds>
+  --max-subdomains <n>
+  --ct|--no-ct
+  --rdap|--no-rdap
+  --html
+  --plugin <id> / --all-plugins / --list-plugins
+  --filter <id> / --all-filters / --list-filters
+  --tor|--no-tor, --proxy|--no-proxy
+
+fusion <username> <domain>
+- Aliases: full, combo
+- Key flags:
+  --profile-preset quick|balanced|deep
+  --surface-preset quick|balanced|deep
+  --csv
+  --html
+  --plugin <id> / --all-plugins / --list-plugins
+  --filter <id> / --all-filters / --list-filters
+  --tor|--no-tor, --proxy|--no-proxy
+
+plugins [--scope all|profile|surface|fusion]
+filters [--scope all|profile|surface|fusion]
+history [--limit N]   (aliases: targets, scans)
+live <target> [--port PORT] [--no-browser]
+anonymity [--tor|--no-tor] [--proxy|--no-proxy] [--check] [--prompt]
+wizard [--tor|--no-tor] [--proxy|--no-proxy]
+keywords
+about
+explain
+help
+
+
+4) Prompt Commands
+------------------
+help
+config
+history [--limit N]
+anonymity [--check|--prompt|--tor|--no-tor|--proxy|--no-proxy]
+plugins [--scope ...]
+filters [--scope ...]
+about   (keywords: about, info, details)
+explain (keywords: explain, understand, describe)
+banner  (prompt-only: print banner)
+
+use <profile|surface|fusion>
+set plugins <none|all|id1,id2>   (module-compatible, alias-aware)
+set filters <none|all|id1,id2>   (module-compatible, alias-aware)
+set profile_preset <quick|balanced|deep>
+set surface_preset <quick|balanced|deep>
+
+scan <username>
+profile <username...>
+surface <domain>
+fusion <username> <domain>
+clear   (clears terminal only; banner stays hidden until 'banner')
+exit
+Prompt format:
+(console <module> plugins=<set> filters=<set>)>>
+
+
+5) Output Paths
+---------------
+output/data/<target>/results.json
+output/html/<target>.html
+output/cli/<target>.txt
+output/cli/<target>.csv
+output/logs/<target>_<timestamp>.txt
+output/logs/framework.log.txt
+
+
+6) Security and Network Behavior
+--------------------------------
+- TLS verification is enabled by default in profile and surface HTTP collectors.
+- Tor routing uses socks5h://127.0.0.1:9050 so DNS stays inside Tor.
+- Proxy mode accepts HTTP_PROXY or HTTPS_PROXY.
+- Proxy URL schemes validated: http, https, socks5, socks5h.
+
+
+7) Platform Manifests
+---------------------
+Silica-X currently loads 47 platform manifests from /platforms:
+
+Behance
+Bitbucket
+Blogger
+BuyMeACoffee
+Codeforces
+CodePen
+Dev.to
+Discord
+DockerHub
+Dribbble
+Facebook
+Flickr
+GitHub
+GitLab
+HackerOne
+HackerRank
+Instagram
+Kaggle
+Keybase
+LeetCode
+LinkedIn
+Medium
+NPM
+Pastebin
+Patreon
+Pinterest
+ProductHunt
+PyPI
+Quora
+Reddit
+Replit
+Roblox
+Snapchat
+SoundCloud
+SourceForge
+Spotify
+StackOverflow
+SteamCommunity
+Telegram
+TikTok
+TryHackMe
+Twitch
+Twitter/X
+Unsplash
+Vimeo
+WordPress
+YouTube
+
+
+8) Verification and Quality Gates
+---------------------------------
+Audit snapshot (verified on February 20, 2026):
+- File-level audit across 1,198 files (read/parse/compile checks): 0 errors
+- Unit tests: 49/49 passing
+- Ruff lint: passing
+- mypy (full repository scope): passing on 44 source files
+- compileall bytecode check: passing
+- Wiring compatibility matrix: PASS (root commands=23, prompt commands=22, keyword/flag parity verified)
+- Platform manifests: 47 loaded successfully
+- Runtime extension discovery: 6 plugins, 6 filters
+- Scope compatibility inventory:
+  plugins -> profile=4, surface=3, fusion=6
+  filters -> profile=6, surface=1, fusion=6
+
+Unit tests:
+python -m unittest discover -s tests -v
+
+Lint:
+python -m ruff check .
+
+Type checking (full repository scope):
+python -m mypy
+
+Bytecode compile check:
+python -m compileall -q core filters plugins tests silica-x.py
+
+CI pipeline:
+.github/workflows/ci.yml
+- Python 3.11, 3.12, 3.13
+- Runs tests + Ruff + mypy
+
+
+9) Example Workflows
+--------------------
+Framework description:
+python silica-x.py --about
+
+Explain guide:
+python silica-x.py --explain
+
+Tor diagnostics:
+python silica-x.py anonymity --check
+
+Profile scan:
+python silica-x.py profile alice --tor --plugin orbit_link_matrix --filter contact_canonicalizer --html --csv
+
+Surface scan:
+python silica-x.py surface example.com --plugin header_hardening_probe --filter exposure_tier_matrix --html
+
+Fusion scan:
+python silica-x.py fusion alice example.com --all-plugins --all-filters --html
+
+List plugins and filters:
+python silica-x.py plugins --scope all
+python silica-x.py filters --scope all
+
+Recent targets:
+python silica-x.py history --limit 25

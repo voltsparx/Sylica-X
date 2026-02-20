@@ -1,1 +1,6 @@
-{ "name": "YouTube", "url": "https://www.youtube.com/@{username}", "exists_status": 200, "confidence_weight": 0.85 }
+{
+  "name": "YouTube",
+  "url": "https://www.youtube.com/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.95
+}

@@ -1,9 +1,10 @@
 # core/banner.py
 
-from core.colors import Colors, c
+from core.colors import Colors
+from core.metadata import AUTHOR, VERSION
 
-author = "voltsparx"
-ver = "3.0"
+author = AUTHOR
+ver = VERSION
 
 def show_banner(anonymity_status="No anonymization"):
     grey = Colors.GREY
@@ -18,6 +19,6 @@ def show_banner(anonymity_status="No anonymization"):
     print(f"{grey}       db   8D   .88.   88booo.   .88.   Y8b  d8 88   88{reset}         {grey}{yellow}.8P  Y8.{reset}")
     print(f"{grey}       `8888Y' Y888888P Y88888P Y888888P  `Y88P' YP   YP{reset}         {grey}{yellow}YP    YP{reset}")
     print(f"{yellow}                                                                          v{ver}{reset}")
-    print(f"_________________________________________________________________________________")
+    print("_________________________________________________________________________________")
     print(f"{cyan}   Automated User OSINT Tool - Developed by {author} (github.com/{author}){reset}")
     print(f"{cyan}                     Current Anonymity: {anonymity_status}{reset}\n")

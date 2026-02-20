@@ -1,1 +1,6 @@
-{ "name": "Reddit", "url": "https://www.reddit.com/user/{username}", "exists_status": 200, "confidence_weight": 0.90 }
+{
+  "name": "Reddit",
+  "url": "https://www.reddit.com/user/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.85
+}

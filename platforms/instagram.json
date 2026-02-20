@@ -1,1 +1,6 @@
-{ "name": "Instagram", "url": "https://www.instagram.com/{username}", "exists_status": 200, "confidence_weight": 0.90 }
+{
+  "name": "Instagram",
+  "url": "https://instagram.com/{username}",
+  "exists_status": 200,
+  "confidence_weight": 0.95
+}
