@@ -259,10 +259,8 @@ python -m compileall -q core filters plugins tests silica-x.py
 
 ---
 
-## 👤 Author / Contact
-
-**voltsparx**
-📧 [voltsparx@gmail.com](mailto:voltsparx@gmail.com)
+**Author**: voltsparx<br>
+**Contact**: voltsparx@gmail.com<br>
 
 ---
 
