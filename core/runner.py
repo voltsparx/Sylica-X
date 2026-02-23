@@ -26,7 +26,7 @@ from core.correlator import correlate
 from core.csv_export import export_to_csv
 from core.domain_intel import normalize_domain, scan_domain_surface
 from core.exposure import assess_domain_exposure, assess_profile_exposure, summarize_issues
-from core.signal_sieve import execute_filters, list_filter_descriptors
+from core.signal_sieve import execute_filters, list_filter_descriptors, list_filter_discovery_errors
 from core.help_menu import show_flag_help, show_prompt_help
 from core.html_report import generate_html
 from core.metadata import PROJECT_NAME, VERSION, framework_signature
@@ -39,8 +39,9 @@ from core.output import (
     list_scanned_targets,
     save_results,
 )
-from core.signal_forge import execute_plugins, list_plugin_descriptors
+from core.signal_forge import execute_plugins, list_plugin_descriptors, list_plugin_discovery_errors
 from core.platform_schema import PlatformValidationError
+from core.profile_summary import error_profile_rows, found_profile_rows, summarize_target_intel
 from core.scanner import scan_username
 from core.session_state import PromptSessionState
 from core.storage import ensure_output_tree, results_json_path, sanitize_target
@@ -261,11 +262,14 @@ def _print_keyword_inventory() -> None:
 def _print_plugin_inventory(scope: str | None = None) -> None:
     resolved_scope = None if scope in (None, "", "all") else scope
     plugins = list_plugin_descriptors(scope=resolved_scope)
+    discovery_errors = list_plugin_discovery_errors(scope=resolved_scope)
     title_suffix = "all scopes" if resolved_scope is None else f"scope={resolved_scope}"
     print(c(f"\n[ Plugins ] ({title_suffix})", Colors.BLUE))
     print(c("------------------------------------", Colors.BLUE))
     if not plugins:
         print(c("No plugins discovered.", Colors.YELLOW))
+        for error in discovery_errors:
+            print(c(f"[!] {error}", Colors.YELLOW))
         print()
         return
 
@@ -277,17 +281,22 @@ def _print_plugin_inventory(scope: str | None = None) -> None:
         print(c(f"  scopes: {scopes_text}", Colors.GREY))
         print(c(f"  aliases: {alias_text}", Colors.GREY))
         print(c(f"  desc: {plugin.get('description')}", Colors.GREY))
+    for error in discovery_errors:
+        print(c(f"[!] {error}", Colors.YELLOW))
     print()
 
 
 def _print_filter_inventory(scope: str | None = None) -> None:
     resolved_scope = None if scope in (None, "", "all") else scope
     filters = list_filter_descriptors(scope=resolved_scope)
+    discovery_errors = list_filter_discovery_errors(scope=resolved_scope)
     title_suffix = "all scopes" if resolved_scope is None else f"scope={resolved_scope}"
     print(c(f"\n[ Filters ] ({title_suffix})", Colors.BLUE))
     print(c("------------------------------------", Colors.BLUE))
     if not filters:
         print(c("No filters discovered.", Colors.YELLOW))
+        for error in discovery_errors:
+            print(c(f"[!] {error}", Colors.YELLOW))
         print()
         return
 
@@ -299,6 +308,8 @@ def _print_filter_inventory(scope: str | None = None) -> None:
         print(c(f"  scopes: {scopes_text}", Colors.GREY))
         print(c(f"  aliases: {alias_text}", Colors.GREY))
         print(c(f"  desc: {row.get('description')}", Colors.GREY))
+    for error in discovery_errors:
+        print(c(f"[!] {error}", Colors.YELLOW))
     print()
 
 
@@ -307,13 +318,15 @@ def _print_scan_history(limit: int = 25) -> None:
     print(c("\n[ Scan History ]", Colors.BLUE))
     print(c("------------------------------------", Colors.BLUE))
     if not rows:
-        print(c("No HTML reports found under output/html.", Colors.YELLOW))
+        print(c("No scan artifacts found under output/data or output/html.", Colors.YELLOW))
         print()
         return
 
     for index, row in enumerate(rows, start=1):
         print(c(f"{index}. {row['target']}", Colors.CYAN))
         print(c(f"  updated: {row['modified_at']}", Colors.GREY))
+        if row.get("source"):
+            print(c(f"  source: {row['source']}", Colors.GREY))
         print(c(f"  file: {row['path']}", Colors.GREY))
     print()
 
@@ -359,29 +372,50 @@ def launch_live_dashboard(
                 return
 
             results = data.get("results", [])
-            rows = ""
-            color_map = {
-                "FOUND": "#1db954",
-                "NOT FOUND": "#8a8f98",
+            found_rows = found_profile_rows(results)
+            error_rows = error_profile_rows(results)
+            snapshot = summarize_target_intel(results)
+            display_target = str(data.get("target") or safe_target)
+
+            found_table_rows = ""
+            for item in found_rows:
+                emails = ", ".join((item.get("contacts", {}) or {}).get("emails", []) or []) or "-"
+                phones = ", ".join((item.get("contacts", {}) or {}).get("phones", []) or []) or "-"
+                found_table_rows += (
+                    "<tr>"
+                    f"<td>{html.escape(item.get('platform', 'Unknown'))}</td>"
+                    f"<td>{int(item.get('confidence', 0) or 0)}%</td>"
+                    f"<td><a href='{html.escape(item.get('url', ''))}' target='_blank' rel='noreferrer'>"
+                    f"{html.escape(item.get('url', ''))}</a></td>"
+                    f"<td>{html.escape(emails)}</td>"
+                    f"<td>{html.escape(phones)}</td>"
+                    f"<td>{html.escape(item.get('context', '') or '-')}</td>"
+                    "</tr>"
+                )
+            if not found_table_rows:
+                found_table_rows = "<tr><td colspan='6'>No FOUND profiles.</td></tr>"
+
+            error_table_rows = ""
+            error_color_map = {
                 "ERROR": "#ff6b6b",
                 "BLOCKED": "#f39c12",
-                "INVALID_USERNAME": "#f1c40f",
             }
-            for item in results:
-                status = item.get("status", "UNKNOWN")
-                color = color_map.get(status, "#8a8f98")
-                rows += (
+            for item in error_rows:
+                status = str(item.get("status", "ERROR"))
+                color = error_color_map.get(status, "#ff6b6b")
+                error_table_rows += (
                     "<tr>"
                     f"<td>{html.escape(item.get('platform', 'Unknown'))}</td>"
                     f"<td style='color:{color};font-weight:bold;'>{html.escape(status)}</td>"
-                    f"<td>{item.get('confidence', 0)}%</td>"
                     f"<td><a href='{html.escape(item.get('url', ''))}' target='_blank' rel='noreferrer'>"
                     f"{html.escape(item.get('url', ''))}</a></td>"
-                    f"<td>{html.escape(item.get('context', '') or '')}</td>"
+                    f"<td>{html.escape(str(item.get('http_status', '-') if item.get('http_status') is not None else '-'))}</td>"
+                    f"<td>{html.escape(str(item.get('response_time_ms', '-') if item.get('response_time_ms') is not None else '-'))}</td>"
+                    f"<td>{html.escape(item.get('context', '') or '-')}</td>"
                     "</tr>"
                 )
-            if not rows:
-                rows = "<tr><td colspan='5'>No profile result rows</td></tr>"
+            if not error_table_rows:
+                error_table_rows = "<tr><td colspan='6'>No ERROR/BLOCKED websites.</td></tr>"
 
             narrative = html.escape(data.get("narrative") or "No narrative generated.")
             issues = data.get("issues", [])
@@ -408,9 +442,9 @@ def launch_live_dashboard(
             html_content = f"""
             <html>
             <head>
-              <title>{html.escape(PROJECT_NAME)} Live - {html.escape(safe_target)}</title>
+              <title>{html.escape(PROJECT_NAME)} Live - {html.escape(display_target)}</title>
               <style>
-                body {{ font-family: Segoe UI, sans-serif; background:#0b1118; color:#e8edf2; padding:20px; }}
+                body {{ font-family: "Trebuchet MS", "Segoe UI", sans-serif; background:#0b1118; color:#e8edf2; padding:20px; }}
                 .panel {{ background:#111a24; border:1px solid #2a3a4d; border-radius:12px; padding:14px; margin-top:12px; }}
                 table {{ width:100%; border-collapse: collapse; }}
                 th, td {{ border:1px solid #2a3a4d; padding:8px; text-align:left; }}
@@ -423,14 +457,25 @@ def launch_live_dashboard(
               <h1>{html.escape(PROJECT_NAME)} v{html.escape(VERSION)} Live Dashboard</h1>
               <div class="panel">
                 <h3>Target</h3>
-                <p>{html.escape(safe_target)}</p>
+                <p>{html.escape(display_target)}</p>
+                <p class="muted">Found profiles: {snapshot["found_count"]} | Errored sites: {snapshot["error_count"]}</p>
+                <p class="muted">Found platforms: {html.escape(", ".join(snapshot["found_platforms"]) or "none")}</p>
+                <p class="muted">Emails: {html.escape(", ".join(snapshot["emails"]) or "none")}</p>
+                <p class="muted">Phones: {html.escape(", ".join(snapshot["phones"]) or "none")}</p>
                 <p class="muted">Auto-refresh this page manually to read newly written results.</p>
               </div>
               <div class="panel">
-                <h3>Profile Signals</h3>
+                <h3>Found Social Media Profiles</h3>
                 <table>
-                  <tr><th>Platform</th><th>Status</th><th>Confidence</th><th>Profile Link</th><th>Context</th></tr>
-                  {rows}
+                  <tr><th>Platform</th><th>Confidence</th><th>Profile Link</th><th>Emails</th><th>Phones</th><th>Context</th></tr>
+                  {found_table_rows}
+                </table>
+              </div>
+              <div class="panel">
+                <h3>Errored / Blocked Websites</h3>
+                <table>
+                  <tr><th>Platform</th><th>Status</th><th>Profile Link</th><th>HTTP</th><th>RTT ms</th><th>Reason</th></tr>
+                  {error_table_rows}
                 </table>
               </div>
               <div class="panel">
@@ -584,11 +629,14 @@ async def run_profile_scan(
             "correlation": correlation,
             "issues": issues,
             "issue_summary": issue_summary,
+            "plugins": plugin_results,
+            "plugin_errors": plugin_errors,
         },
     )
     display_results(
         results,
         correlation,
+        target=username,
         issues=issues,
         issue_summary=issue_summary,
         narrative=narrative,
@@ -746,6 +794,8 @@ async def run_surface_scan(
             "domain_result": domain_result,
             "issues": issues,
             "issue_summary": issue_summary,
+            "plugins": plugin_results,
+            "plugin_errors": plugin_errors,
         },
     )
     display_domain_results(
@@ -1032,6 +1082,8 @@ async def _handle_fusion_command(
             "domain_result": surface_data.get("domain_result"),
             "issues": combined_issues,
             "issue_summary": combined_issue_summary,
+            "plugins": plugin_results,
+            "plugin_errors": plugin_errors,
         },
     )
 
@@ -1172,12 +1224,12 @@ async def _handle_wizard_command(
 
     write_html = _prompt_yes_no("Generate HTML reports?", True)
     write_csv = run_profile and _prompt_yes_no("Export profile CSV?", False)
-    plugin_raw = ask("Plugins [none|all|id1,id2] [none]: ").strip().lower()
+    plugin_raw = ask("Plugins [none|all|selector1,selector2] [none]: ").strip().lower()
     plugin_all = plugin_raw == "all"
     plugin_names = []
     if plugin_raw and plugin_raw not in {"none", "all"}:
         plugin_names = [item.strip() for item in plugin_raw.split(",") if item.strip()]
-    filter_raw = ask("Filters [none|all|id1,id2] [none]: ").strip().lower()
+    filter_raw = ask("Filters [none|all|selector1,selector2] [none]: ").strip().lower()
     filter_all = filter_raw == "all"
     filter_names = []
     if filter_raw and filter_raw not in {"none", "all"}:

@@ -1,0 +1,10 @@
+{
+  "name": "Mastodon",
+  "url": "https://mastodon.social/@{username}",
+  "url_probe": "https://mastodon.social/@{username}",
+  "detection": ["status_code"],
+  "exists_statuses": [200],
+  "not_found_statuses": [404],
+  "request_method": "GET",
+  "confidence_weight": 0.82
+}

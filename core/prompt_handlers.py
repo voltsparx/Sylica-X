@@ -7,6 +7,7 @@ from typing import Callable
 
 from core.cli_config import PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
 from core.colors import Colors, c
+from core.selector_keys import selector_keys
 from core.session_state import PromptSessionState
 from core.signal_forge import list_plugin_descriptors
 from core.signal_sieve import list_filter_descriptors
@@ -63,13 +64,19 @@ def _descriptor_lookup(descriptors: list[dict[str, object]]) -> dict[str, str]:
         descriptor_id = str(descriptor.get("id", "")).strip().lower()
         if not descriptor_id:
             continue
-        lookup[descriptor_id] = descriptor_id
+        for key in selector_keys(descriptor_id):
+            lookup.setdefault(key, descriptor_id)
+
+        title = str(descriptor.get("title", "")).strip()
+        if title:
+            for key in selector_keys(title):
+                lookup.setdefault(key, descriptor_id)
+
         aliases = descriptor.get("aliases", [])
         if isinstance(aliases, list):
             for alias in aliases:
-                alias_name = str(alias).strip().lower()
-                if alias_name:
-                    lookup[alias_name] = descriptor_id
+                for key in selector_keys(str(alias)):
+                    lookup.setdefault(key, descriptor_id)
     return lookup
 
 
@@ -83,10 +90,14 @@ def _resolve_compatible_names(
     seen: set[str] = set()
     rejected: list[str] = []
     for raw_name in requested_names:
-        lowered = raw_name.strip().lower()
-        if not lowered:
+        keys = selector_keys(raw_name)
+        if not keys:
             continue
-        matched = by_key.get(lowered)
+        matched: str | None = None
+        for key in keys:
+            matched = by_key.get(key)
+            if matched is not None:
+                break
         if matched is None:
             rejected.append(raw_name)
             continue
@@ -183,7 +194,7 @@ def handle_prompt_set_command(
             return True
         requested = _split_csv_values(value)
         if not requested:
-            _emit("Provide at least one plugin id/alias.", Colors.YELLOW)
+            _emit("Provide at least one plugin selector (id/alias/name).", Colors.YELLOW)
             return True
         selected, rejected = _resolve_plugins_for_scope(requested, scope)
         if rejected:
@@ -213,7 +224,7 @@ def handle_prompt_set_command(
             return True
         requested = _split_csv_values(value)
         if not requested:
-            _emit("Provide at least one filter id/alias.", Colors.YELLOW)
+            _emit("Provide at least one filter selector (id/alias/name).", Colors.YELLOW)
             return True
         selected, rejected = _resolve_filters_for_scope(requested, scope)
         if rejected:

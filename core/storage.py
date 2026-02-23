@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -62,6 +63,60 @@ class HistoryRow:
     target: str
     path: str
     modified_at: str
+    source: str = "unknown"
+
+
+def _read_data_target_label(file_path: Path, fallback: str) -> str:
+    try:
+        payload = json.loads(file_path.read_text(encoding="utf-8"))
+    except Exception:
+        return fallback
+    target_value = str(payload.get("target") or fallback).strip()
+    return target_value or fallback
+
+
+def list_targets(limit: int = 50) -> list[HistoryRow]:
+    ensure_output_tree()
+    cap = max(1, int(limit))
+    collected: list[tuple[float, HistoryRow]] = []
+    seen_keys: set[str] = set()
+
+    for file_path in sorted(DATA_DIR.glob("*/results.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        key = sanitize_target(file_path.parent.name)
+        stamp = datetime.fromtimestamp(file_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+        target_label = _read_data_target_label(file_path, file_path.parent.name)
+        collected.append(
+            (
+                file_path.stat().st_mtime,
+                HistoryRow(
+                    target=target_label,
+                    path=str(file_path),
+                    modified_at=stamp,
+                    source="data",
+                ),
+            )
+        )
+        seen_keys.add(key)
+
+    for file_path in sorted(HTML_DIR.glob("*.html"), key=lambda p: p.stat().st_mtime, reverse=True):
+        key = sanitize_target(file_path.stem)
+        if key in seen_keys:
+            continue
+        stamp = datetime.fromtimestamp(file_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+        collected.append(
+            (
+                file_path.stat().st_mtime,
+                HistoryRow(
+                    target=file_path.stem,
+                    path=str(file_path),
+                    modified_at=stamp,
+                    source="html",
+                ),
+            )
+        )
+
+    collected.sort(key=lambda row: row[0], reverse=True)
+    return [row for _, row in collected[:cap]]
 
 
 def list_targets_from_html(limit: int = 50) -> list[HistoryRow]:
@@ -74,6 +129,7 @@ def list_targets_from_html(limit: int = 50) -> list[HistoryRow]:
                 target=file_path.stem,
                 path=str(file_path),
                 modified_at=stamp,
+                source="html",
             )
         )
         if len(rows) >= max(1, int(limit)):

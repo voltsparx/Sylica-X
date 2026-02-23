@@ -1,0 +1,10 @@
+{
+  "name": "Threads",
+  "url": "https://www.threads.net/@{username}",
+  "url_probe": "https://www.threads.net/@{username}",
+  "detection": ["status_code"],
+  "exists_statuses": [200],
+  "not_found_statuses": [404],
+  "request_method": "GET",
+  "confidence_weight": 0.8
+}

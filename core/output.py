@@ -8,13 +8,19 @@ from typing import Iterable
 
 from core.colors import Colors, c
 from core.metadata import framework_signature, utc_timestamp
+from core.profile_summary import (
+    error_profile_rows,
+    focused_profile_rows,
+    found_profile_rows,
+    summarize_target_intel,
+)
 from core.storage import (
     cli_report_path,
     data_target_dir,
     ensure_output_tree,
     framework_log_path,
     legacy_results_json_path,
-    list_targets_from_html,
+    list_targets,
     results_json_path,
     run_log_path,
     sanitize_target,
@@ -30,6 +36,14 @@ def _status_color(status: str) -> str:
         "ERROR": Colors.RED,
     }
     return mapping.get(status, Colors.GREY)
+
+
+def _preview(values: list[str], limit: int = 8) -> str:
+    if not values:
+        return "none"
+    if len(values) <= limit:
+        return ", ".join(values)
+    return f"{', '.join(values[:limit])} ... (+{len(values) - limit} more)"
 
 
 def _print_issue_block(issues: Iterable[dict[str, str]]) -> None:
@@ -102,6 +116,7 @@ def display_results(
     results: list[dict],
     correlation: dict,
     *,
+    target: str | None = None,
     issues: list[dict[str, str]] | None = None,
     issue_summary: dict | None = None,
     narrative: str | None = None,
@@ -112,50 +127,90 @@ def display_results(
 ) -> None:
     print(c("\n[ Scan Results ]", Colors.BLUE))
     print(c("------------------------------------", Colors.BLUE))
+    resolved_target = (target or "").strip() or "unknown"
+    print(c(f"Target: {resolved_target}", Colors.CYAN))
 
-    found_links: list[str] = []
-    status_counter: Counter = Counter()
-    for item in sorted(
-        results,
-        key=lambda row: (row.get("status") != "FOUND", -int(row.get("confidence", 0) or 0)),
-    ):
-        status = item.get("status", "UNKNOWN")
-        status_counter[status] += 1
-        status_color = _status_color(status)
+    found_rows = found_profile_rows(results)
+    error_rows = error_profile_rows(results)
+    focus_rows = focused_profile_rows(results)
+    snapshot = summarize_target_intel(results)
+
+    print(c("\n[ Found Social Media ]", Colors.GREEN))
+    print(c("------------------------------------", Colors.GREEN))
+    if not found_rows:
+        print(c("No FOUND profiles.", Colors.GREY))
+    for item in found_rows:
         platform = item.get("platform", "Unknown")
         url = item.get("url", "")
         confidence = int(item.get("confidence", 0) or 0)
-        print(c(f"[{status}] {platform} ({confidence}%)", status_color))
+        print(c(f"[FOUND] {platform} ({confidence}%)", Colors.GREEN))
         print(c(f"  profile: {url}", Colors.CYAN))
-        if status == "FOUND":
-            found_links.append(url)
-            contacts = item.get("contacts", {})
-            if item.get("bio"):
-                print(c(f"  bio: {item['bio'][:180]}", Colors.GREY))
-            if item.get("links"):
-                top_links = ", ".join(item["links"][:4])
-                print(c(f"  extracted links: {top_links}", Colors.YELLOW))
-            if contacts.get("emails"):
-                print(c(f"  emails: {', '.join(contacts['emails'])}", Colors.YELLOW))
-            if contacts.get("phones"):
-                print(c(f"  phones: {', '.join(contacts['phones'])}", Colors.YELLOW))
-            if item.get("mentions"):
-                print(c(f"  mentions: {', '.join(item['mentions'][:6])}", Colors.GREY))
+        contacts = item.get("contacts", {})
+        if item.get("bio"):
+            print(c(f"  bio: {str(item['bio'])[:180]}", Colors.GREY))
+        if item.get("links"):
+            top_links = ", ".join(item["links"][:6])
+            print(c(f"  extracted links: {top_links}", Colors.YELLOW))
+        if contacts.get("emails"):
+            print(c(f"  emails: {', '.join(contacts['emails'])}", Colors.YELLOW))
+        if contacts.get("phones"):
+            print(c(f"  phones: {', '.join(contacts['phones'])}", Colors.YELLOW))
+        if item.get("mentions"):
+            print(c(f"  mentions: {', '.join(item['mentions'][:8])}", Colors.GREY))
         if item.get("http_status") is not None:
             print(c(f"  http: {item['http_status']}", Colors.GREY))
         if item.get("response_time_ms") is not None:
             print(c(f"  rtt: {item['response_time_ms']} ms", Colors.GREY))
 
+    print(c("\n[ Errored / Blocked Websites ]", Colors.RED))
+    print(c("------------------------------------", Colors.RED))
+    if not error_rows:
+        print(c("No ERROR/BLOCKED websites.", Colors.GREY))
+    for item in error_rows:
+        status = item.get("status", "ERROR")
+        status_color = _status_color(status)
+        platform = item.get("platform", "Unknown")
+        url = item.get("url", "")
+        print(c(f"[{status}] {platform}", status_color))
+        print(c(f"  profile: {url}", Colors.CYAN))
+        if item.get("http_status") is not None:
+            print(c(f"  http: {item['http_status']}", Colors.GREY))
+        if item.get("response_time_ms") is not None:
+            print(c(f"  rtt: {item['response_time_ms']} ms", Colors.GREY))
+        if item.get("context"):
+            print(c(f"  reason: {item['context']}", Colors.YELLOW))
+
     print(c("\n[ Summary ]", Colors.BLUE))
     print(c("------------------------------------", Colors.BLUE))
-    summary_line = " ".join(f"{key.replace(' ', '_')}={value}" for key, value in status_counter.items())
+    status_counter: Counter = Counter(item.get("status", "UNKNOWN") for item in results)
+    preferred_order = ["FOUND", "ERROR", "BLOCKED", "NOT FOUND", "INVALID_USERNAME"]
+    summary_parts: list[str] = []
+    for key in preferred_order:
+        if key in status_counter:
+            summary_parts.append(f"{key.replace(' ', '_')}={status_counter[key]}")
+    for key in sorted(status_counter):
+        if key not in preferred_order:
+            summary_parts.append(f"{key.replace(' ', '_')}={status_counter[key]}")
+    summary_line = " ".join(summary_parts)
     print(c(summary_line or "No results", Colors.CYAN))
-    print(c(f"FOUND_PROFILES={len(found_links)}", Colors.GREEN))
+    print(c(f"VISIBLE_ROWS={len(focus_rows)}", Colors.CYAN))
+    print(c(f"FOUND_PROFILES={snapshot['found_count']}", Colors.GREEN))
+    print(c(f"ERRORED_WEBSITES={snapshot['error_count']}", Colors.RED))
 
-    if found_links:
+    if snapshot["profile_links"]:
         print(c("\n[ Confirmed Profile Links ]", Colors.GREEN))
-        for link in found_links:
+        for link in snapshot["profile_links"]:
             print(c(f"- {link}", Colors.GREEN))
+
+    print(c("\n[ Target Intelligence Snapshot ]", Colors.BLUE))
+    print(c("------------------------------------", Colors.BLUE))
+    print(c(f"Found platforms: {_preview(snapshot['found_platforms'])}", Colors.GREY))
+    print(c(f"Emails: {_preview(snapshot['emails'])}", Colors.GREY))
+    print(c(f"Phones: {_preview(snapshot['phones'])}", Colors.GREY))
+    print(c(f"Mentions: {_preview(snapshot['mentions'])}", Colors.GREY))
+    print(c(f"External links: {_preview(snapshot['external_links'])}", Colors.GREY))
+    if snapshot["bios"]:
+        print(c(f"Bio snippets captured: {len(snapshot['bios'])}", Colors.GREY))
 
     shared_links = correlation.get("shared_links", {})
     shared_emails = correlation.get("shared_emails", {})
@@ -246,17 +301,45 @@ def _render_cli_report(payload: dict) -> str:
     lines.append(f"Generated UTC: {metadata.get('generated_at_utc', '-')}")
     lines.append(f"Mode: {metadata.get('mode', '-')}")
     lines.append(f"Target: {payload.get('target', '-')}")
+    if payload.get("target_key"):
+        lines.append(f"Storage Key: {payload.get('target_key')}")
     lines.append("")
 
     results = payload.get("results", []) or []
-    if results:
-        lines.append("[Profile Results]")
-        for row in sorted(results, key=lambda item: (item.get("status") != "FOUND", item.get("platform", ""))):
+    snapshot = summarize_target_intel(results)
+    found_rows = found_profile_rows(results)
+    error_rows = error_profile_rows(results)
+
+    lines.append("[Found Social Profiles]")
+    if not found_rows:
+        lines.append("- none")
+    else:
+        for row in found_rows:
             lines.append(
-                f"- {row.get('platform', 'Unknown')}: {row.get('status', 'UNKNOWN')} "
+                f"- {row.get('platform', 'Unknown')}: FOUND "
                 f"({int(row.get('confidence', 0) or 0)}%) -> {row.get('url', '')}"
             )
-        lines.append("")
+    lines.append("")
+
+    lines.append("[Errored / Blocked Websites]")
+    if not error_rows:
+        lines.append("- none")
+    else:
+        for row in error_rows:
+            lines.append(
+                f"- {row.get('platform', 'Unknown')}: {row.get('status', 'ERROR')} "
+                f"http={row.get('http_status', '-')} reason={row.get('context', '-') or '-'}"
+            )
+    lines.append("")
+
+    lines.append("[Target Intelligence Snapshot]")
+    lines.append(f"- found_platforms: {', '.join(snapshot['found_platforms']) or 'none'}")
+    lines.append(f"- profile_links: {', '.join(snapshot['profile_links']) or 'none'}")
+    lines.append(f"- emails: {', '.join(snapshot['emails']) or 'none'}")
+    lines.append(f"- phones: {', '.join(snapshot['phones']) or 'none'}")
+    lines.append(f"- mentions: {', '.join(snapshot['mentions']) or 'none'}")
+    lines.append(f"- external_links: {', '.join(snapshot['external_links']) or 'none'}")
+    lines.append("")
 
     domain_result = payload.get("domain_result")
     if domain_result:
@@ -338,8 +421,16 @@ def append_framework_log(event: str, details: str = "", *, level: str = "INFO") 
 
 
 def list_scanned_targets(limit: int = 50) -> list[dict[str, str]]:
-    rows = list_targets_from_html(limit=limit)
-    return [{"target": row.target, "path": row.path, "modified_at": row.modified_at} for row in rows]
+    rows = list_targets(limit=limit)
+    return [
+        {
+            "target": row.target,
+            "path": row.path,
+            "modified_at": row.modified_at,
+            "source": row.source,
+        }
+        for row in rows
+    ]
 
 
 def save_results(
@@ -358,7 +449,8 @@ def save_results(
     filter_errors: list[str] | None = None,
 ) -> str:
     ensure_output_tree()
-    target_key = sanitize_target(target)
+    target_display = str(target or "").strip()
+    target_key = sanitize_target(target_display)
     data_target_dir(target_key).mkdir(parents=True, exist_ok=True)
 
     payload = {
@@ -367,7 +459,8 @@ def save_results(
             "mode": mode,
             "framework": framework_signature(),
         },
-        "target": target_key,
+        "target": target_display or target_key,
+        "target_key": target_key,
         "results": results or [],
         "domain_result": domain_result,
         "correlation": correlation or {},
@@ -402,7 +495,8 @@ def save_results(
     run_log.write_text(
         (
             f"timestamp={utc_timestamp()}\n"
-            f"target={target_key}\n"
+            f"target={target_display or target_key}\n"
+            f"target_key={target_key}\n"
             f"mode={mode}\n"
             f"results={results_count}\n"
             f"issues={issues_count}\n"
@@ -414,7 +508,10 @@ def save_results(
     )
     append_framework_log(
         "scan_saved",
-        f"target={target_key} mode={mode} json={json_path} cli={cli_path} log={run_log}",
+        (
+            f"target={target_display or target_key} target_key={target_key} "
+            f"mode={mode} json={json_path} cli={cli_path} log={run_log}"
+        ),
     )
 
     print(c(f"\nResults JSON saved to {json_path}", Colors.GREEN))

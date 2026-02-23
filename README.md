@@ -56,7 +56,7 @@ This tool is built by stitching together the digital bones of open-source intell
 
 * Repository-wide file audit completed across **1,198 files** (including generated output/cache artifacts)
 * File audit checks (readability + parser/compile validation) reported **0 errors**
-* Unit tests: **49/49 passing**
+* Unit tests: **53/53 passing**
 * Ruff lint: passing
 * mypy (full repository scope): passing on **44 source files**
 * Bytecode compile check (`compileall`): passing
@@ -66,12 +66,12 @@ This tool is built by stitching together the digital bones of open-source intell
   * prompt commands = 22
   * keyword/flag parity verified
 * Platform manifests loaded: **47**
-* Runtime plugin/filter discovery: **6 plugins, 6 filters**
+* Runtime plugin/filter discovery: **10 plugins, 10 filters**
 
 ### Scope Compatibility Inventory
 
-* plugins → profile=4, surface=3, fusion=6
-* filters → profile=6, surface=1, fusion=6
+* plugins → profile=5, surface=5, fusion=8
+* filters → profile=8, surface=4, fusion=10
 
 ---
 
@@ -159,8 +159,8 @@ Running without flags starts **prompt mode**.
 * `explain` (keywords: `explain`, `understand`, `describe`)
 * `banner` (prompt-only; reprints banner)
 * `use <profile|surface|fusion>`
-* `set plugins <none|all|id1,id2>` (module-compatible, alias-aware)
-* `set filters <none|all|id1,id2>` (module-compatible, alias-aware)
+* `set plugins <none|all|selector1,selector2>` (module-compatible, id/alias/name-aware)
+* `set filters <none|all|selector1,selector2>` (module-compatible, id/alias/name-aware)
 * `set profile_preset <quick|balanced|deep>`
 * `set surface_preset <quick|balanced|deep>`
 * `help`, `clear`, `exit`
@@ -216,6 +216,15 @@ python silica-x.py history --limit 20
 docker compose run --rm silica-x help
 docker compose run --rm silica-x profile alice --html
 ```
+
+### Tor-enabled compose profile
+
+```bash
+docker compose --profile tor run --rm silica-x-tor anonymity --check
+docker compose --profile tor run --rm silica-x-tor profile alice --tor --html
+```
+
+`silica-x-tor` is built from `Dockerfile.tor`, includes `tor`, and uses a container-safe Tor config (`/etc/tor/torrc.silica`) that writes under `/tmp`.
 
 ### Compose Security Profile
 

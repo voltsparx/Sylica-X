@@ -11,6 +11,7 @@ FilterContext = dict[str, Any]
 
 @dataclass(frozen=True)
 class FilterSpec:
+    module_name: str
     filter_id: str
     title: str
     description: str

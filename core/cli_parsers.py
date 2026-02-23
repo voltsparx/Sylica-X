@@ -56,7 +56,7 @@ def _add_plugin_args(parser: argparse.ArgumentParser) -> None:
         "--plugin",
         action="append",
         default=[],
-        help="Plugin id/alias to execute (repeatable).",
+        help="Plugin selector (id/alias/name) to execute (repeatable).",
     )
     parser.add_argument(
         "--all-plugins",
@@ -75,7 +75,7 @@ def _add_filter_args(parser: argparse.ArgumentParser) -> None:
         "--filter",
         action="append",
         default=[],
-        help="Filter id/alias to execute (repeatable).",
+        help="Filter selector (id/alias/name) to execute (repeatable).",
     )
     parser.add_argument(
         "--all-filters",
@@ -112,7 +112,7 @@ def _add_history_args(parser: argparse.ArgumentParser) -> None:
         "--limit",
         type=positive_int,
         default=25,
-        help="Maximum number of scanned targets to list from output/html.",
+        help="Maximum number of scanned targets to list from output/data and output/html.",
     )
 
 
@@ -324,7 +324,7 @@ def build_root_parser(
     history_parser = subparsers.add_parser(
         "history",
         aliases=["targets", "scans"],
-        help="List scanned targets discovered from output/html reports.",
+        help="List scanned targets discovered from output/data and output/html artifacts.",
     )
     _add_history_args(history_parser)
     subparsers.add_parser("help", help="Show command-line usage help.")

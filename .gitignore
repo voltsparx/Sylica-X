@@ -28,3 +28,8 @@ output/**
 !output/cli/.gitkeep
 !output/logs/
 !output/logs/.gitkeep
+
+# Local test scratch
+.tmp/
+.tmp-tests/
+pytest-cache-files-*/

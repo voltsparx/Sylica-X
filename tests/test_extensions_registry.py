@@ -15,6 +15,10 @@ class TestExtensionsRegistry(unittest.TestCase):
             "header_hardening_probe",
             "subdomain_risk_atlas",
             "threat_conductor",
+            "domain_takeover_risk_probe",
+            "email_pattern_inference",
+            "security_txt_analyzer",
+            "cross_platform_activity_timeline",
         }
         self.assertTrue(expected.issubset(plugin_ids))
 
@@ -28,6 +32,10 @@ class TestExtensionsRegistry(unittest.TestCase):
             "mailbox_provider_profiler",
             "sensitive_lexicon_guard",
             "exposure_tier_matrix",
+            "takeover_priority_filter",
+            "anomaly_detection_filter",
+            "disclosure_readiness_filter",
+            "noise_suppression_filter",
         }
         self.assertTrue(expected.issubset(filter_ids))
 

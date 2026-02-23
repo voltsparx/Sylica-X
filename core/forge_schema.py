@@ -12,6 +12,7 @@ PluginRunFn = Callable[[PluginContext], dict[str, Any]]
 
 @dataclass(frozen=True)
 class PluginSpec:
+    module_name: str
     plugin_id: str
     title: str
     description: str

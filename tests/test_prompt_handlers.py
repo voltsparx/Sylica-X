@@ -98,6 +98,22 @@ class TestPromptHandlers(unittest.TestCase):
         )
         self.assertEqual(session.filter_names, ["pii_signal_classifier", "contact_canonicalizer"])
 
+    def test_handle_prompt_set_command_resolves_titles(self):
+        session = PromptSessionState(module="profile")
+        handle_prompt_set_command(
+            "set plugins Contact Lattice Analyzer,Threat Conductor",
+            session,
+            on_message=lambda _message, _color: None,
+        )
+        self.assertEqual(session.plugin_names, ["contact_lattice", "threat_conductor"])
+
+        handle_prompt_set_command(
+            "set filters Contact Canonicalizer,PII Signal Classifier",
+            session,
+            on_message=lambda _message, _color: None,
+        )
+        self.assertEqual(session.filter_names, ["contact_canonicalizer", "pii_signal_classifier"])
+
     def test_handle_prompt_set_command_rejects_incompatible_selection(self):
         session = PromptSessionState(module="surface")
         events: list[tuple[str, str]] = []

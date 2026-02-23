@@ -1,6 +1,6 @@
 import json
 import os
-import tempfile
+import shutil
 import unittest
 
 from core.platform_schema import PlatformValidationError, load_platforms
@@ -23,11 +23,20 @@ class TestPlatformSchema(unittest.TestCase):
             "ProductHunt",
             "BuyMeACoffee",
             "SteamCommunity",
+            "Mastodon",
+            "Threads",
+            "DeviantArt",
         }
         self.assertTrue(expected_new.issubset(names))
 
     def test_invalid_manifest_rejected(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
+        temp_root = os.path.join(os.getcwd(), ".tmp-tests")
+        os.makedirs(temp_root, exist_ok=True)
+        temp_dir = os.path.join(temp_root, "platform-schema-invalid")
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        os.makedirs(temp_dir, exist_ok=True)
+
+        try:
             bad_file = os.path.join(temp_dir, "bad.json")
             with open(bad_file, "w", encoding="utf-8") as handle:
                 json.dump(
@@ -40,6 +49,8 @@ class TestPlatformSchema(unittest.TestCase):
 
             with self.assertRaises(PlatformValidationError):
                 load_platforms(temp_dir)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

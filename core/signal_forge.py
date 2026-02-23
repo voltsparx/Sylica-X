@@ -7,6 +7,7 @@ import pkgutil
 from typing import Any
 
 from core.forge_schema import PluginContext, PluginExecutionResult, PluginSpec
+from core.selector_keys import selector_keys
 
 
 PLUGIN_PACKAGE = "plugins"
@@ -55,6 +56,7 @@ def _normalize_spec(module_name: str, raw: dict[str, Any]) -> PluginSpec:
     aliases = tuple(str(alias).strip().lower() for alias in aliases_raw if str(alias).strip())
 
     return PluginSpec(
+        module_name=module_name,
         plugin_id=plugin_id,
         title=title,
         description=description,
@@ -65,21 +67,34 @@ def _normalize_spec(module_name: str, raw: dict[str, Any]) -> PluginSpec:
     )
 
 
-def list_plugin_specs(scope: str | None = None) -> list[PluginSpec]:
+def _discover_plugin_specs(scope: str | None = None) -> tuple[list[PluginSpec], list[str]]:
     specs: list[PluginSpec] = []
+    errors: list[str] = []
     for module_name in _iter_plugin_module_names():
         try:
             module = _load_plugin_module(module_name)
-        except Exception:  # pragma: no cover - defensive import safety
+        except Exception as exc:  # pragma: no cover - defensive import safety
+            errors.append(f"Plugin module '{module_name}' import failed: {exc}")
             continue
         raw = getattr(module, "PLUGIN_SPEC", {})
         if not isinstance(raw, dict):
+            errors.append(f"Plugin module '{module_name}' has invalid PLUGIN_SPEC (expected dict).")
             continue
         spec = _normalize_spec(module_name, raw)
         if scope and scope not in spec.scopes:
             continue
         specs.append(spec)
-    return sorted(specs, key=lambda item: item.plugin_id)
+    return sorted(specs, key=lambda item: item.plugin_id), errors
+
+
+def list_plugin_specs(scope: str | None = None) -> list[PluginSpec]:
+    specs, _ = _discover_plugin_specs(scope=scope)
+    return specs
+
+
+def list_plugin_discovery_errors(scope: str | None = None) -> list[str]:
+    _, errors = _discover_plugin_specs(scope=scope)
+    return errors
 
 
 def list_plugin_descriptors(scope: str | None = None) -> list[dict[str, Any]]:
@@ -103,26 +118,34 @@ def _resolve_requested_plugins(
     scope: str,
     requested_plugins: list[str] | None,
     include_all: bool,
-) -> tuple[list[PluginSpec], list[str]]:
-    available_specs = list_plugin_specs(scope=scope)
+) -> tuple[list[PluginSpec], list[str], list[str]]:
+    available_specs, discovery_errors = _discover_plugin_specs(scope=scope)
     by_key: dict[str, PluginSpec] = {}
     for spec in available_specs:
-        by_key[spec.plugin_id] = spec
+        for key in selector_keys(spec.plugin_id):
+            by_key.setdefault(key, spec)
+        for key in selector_keys(spec.title):
+            by_key.setdefault(key, spec)
         for alias in spec.aliases:
-            by_key[alias] = spec
+            for key in selector_keys(alias):
+                by_key.setdefault(key, spec)
 
     if include_all:
-        return available_specs, []
+        return available_specs, [], discovery_errors
 
     requested_plugins = requested_plugins or []
     unknown: list[str] = []
     selected: list[PluginSpec] = []
     seen: set[str] = set()
     for raw_name in requested_plugins:
-        normalized = raw_name.strip().lower()
-        if not normalized:
+        keys = selector_keys(raw_name)
+        if not keys:
             continue
-        matched_spec: PluginSpec | None = by_key.get(normalized)
+        matched_spec: PluginSpec | None = None
+        for key in keys:
+            matched_spec = by_key.get(key)
+            if matched_spec is not None:
+                break
         if matched_spec is None:
             unknown.append(raw_name)
             continue
@@ -130,7 +153,7 @@ def _resolve_requested_plugins(
             continue
         selected.append(matched_spec)
         seen.add(matched_spec.plugin_id)
-    return selected, unknown
+    return selected, unknown, discovery_errors
 
 
 def execute_plugins(
@@ -143,19 +166,19 @@ def execute_plugins(
     if scope not in VALID_SCOPES:
         raise ValueError(f"Unsupported plugin scope: {scope}")
 
-    selected_specs, unknown = _resolve_requested_plugins(
+    selected_specs, unknown, discovery_errors = _resolve_requested_plugins(
         scope=scope,
         requested_plugins=requested_plugins,
         include_all=include_all,
     )
-    errors = [f"Unknown plugin requested: {name}" for name in unknown]
+    errors = [*discovery_errors, *[f"Unknown plugin requested: {name}" for name in unknown]]
     if not selected_specs:
         return [], errors
 
     results: list[dict[str, Any]] = []
     for spec in selected_specs:
         try:
-            module = _load_plugin_module(spec.plugin_id)
+            module = _load_plugin_module(spec.module_name)
             run_fn = getattr(module, "run", None)
             if run_fn is None or not callable(run_fn):
                 errors.append(f"Plugin '{spec.plugin_id}' has no callable run(context).")
