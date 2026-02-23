@@ -31,5 +31,6 @@ output/**
 
 # Local test scratch
 .tmp/
+.tmp_test/
 .tmp-tests/
 pytest-cache-files-*/
