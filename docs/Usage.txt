@@ -1,4 +1,4 @@
-Silica-X v7.0 Usage Guide
+Silica-X v7.2 Usage Guide
 =========================
 
 1) Installation

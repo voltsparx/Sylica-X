@@ -1,4 +1,4 @@
-"""Main runner orchestration for Silica-X v7.0."""
+"""Main runner orchestration for Silica-X."""
 
 from __future__ import annotations
 

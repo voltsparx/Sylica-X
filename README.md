@@ -1,4 +1,4 @@
-# 🛰️ Silica-X v7.0
+# 🛰️ Silica-X v7.2
 
 **Silica-X** is an OSINT framework for **profile intelligence**, **domain-surface reconnaissance**, and **fused correlation reporting**.<br><br>
 <p align="center">

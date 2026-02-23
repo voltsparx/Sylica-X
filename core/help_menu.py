@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from core.colors import Colors, c
+from core.metadata import PROJECT_NAME, VERSION
 
 
 def show_flag_help() -> None:
-    print(c("\nSilica-X v7.0 Flag Help\n", Colors.BOLD + Colors.CYAN))
+    print(c(f"\n{PROJECT_NAME} v{VERSION} Flag Help\n", Colors.BOLD + Colors.CYAN))
     print("Usage: python silica-x.py <command> [flags]\n")
 
     print(c("Global Flags", Colors.BLUE))
@@ -35,7 +36,7 @@ def show_flag_help() -> None:
 
 
 def show_prompt_help() -> None:
-    print(c("\nSilica-X v7.0 Prompt Help\n", Colors.BOLD + Colors.CYAN))
+    print(c(f"\n{PROJECT_NAME} v{VERSION} Prompt Help\n", Colors.BOLD + Colors.CYAN))
     print("Type one command and press Enter.\n")
 
     print(c("Prompt Commands", Colors.BLUE))
