@@ -42,6 +42,13 @@ This tool is built by stitching together the digital bones of open-source intell
 * Centralized explain renderer in `core/explain.py`
 * ⚡ Native async engine (`core/async_engine.py`) with adaptive batch concurrency
 * 🧵 Native thread engine (`core/thread_engine.py`) with shared executor + adaptive batch concurrency
+* 🧠 Hybrid parallel orchestration engine (`core/parallel_engine.py`) for async + thread + CPU execution
+* 🔗 Fusion analytics engine (`core/fusion_engine.py`) with confidence scoring, anomaly flags, and graph output
+* 🧩 Async plugin manager (`core/plugin_manager.py`) with chaining support and dependency checks
+* 💡 Prompt intelligence + advisor modules (`core/prompt_intelligence.py`, `core/intelligence_advisor.py`)
+* 🔐 Credential + security managers (`core/credential_manager.py`, `core/security_manager.py`)
+* 📈 Reporting/scheduler/CLI helpers (`core/reporting.py`, `core/scheduler.py`, `core/cli_ui.py`)
+* 🗺️ Reverse-engineering map integration (`core/reverse_engineering.py`)
 * 🔒 TLS verification enabled by default in scan collectors
 * 🧅 Tor routing uses `socks5h://127.0.0.1:9050` (DNS over Tor)
 * 🌍 Proxy validation supports `HTTP_PROXY` and `HTTPS_PROXY` with scheme checks
@@ -286,7 +293,7 @@ Runner behavior:
 ### Unit tests
 
 ```bash
-python -m unittest discover -s tests -v
+python -m pytest -q
 ```
 
 ### Lint

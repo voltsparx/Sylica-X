@@ -22,3 +22,6 @@ files = [
   "tests",
   "silica-x.py",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
