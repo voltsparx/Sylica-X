@@ -402,6 +402,20 @@ def _render_cli_report(payload: dict) -> str:
             lines.append(f"- [ERROR] {err}")
     lines.append("")
 
+    fused_intel = payload.get("fused_intel", {}) or {}
+    fusion_graph = payload.get("fusion_graph", {}) or {}
+    if fused_intel:
+        lines.append("[Fusion Intelligence]")
+        lines.append(f"- confidence_score: {fused_intel.get('confidence_score', '-')}")
+        lines.append(f"- anomalies: {', '.join(fused_intel.get('anomalies', []) or []) or 'none'}")
+        if isinstance(fused_intel.get("risk"), dict):
+            lines.append(f"- risk_score: {fused_intel.get('risk', {}).get('risk_score', '-')}")
+        lines.append(
+            f"- graph_nodes: {len(fusion_graph.get('nodes', []) or [])} "
+            f"graph_edges: {len(fusion_graph.get('edges', []) or [])}"
+        )
+        lines.append("")
+
     narrative = str(payload.get("narrative") or "").strip()
     lines.append("[Nano AI Brief]")
     lines.append(f"- {narrative or 'No narrative generated.'}")
@@ -447,6 +461,8 @@ def save_results(
     plugin_errors: list[str] | None = None,
     filter_results: list[dict] | None = None,
     filter_errors: list[str] | None = None,
+    fused_intel: dict | None = None,
+    fusion_graph: dict | None = None,
 ) -> str:
     ensure_output_tree()
     target_display = str(target or "").strip()
@@ -470,6 +486,8 @@ def save_results(
         "plugin_errors": plugin_errors or [],
         "filters": filter_results or [],
         "filter_errors": filter_errors or [],
+        "fused_intel": fused_intel or {},
+        "fusion_graph": fusion_graph or {},
         "narrative": narrative,
     }
 
@@ -477,6 +495,8 @@ def save_results(
     issues_count = len(payload["issues"]) if isinstance(payload["issues"], list) else 0
     plugins_count = len(payload["plugins"]) if isinstance(payload["plugins"], list) else 0
     filters_count = len(payload["filters"]) if isinstance(payload["filters"], list) else 0
+    fusion_nodes = len((payload.get("fusion_graph") or {}).get("nodes", []) or [])
+    fusion_edges = len((payload.get("fusion_graph") or {}).get("edges", []) or [])
 
     json_path = results_json_path(target_key)
     with json_path.open("w", encoding="utf-8") as handle:
@@ -502,6 +522,8 @@ def save_results(
             f"issues={issues_count}\n"
             f"plugins={plugins_count}\n"
             f"filters={filters_count}\n"
+            f"fusion_nodes={fusion_nodes}\n"
+            f"fusion_edges={fusion_edges}\n"
             f"framework={framework_signature()}\n"
         ),
         encoding="utf-8",

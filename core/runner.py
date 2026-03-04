@@ -29,6 +29,8 @@ from core.exposure import assess_domain_exposure, assess_profile_exposure, summa
 from core.signal_sieve import execute_filters, list_filter_descriptors, list_filter_discovery_errors
 from core.help_menu import show_flag_help, show_prompt_help
 from core.html_report import generate_html
+from core.fusion_engine import FusionEngine
+from core.intelligence_advisor import IntelligenceAdvisor
 from core.metadata import PROJECT_NAME, VERSION, framework_signature
 from core.narrative import build_nano_brief
 from core.network import get_network_settings
@@ -39,7 +41,10 @@ from core.output import (
     list_scanned_targets,
     save_results,
 )
-from core.signal_forge import execute_plugins, list_plugin_descriptors, list_plugin_discovery_errors
+from core.plugin_manager import PluginManager
+from core.prompt_intelligence import PromptEngine
+from core.reporting import ReportGenerator
+from core.signal_forge import list_plugin_descriptors, list_plugin_discovery_errors
 from core.platform_schema import PlatformValidationError
 from core.profile_summary import error_profile_rows, found_profile_rows, summarize_target_intel
 from core.scanner import scan_username
@@ -58,6 +63,10 @@ DEFAULT_DASHBOARD_PORT = 8000
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
 EXIT_USAGE = 2
+
+PLUGIN_MANAGER = PluginManager()
+FUSION_ENGINE = FusionEngine()
+REPORT_GENERATOR = ReportGenerator()
 
 
 @dataclass
@@ -605,11 +614,8 @@ async def run_profile_scan(
         issues=issues,
         issue_summary=issue_summary,
     )
-    plugin_results, plugin_errors = execute_plugins(
-        scope="profile",
-        requested_plugins=plugin_names,
-        include_all=include_all_plugins,
-        context={
+    plugin_results, plugin_errors = await PLUGIN_MANAGER.run_plugins(
+        {
             "target": username,
             "mode": "profile",
             "results": results,
@@ -617,6 +623,10 @@ async def run_profile_scan(
             "issues": issues,
             "issue_summary": issue_summary,
         },
+        scope="profile",
+        requested_plugins=plugin_names,
+        include_all=include_all_plugins,
+        chain=True,
     )
     filter_results, filter_errors = execute_filters(
         scope="profile",
@@ -768,11 +778,8 @@ async def run_surface_scan(
         issues=issues,
         issue_summary=issue_summary,
     )
-    plugin_results, plugin_errors = execute_plugins(
-        scope="surface",
-        requested_plugins=plugin_names,
-        include_all=include_all_plugins,
-        context={
+    plugin_results, plugin_errors = await PLUGIN_MANAGER.run_plugins(
+        {
             "target": normalized_domain,
             "mode": "surface",
             "results": [],
@@ -781,6 +788,10 @@ async def run_surface_scan(
             "issues": issues,
             "issue_summary": issue_summary,
         },
+        scope="surface",
+        requested_plugins=plugin_names,
+        include_all=include_all_plugins,
+        chain=True,
     )
     filter_results, filter_errors = execute_filters(
         scope="surface",
@@ -895,6 +906,12 @@ def _print_prompt_config(session: PromptSessionState, state: RunnerState) -> Non
             Colors.CYAN,
         )
     )
+    prompt_engine = PromptEngine(history=session.history)
+    advisor = IntelligenceAdvisor(history=session.history)
+    prompt_suggestions = prompt_engine.suggest_next(limit=3)
+    advisor_suggestions = advisor.recommend_next()[:2]
+    print(c(f"prompt suggestions: {', '.join(prompt_suggestions)}", Colors.CYAN))
+    print(c(f"advisor hints: {', '.join(advisor_suggestions)}", Colors.CYAN))
     print()
 
 
@@ -1056,11 +1073,14 @@ async def _handle_fusion_command(
         issues=combined_issues,
         issue_summary=combined_issue_summary,
     )
-    plugin_results, plugin_errors = execute_plugins(
-        scope="fusion",
-        requested_plugins=args.plugin,
-        include_all=args.all_plugins,
-        context={
+    fused_intel = await FUSION_ENGINE.fuse_profile_domain(profile_data, surface_data)
+    fusion_graph = await FUSION_ENGINE.generate_graph(fused_intel)
+    advisor = IntelligenceAdvisor(history=[{"mode": "profile"}, {"mode": "surface"}, {"mode": "fusion"}])
+    fused_intel["advisor_confidence"] = advisor.estimate_confidence(fused_intel)
+    fused_intel["advisor_recommendations"] = advisor.recommend_next()
+
+    plugin_results, plugin_errors = await PLUGIN_MANAGER.run_plugins(
+        {
             "target": combined_target,
             "mode": "fusion",
             "results": profile_data.get("results", []),
@@ -1068,7 +1088,13 @@ async def _handle_fusion_command(
             "domain_result": surface_data.get("domain_result"),
             "issues": combined_issues,
             "issue_summary": combined_issue_summary,
+            "fused_intel": fused_intel,
+            "fusion_graph": fusion_graph,
         },
+        scope="fusion",
+        requested_plugins=args.plugin,
+        include_all=args.all_plugins,
+        chain=True,
     )
     filter_results, filter_errors = execute_filters(
         scope="fusion",
@@ -1084,6 +1110,8 @@ async def _handle_fusion_command(
             "issue_summary": combined_issue_summary,
             "plugins": plugin_results,
             "plugin_errors": plugin_errors,
+            "fused_intel": fused_intel,
+            "fusion_graph": fusion_graph,
         },
     )
 
@@ -1100,23 +1128,29 @@ async def _handle_fusion_command(
         plugin_errors=plugin_errors,
         filter_results=filter_results,
         filter_errors=filter_errors,
+        fused_intel=fused_intel,
+        fusion_graph=fusion_graph,
     )
 
     report_path = ""
     try:
-        report_path = generate_html(
-            target=combined_target,
-            results=profile_data.get("results", []),
-            correlation=profile_data.get("correlation", {}),
-            issues=combined_issues,
-            issue_summary=combined_issue_summary,
-            narrative=combined_narrative,
-            domain_result=surface_data.get("domain_result"),
-            mode="fusion",
-            plugin_results=plugin_results,
-            plugin_errors=plugin_errors,
-            filter_results=filter_results,
-            filter_errors=filter_errors,
+        report_path = REPORT_GENERATOR.generate_html_dashboard(
+            {
+                "target": combined_target,
+                "results": profile_data.get("results", []),
+                "correlation": profile_data.get("correlation", {}),
+                "issues": combined_issues,
+                "issue_summary": combined_issue_summary,
+                "narrative": combined_narrative,
+                "domain_result": surface_data.get("domain_result"),
+                "mode": "fusion",
+                "plugins": plugin_results,
+                "plugin_errors": plugin_errors,
+                "filters": filter_results,
+                "filter_errors": filter_errors,
+                "fused_intel": fused_intel,
+                "fusion_graph": fusion_graph,
+            }
         )
         if args.html:
             print(c(f"Fusion HTML report generated -> {report_path}", Colors.GREEN))
@@ -1446,6 +1480,9 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         args = _apply_prompt_defaults(args, session)
         try:
             await _dispatch(args, state=state, prompt_mode=True)
+            session.history.append(command_text)
+            if len(session.history) > 200:
+                session.history = session.history[-200:]
         except Exception as exc:  # pragma: no cover - prompt safety guard
             append_framework_log("prompt_dispatch_error", str(exc), level="ERROR")
             print(c(f"[!] Command failed: {exc}", Colors.RED))

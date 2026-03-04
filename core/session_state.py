@@ -20,6 +20,7 @@ class PromptSessionState:
     module: str = "profile"
     plugin_names: list[str] = field(default_factory=list)
     filter_names: list[str] = field(default_factory=list)
+    history: list[str] = field(default_factory=list)
     all_plugins: bool = False
     all_filters: bool = False
     profile_preset: str = "balanced"
