@@ -1,8 +1,9 @@
-# Ignoring self assesment works
-self-assesment-structure/
-*tree.txt
-*.zip
-intel-sources/
+# Ignore self-assessment and source intel text/markdown files
+intel-sources/*.txt
+intel-sources/*.md
+
+# Keep folder structure if needed
+!intel-sources/.gitkeep
 
 # Python cache and virtual environments
 __pycache__/
@@ -12,7 +13,6 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
-.mypy_cache/
 .venv/
 venv/
 env/
