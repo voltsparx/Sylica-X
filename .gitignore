@@ -1,3 +1,7 @@
+# Ignoring self assesment work files
+blueprint.txt
+*tree.txt
+
 # Python cache and virtual environments
 __pycache__/
 *.py[cod]
