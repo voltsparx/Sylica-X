@@ -24,10 +24,13 @@ SURFACE_PRESETS = {
     "deep": {"timeout": 30, "max_subdomains": 700},
 }
 
+EXTENSION_CONTROL_MODES = ("auto", "manual", "hybrid")
+
 PROMPT_KEYWORDS = {
     "profile": {"profile", "scan", "social", "persona", "identity", "username", "handle", "account"},
     "surface": {"surface", "domain", "asset", "infra", "recon", "footprint"},
     "fusion": {"fusion", "full", "combo", "allscan", "stack"},
+    "orchestrate": {"orchestrate", "orch", "pipeline", "orchestration"},
     "anonymity": {"anonymity", "anon", "privacy", "routing", "tor"},
     "live": {"live", "dashboard", "watch", "monitor"},
     "keywords": {"keywords", "keyword", "verbs", "commands", "lexicon"},

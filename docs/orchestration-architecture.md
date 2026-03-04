@@ -8,9 +8,13 @@ Silica-X now includes an additive layered architecture aligned with `structure.t
 2. `core.engine_manager.get_engine()` selects backend (`async`, `thread`, `process`, `hybrid`).
 3. `core.orchestrator.Orchestrator.execute_capabilities()` runs enabled capabilities.
 4. `core.filters.FilterPipeline` applies policy-selected refinement filters.
-5. `core.fusion.FusionEngine` fuses entities and builds relationship graph.
+5. `core.fusion.FusionEngine` fuses entities using:
+   - `deduplicator`
+   - `correlator`
+   - `confidence_engine`
+   - `graph_builder`
 6. `core.intelligence.StrategicAdvisor` generates recommendations and priorities.
-7. `core.reporting` renders CLI summary, JSON payload, and HTML text.
+7. `core.reporting.ReportManager` renders text/JSON/HTML/graph outputs.
 
 ## Data Contract
 

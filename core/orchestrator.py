@@ -13,7 +13,7 @@ from core.filters import FilterPipeline, build_filter_registry
 from core.fusion import FusionEngine
 from core.intelligence import StrategicAdvisor
 from core.lifecycle import ScanLifecycle
-from core.reporting import build_json_payload, render_cli_summary, render_html_report
+from core.reporting import ReportManager
 from core.security import build_proxy_settings
 from core.utils.logging import get_logger
 
@@ -38,6 +38,7 @@ class Orchestrator:
         self._filter_registry = build_filter_registry()
         self._fusion_engine = FusionEngine()
         self._advisor = StrategicAdvisor()
+        self._report_manager = ReportManager()
 
     async def run(self) -> dict[str, Any]:
         """Execute full orchestration lifecycle and return presentation payloads."""
@@ -77,10 +78,15 @@ class Orchestrator:
             if capability_id in self._capabilities and capability_id != "correlation"
         ]
 
-        task_factories = [
-            (lambda capability=capability: capability.execute(self.target, context))
-            for capability in async_capabilities
-        ]
+        task_factories = []
+        for capability in async_capabilities:
+            capability_target = self._target_for_capability(capability.capability_id)
+            task_factories.append(
+                lambda capability=capability, capability_target=capability_target: capability.execute(
+                    capability_target,
+                    context,
+                )
+            )
         runtime_context = {"max_workers": self.policy.max_workers, "timeout": self.policy.timeout}
 
         raw_results = await self._engine.run(task_factories, runtime_context)
@@ -96,7 +102,8 @@ class Orchestrator:
         if "correlation" in enabled and "correlation" in self._capabilities:
             correlation_capability = self._capabilities["correlation"]
             correlation_context = self._build_context(existing_entities=entities)
-            correlation_entities = await correlation_capability.execute(self.target, correlation_context)
+            correlation_target = self._target_for_capability(correlation_capability.capability_id)
+            correlation_entities = await correlation_capability.execute(correlation_target, correlation_context)
             entities.extend(entity for entity in correlation_entities if isinstance(entity, BaseEntity))
 
         return entities
@@ -112,12 +119,20 @@ class Orchestrator:
         pipeline = FilterPipeline(selected_filters)
 
         min_confidence = float(self.config.get("min_confidence", 0.25))
+        depth = int(self.config.get("depth", self.policy.enrichment_depth))
         filtered = pipeline.run(
             entities,
             {
                 "target": self.target,
+                "targets": self._filter_targets(),
                 "mode": self.mode,
                 "min_confidence": min_confidence,
+                "depth": depth,
+                "keywords": self.config.get("keywords", []),
+                "allowed_sources": self.config.get("allowed_sources", []),
+                "allowed_types": self.config.get("allowed_types", []),
+                "blocked_terms": self.config.get("blocked_terms", []),
+                "entity_limit": self.config.get("entity_limit"),
             },
         )
         return filtered
@@ -135,15 +150,13 @@ class Orchestrator:
             "overall_confidence": self._advisor.estimate_overall_confidence(fused_data),
             "priorities": self._advisor.prioritize_findings(fused_data),
         }
-        payload = build_json_payload(
+        payload = self._report_manager.generate(
             target=self.target,
             mode=self.mode,
             fused_data=fused_data,
             advisory=advisory,
             lifecycle=self.lifecycle.as_dict(),
         )
-        payload["cli_summary"] = render_cli_summary(fused_data, advisory)
-        payload["html_report"] = render_html_report(self.target, self.mode, fused_data, advisory)
         return payload
 
     def _build_context(self, *, existing_entities: list[BaseEntity]) -> dict[str, Any]:
@@ -168,5 +181,33 @@ class Orchestrator:
             "include_ct": bool(self.config.get("include_ct", True)),
             "include_rdap": bool(self.config.get("include_rdap", True)),
             "max_subdomains": int(self.config.get("max_subdomains", 250)),
+            "depth": int(self.config.get("depth", self.policy.enrichment_depth)),
+            "profile_target": str(self.config.get("profile_target", self.target)).strip(),
+            "surface_target": str(self.config.get("surface_target", self.target)).strip(),
             "existing_entities": list(existing_entities),
         }
+
+    def _target_for_capability(self, capability_id: str) -> str:
+        if self.mode != "fusion":
+            return self.target
+        profile_target = str(self.config.get("profile_target", self.target)).strip()
+        surface_target = str(self.config.get("surface_target", self.target)).strip()
+        if capability_id == "domain_enumeration":
+            return surface_target or self.target
+        return profile_target or self.target
+
+    def _filter_targets(self) -> list[str]:
+        if self.mode != "fusion":
+            return [self.target]
+        profile_target = str(self.config.get("profile_target", self.target)).strip()
+        surface_target = str(self.config.get("surface_target", self.target)).strip()
+        values = [item for item in [profile_target, surface_target] if item]
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for item in values:
+            lowered = item.lower()
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            deduped.append(item)
+        return deduped

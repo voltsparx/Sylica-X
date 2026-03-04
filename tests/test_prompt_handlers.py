@@ -28,6 +28,7 @@ class TestPromptHandlers(unittest.TestCase):
         self.assertEqual(keyword_to_command("social"), "profile")
         self.assertEqual(keyword_to_command("domain"), "surface")
         self.assertEqual(keyword_to_command("full"), "fusion")
+        self.assertEqual(keyword_to_command("pipeline"), "orchestrate")
         self.assertEqual(keyword_to_command("about"), "about")
         self.assertEqual(keyword_to_command("info"), "about")
         self.assertEqual(keyword_to_command("explain"), "explain")

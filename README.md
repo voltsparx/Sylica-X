@@ -120,6 +120,7 @@ Running without flags starts **prompt mode**.
 * `profile <username...> [flags]`
 * `surface <domain> [flags]`
 * `fusion <username> <domain> [flags]`
+* `orchestrate <profile|surface|fusion> <target> [--secondary-target ...] [flags]`
 * `plugins [--scope all|profile|surface|fusion]`
 * `filters [--scope all|profile|surface|fusion]`
 * `modules [--sync] [--kind all|plugin|filter] [--scope all|profile|surface|fusion]`
@@ -147,6 +148,7 @@ Running without flags starts **prompt mode**.
 
 * `--preset`, `--profile-preset`, `--surface-preset`
 * `--timeout`, `--max-concurrency`, `--max-subdomains`
+* `--max-workers`, `--source-profile`, `--max-platforms`, `--min-confidence`
 
 ### Output
 
@@ -160,6 +162,7 @@ Running without flags starts **prompt mode**.
 
 * `--plugin`, `--all-plugins`, `--list-plugins`
 * `--filter`, `--all-filters`, `--list-filters`
+* `--extension-control auto|manual|hybrid`
 
 ---
 
@@ -169,6 +172,7 @@ Running without flags starts **prompt mode**.
 * `profile <username...>`
 * `surface <domain>`
 * `fusion <username> <domain>`
+* `orchestrate <profile|surface|fusion> <target> [--secondary-target ...]`
 * `plugins`, `filters`, `modules`, `history`
 * `anonymity`, `config`
 * `about` (keywords: `about`, `info`, `details`)

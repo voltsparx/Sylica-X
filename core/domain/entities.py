@@ -27,6 +27,7 @@ class BaseEntity:
     timestamp: datetime = field(default_factory=lambda: datetime.now(tz=timezone.utc))
     confidence: float = 0.0
     attributes: Mapping[str, Any] = field(default_factory=dict)
+    relationships: tuple[str, ...] = field(default_factory=tuple)
     entity_type: str = field(default="base", init=False)
 
     def __post_init__(self) -> None:
@@ -40,6 +41,25 @@ class BaseEntity:
 
         frozen_attributes = MappingProxyType(dict(self.attributes))
         object.__setattr__(self, "attributes", frozen_attributes)
+        object.__setattr__(self, "relationships", tuple(str(item) for item in self.relationships if item))
+
+    @property
+    def type(self) -> str:
+        """Compatibility alias for entity type."""
+
+        return self.entity_type
+
+    @property
+    def confidence_score(self) -> float:
+        """Compatibility alias for confidence score."""
+
+        return self.confidence
+
+    @property
+    def metadata(self) -> Mapping[str, Any]:
+        """Compatibility alias for entity metadata."""
+
+        return self.attributes
 
     def as_dict(self) -> dict[str, Any]:
         """Convert entity into a JSON-friendly dictionary."""
@@ -52,7 +72,11 @@ class BaseEntity:
                 "source": self.source,
                 "timestamp": self.timestamp.isoformat(),
                 "confidence": self.confidence,
+                "confidence_score": self.confidence,
                 "entity_type": self.entity_type,
+                "type": self.entity_type,
+                "metadata": dict(self.attributes),
+                "relationships": list(self.relationships),
             }
         )
         return payload

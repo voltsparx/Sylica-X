@@ -11,6 +11,10 @@ COMMAND_EXPLANATIONS: dict[str, str] = {
     "profile": "Checks usernames across platform manifests, extracts public signals, and correlates matches.",
     "surface": "Scans domain-facing assets (HTTP/HTTPS, CT, RDAP, headers) and summarizes exposure risk.",
     "fusion": "Runs profile + surface flows together and outputs one combined intelligence bundle.",
+    "orchestrate": (
+        "Runs the policy-driven layered pipeline (capabilities -> filters -> fusion -> reporting) "
+        "using entity contracts."
+    ),
     "keywords": "Lists prompt keyword aliases that map casual words to core commands.",
     "plugins": "Lists available internal plugins and their compatible workflow scopes.",
     "filters": "Lists available internal filters and their compatible workflow scopes.",
@@ -67,6 +71,7 @@ def build_explain_text() -> str:
     lines.append("Flag parity notes:")
     lines.append("- profile/surface/fusion share plugin/filter flags: --plugin, --all-plugins, --list-plugins.")
     lines.append("- profile/surface/fusion share filter flags: --filter, --all-filters, --list-filters.")
+    lines.append("- extension controls: --extension-control auto|manual|hybrid with conflict validation.")
     lines.append("- explain command and --explain flag produce the same explain output.")
     return "\n".join(lines)
 

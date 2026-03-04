@@ -26,6 +26,8 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(_keyword_to_command("social"), "profile")
         self.assertEqual(_keyword_to_command("domain"), "surface")
         self.assertEqual(_keyword_to_command("full"), "fusion")
+        self.assertEqual(_keyword_to_command("orch"), "orchestrate")
+        self.assertEqual(_keyword_to_command("pipeline"), "orchestrate")
         self.assertEqual(_keyword_to_command("monitor"), "live")
         self.assertEqual(_keyword_to_command("plugins"), "plugins")
         self.assertEqual(_keyword_to_command("addonS"), "plugins")
@@ -76,6 +78,7 @@ class TestRunnerCli(unittest.TestCase):
         self.assertTrue(args.html)
         self.assertEqual(args.plugin, ["orbit_link_matrix", "contact_lattice"])
         self.assertEqual(args.filter, ["contact_canonicalizer", "entity_name_resolver"])
+        self.assertEqual(args.extension_control, "manual")
 
     def test_root_profile_parser_accepts_max_preset(self):
         parser = build_root_parser()
@@ -107,6 +110,7 @@ class TestRunnerCli(unittest.TestCase):
         self.assertTrue(args.html)
         self.assertTrue(args.all_plugins)
         self.assertTrue(args.all_filters)
+        self.assertEqual(args.extension_control, "manual")
 
     def test_root_fusion_parser_parses_flags(self):
         parser = build_root_parser()
@@ -134,6 +138,57 @@ class TestRunnerCli(unittest.TestCase):
         self.assertTrue(args.html)
         self.assertEqual(args.plugin, ["threat_conductor"])
         self.assertEqual(args.filter, ["exposure_tier_matrix"])
+        self.assertEqual(args.extension_control, "manual")
+
+    def test_root_orchestrate_parser_parses_flags(self):
+        parser = build_root_parser()
+        args = parser.parse_args(
+            [
+                "orchestrate",
+                "fusion",
+                "alice",
+                "--secondary-target",
+                "example.com",
+                "--profile",
+                "deep",
+                "--timeout",
+                "42",
+                "--max-workers",
+                "18",
+                "--source-profile",
+                "max",
+                "--max-platforms",
+                "70",
+                "--max-subdomains",
+                "500",
+                "--min-confidence",
+                "0.4",
+                "--json",
+                "--html",
+                "--plugin",
+                "signal_fusion_core",
+                "--filter",
+                "signal_lane_fusion",
+                "--extension-control",
+                "hybrid",
+            ]
+        )
+        self.assertEqual(args.command, "orchestrate")
+        self.assertEqual(args.mode, "fusion")
+        self.assertEqual(args.target, "alice")
+        self.assertEqual(args.secondary_target, "example.com")
+        self.assertEqual(args.profile, "deep")
+        self.assertEqual(args.timeout, 42)
+        self.assertEqual(args.max_workers, 18)
+        self.assertEqual(args.source_profile, "max")
+        self.assertEqual(args.max_platforms, 70)
+        self.assertEqual(args.max_subdomains, 500)
+        self.assertAlmostEqual(args.min_confidence, 0.4)
+        self.assertTrue(args.json)
+        self.assertTrue(args.html)
+        self.assertEqual(args.plugin, ["signal_fusion_core"])
+        self.assertEqual(args.filter, ["signal_lane_fusion"])
+        self.assertEqual(args.extension_control, "hybrid")
 
     def test_plugins_parser_parses_scope(self):
         parser = build_root_parser()
@@ -269,6 +324,15 @@ class TestRunnerCli(unittest.TestCase):
         args = parser.parse_args(["modules", "--kind", "plugin"])
         self.assertEqual(args.command, "modules")
         self.assertEqual(args.kind, "plugin")
+
+    def test_prompt_parser_parses_orchestrate_command(self):
+        parser = build_prompt_parser()
+        args = parser.parse_args(["orchestrate", "profile", "alice", "--profile", "fast"])
+        self.assertEqual(args.command, "orchestrate")
+        self.assertEqual(args.mode, "profile")
+        self.assertEqual(args.target, "alice")
+        self.assertEqual(args.profile, "fast")
+        self.assertEqual(args.extension_control, "auto")
 
 
 if __name__ == "__main__":

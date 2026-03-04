@@ -41,6 +41,7 @@ class ProfileScannerAdapter:
             profile_url = str(row.get("url", ""))
             status = str(row.get("status", "UNKNOWN"))
             confidence = max(0.0, min(float(row.get("confidence", 0)) / 100.0, 1.0))
+            profile_entity_id = make_entity_id("profile", platform, f"{username}:{profile_url}")
 
             attributes: dict[str, Any] = {
                 "status": status,
@@ -53,7 +54,7 @@ class ProfileScannerAdapter:
 
             entities.append(
                 ProfileEntity(
-                    id=make_entity_id("profile", platform, f"{username}:{profile_url}"),
+                    id=profile_entity_id,
                     value=username,
                     source=platform,
                     timestamp=timestamp,
@@ -79,6 +80,7 @@ class ProfileScannerAdapter:
                         timestamp=timestamp,
                         confidence=min(1.0, confidence + 0.1),
                         attributes={"owner": username, "from_profile_url": profile_url},
+                        relationships=(profile_entity_id,),
                         email_domain=email_domain,
                     )
                 )

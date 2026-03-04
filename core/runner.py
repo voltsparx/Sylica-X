@@ -31,6 +31,8 @@ from core.interface.help_menu import show_flag_help, show_prompt_help
 from core.artifacts.html_report import generate_html
 from core.engines.fusion_engine import FusionEngine
 from core.intel.advisor import IntelligenceAdvisor
+from core.extensions.control_plane import merge_scan_modes, resolve_extension_control
+from core.orchestrator import Orchestrator
 from core.foundation.metadata import PROJECT_NAME, VERSION, framework_signature
 from core.analyze.narrative import build_nano_brief
 from core.collect.network import get_network_settings
@@ -723,6 +725,62 @@ def _resolve_surface_runtime(args: argparse.Namespace) -> tuple[int, int]:
     return timeout_seconds, max_subdomains
 
 
+def _print_extension_control_feedback(
+    *,
+    scope: str,
+    mode_name: str,
+    control_mode: str,
+    plugin_ids: tuple[str, ...],
+    filter_ids: tuple[str, ...],
+    warnings: tuple[str, ...],
+) -> None:
+    print(
+        c(
+            f"Extension control ({scope}): mode={mode_name} control={control_mode} "
+            f"plugins={len(plugin_ids)} filters={len(filter_ids)}",
+            Colors.CYAN,
+        )
+    )
+    for warning in warnings:
+        print(c(f"[!] {warning}", Colors.YELLOW))
+
+
+def _resolve_extension_plan_or_fail(
+    *,
+    scope: str,
+    scan_mode: str,
+    control_mode: str,
+    requested_plugins: list[str],
+    requested_filters: list[str],
+    include_all_plugins: bool,
+    include_all_filters: bool,
+) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], bool]:
+    plan = resolve_extension_control(
+        scope=scope,
+        scan_mode=scan_mode,
+        control_mode=control_mode,
+        requested_plugins=requested_plugins,
+        requested_filters=requested_filters,
+        include_all_plugins=include_all_plugins,
+        include_all_filters=include_all_filters,
+    )
+    if plan.errors:
+        print(c("[!] Extension configuration errors:", Colors.RED))
+        for item in plan.errors:
+            print(c(f" - {item}", Colors.RED))
+        return (), (), (), False
+
+    _print_extension_control_feedback(
+        scope=scope,
+        mode_name=plan.scan_mode,
+        control_mode=plan.control_mode,
+        plugin_ids=plan.plugins,
+        filter_ids=plan.filters,
+        warnings=plan.warnings,
+    )
+    return plan.plugins, plan.filters, plan.warnings, True
+
+
 async def run_profile_scan(
     username: str,
     state: RunnerState,
@@ -1123,6 +1181,18 @@ async def _handle_profile_command(
         print(c("[!] --live supports a single username at a time.", Colors.RED))
         return EXIT_USAGE
 
+    plugin_ids, filter_ids, _, ok_plan = _resolve_extension_plan_or_fail(
+        scope="profile",
+        scan_mode=args.preset,
+        control_mode=getattr(args, "extension_control", "manual"),
+        requested_plugins=args.plugin,
+        requested_filters=args.filter,
+        include_all_plugins=args.all_plugins,
+        include_all_filters=args.all_filters,
+    )
+    if not ok_plan:
+        return EXIT_USAGE
+
     effective_state = compute_effective_state(state, args.tor, args.proxy)
     ok, error = _validate_network_settings(effective_state, prompt_user=True)
     if not ok:
@@ -1150,10 +1220,10 @@ async def _handle_profile_command(
             live_port=args.live_port,
             open_browser=not args.no_browser,
             prompt_mode=prompt_mode,
-            plugin_names=args.plugin,
-            include_all_plugins=args.all_plugins,
-            filter_names=args.filter,
-            include_all_filters=args.all_filters,
+            plugin_names=list(plugin_ids),
+            include_all_plugins=False,
+            filter_names=list(filter_ids),
+            include_all_filters=False,
         )
         if status != EXIT_SUCCESS:
             failures += 1
@@ -1167,6 +1237,18 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
     if args.list_filters:
         _print_filter_inventory(scope="surface")
         return EXIT_SUCCESS
+
+    plugin_ids, filter_ids, _, ok_plan = _resolve_extension_plan_or_fail(
+        scope="surface",
+        scan_mode=args.preset,
+        control_mode=getattr(args, "extension_control", "manual"),
+        requested_plugins=args.plugin,
+        requested_filters=args.filter,
+        include_all_plugins=args.all_plugins,
+        include_all_filters=args.all_filters,
+    )
+    if not ok_plan:
+        return EXIT_USAGE
 
     effective_state = compute_effective_state(state, args.tor, args.proxy)
     ok, error = _validate_network_settings(effective_state, prompt_user=True)
@@ -1185,10 +1267,10 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
         include_ct=include_ct,
         include_rdap=include_rdap,
         write_html=args.html,
-        plugin_names=args.plugin,
-        include_all_plugins=args.all_plugins,
-        filter_names=args.filter,
-        include_all_filters=args.all_filters,
+        plugin_names=list(plugin_ids),
+        include_all_plugins=False,
+        filter_names=list(filter_ids),
+        include_all_filters=False,
     )
     return status
 
@@ -1203,6 +1285,19 @@ async def _handle_fusion_command(
     if args.list_filters:
         _print_filter_inventory(scope="fusion")
         return EXIT_SUCCESS
+
+    fusion_mode = merge_scan_modes(args.profile_preset, args.surface_preset)
+    plugin_ids, filter_ids, _, ok_plan = _resolve_extension_plan_or_fail(
+        scope="fusion",
+        scan_mode=fusion_mode,
+        control_mode=getattr(args, "extension_control", "manual"),
+        requested_plugins=args.plugin,
+        requested_filters=args.filter,
+        include_all_plugins=args.all_plugins,
+        include_all_filters=args.all_filters,
+    )
+    if not ok_plan:
+        return EXIT_USAGE
 
     effective_state = compute_effective_state(state, args.tor, args.proxy)
     ok, error = _validate_network_settings(effective_state, prompt_user=True)
@@ -1283,14 +1378,14 @@ async def _handle_fusion_command(
             "fusion_graph": fusion_graph,
         },
         scope="fusion",
-        requested_plugins=args.plugin,
-        include_all=args.all_plugins,
+        requested_plugins=list(plugin_ids),
+        include_all=False,
         chain=True,
     )
     filter_results, filter_errors = execute_filters(
         scope="fusion",
-        requested_filters=args.filter,
-        include_all=args.all_filters,
+        requested_filters=list(filter_ids),
+        include_all=False,
         context={
             "target": combined_target,
             "mode": "fusion",
@@ -1351,6 +1446,211 @@ async def _handle_fusion_command(
 
     print(c(f"[+] Fusion bundle saved under output/data/{combined_target}/", Colors.GREEN))
     append_framework_log("fusion_scan_done", f"target={combined_target} report={report_path or '-'}")
+    return EXIT_SUCCESS
+
+
+async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerState) -> int:
+    mode = str(args.mode).strip().lower()
+    if args.list_plugins:
+        _print_plugin_inventory(scope=mode)
+        return EXIT_SUCCESS
+    if args.list_filters:
+        _print_filter_inventory(scope=mode)
+        return EXIT_SUCCESS
+
+    plugin_ids, filter_ids, _, ok_plan = _resolve_extension_plan_or_fail(
+        scope=mode,
+        scan_mode=args.profile,
+        control_mode=getattr(args, "extension_control", "auto"),
+        requested_plugins=args.plugin,
+        requested_filters=args.filter,
+        include_all_plugins=args.all_plugins,
+        include_all_filters=args.all_filters,
+    )
+    if not ok_plan:
+        return EXIT_USAGE
+
+    effective_state = compute_effective_state(state, args.tor, args.proxy)
+    ok, error = _validate_network_settings(effective_state, prompt_user=True)
+    if not ok:
+        print(c(f"[!] {error}", Colors.RED))
+        return EXIT_FAILURE
+
+    primary_target = args.target.strip()
+    if not primary_target:
+        print(c("[!] Target is required.", Colors.RED))
+        return EXIT_USAGE
+
+    secondary_target = str(args.secondary_target or "").strip()
+    orchestrator_target = primary_target
+    storage_target = safe_path_component(primary_target)
+    target_label = primary_target
+
+    if mode == "profile":
+        if not _validate_username(primary_target):
+            print(c(f"[!] Invalid username target: '{primary_target}'", Colors.RED))
+            return EXIT_USAGE
+    elif mode == "surface":
+        normalized = normalize_domain(primary_target)
+        if not normalized:
+            print(c(f"[!] Invalid domain target: '{primary_target}'", Colors.RED))
+            return EXIT_USAGE
+        orchestrator_target = normalized
+        storage_target = safe_path_component(normalized)
+        target_label = normalized
+    elif mode == "fusion":
+        normalized_secondary = normalize_domain(secondary_target)
+        if not _validate_username(primary_target):
+            print(c(f"[!] Invalid fusion username target: '{primary_target}'", Colors.RED))
+            return EXIT_USAGE
+        if not normalized_secondary:
+            print(c("[!] Fusion mode requires --secondary-target with a valid domain.", Colors.RED))
+            return EXIT_USAGE
+        orchestrator_target = primary_target
+        storage_target = safe_path_component(f"{primary_target}_fusion_{normalized_secondary}")
+        target_label = f"{primary_target} + {normalized_secondary}"
+    else:
+        print(c(f"[!] Unsupported mode: {mode}", Colors.RED))
+        return EXIT_USAGE
+
+    profile_preset = PROFILE_PRESETS[args.profile]
+    timeout_seconds = int(args.timeout) if args.timeout is not None else int(profile_preset["timeout"])
+    max_workers = int(args.max_workers) if args.max_workers is not None else int(profile_preset["max_concurrency"])
+    source_profile = (
+        str(args.source_profile).strip().lower()
+        if args.source_profile
+        else str(profile_preset.get("source_profile", "balanced"))
+    )
+
+    max_platforms: int | None = None
+    if args.max_platforms is not None:
+        max_platforms = int(args.max_platforms)
+    elif isinstance(profile_preset.get("max_platforms"), int):
+        preset_limit = int(profile_preset["max_platforms"])
+        if preset_limit > 0:
+            max_platforms = preset_limit
+
+    max_subdomains = (
+        int(args.max_subdomains)
+        if args.max_subdomains is not None
+        else int(SURFACE_PRESETS["balanced"]["max_subdomains"])
+    )
+    include_ct = True if args.ct is None else bool(args.ct)
+    include_rdap = True if args.rdap is None else bool(args.rdap)
+    min_confidence_value = float(args.min_confidence)
+    if min_confidence_value < 0.0 or min_confidence_value > 1.0:
+        print(c("[!] --min-confidence must be between 0.0 and 1.0.", Colors.RED))
+        return EXIT_USAGE
+    min_confidence = min_confidence_value
+
+    config: dict[str, object] = {
+        "profile": str(args.profile),
+        "timeout": timeout_seconds,
+        "max_workers": max_workers,
+        "source_profile": source_profile,
+        "max_platforms": max_platforms,
+        "max_subdomains": max_subdomains,
+        "include_ct": include_ct,
+        "include_rdap": include_rdap,
+        "min_confidence": min_confidence,
+        "use_proxy": effective_state.use_proxy,
+        "use_tor": effective_state.use_tor,
+    }
+
+    if mode == "fusion":
+        normalized_secondary = normalize_domain(secondary_target)
+        config["profile_target"] = primary_target
+        config["surface_target"] = normalized_secondary
+
+    print(c(f"\nOrchestration mode: {mode} | target: {target_label}\n", Colors.CYAN))
+    append_framework_log(
+        "orchestrator_scan_start",
+        f"mode={mode} target={target_label} policy={args.profile} source_profile={source_profile}",
+    )
+
+    orchestrator = Orchestrator(target=orchestrator_target, mode=mode, config=config)
+    try:
+        payload = await orchestrator.run()
+    except Exception as exc:
+        append_framework_log("orchestrator_scan_failed", f"target={target_label} reason={exc}", level="WARN")
+        print(c(f"[!] Orchestration failed: {exc}", Colors.RED))
+        return EXIT_FAILURE
+
+    anomalies = payload.get("fused", {}).get("anomalies", [])
+    issue_summary = {"total": len(anomalies)} if isinstance(anomalies, list) else {"total": 0}
+    plugin_context = {
+        "target": target_label,
+        "mode": mode,
+        "results": payload.get("fused", {}).get("graph", {}).get("nodes", []),
+        "correlation": payload.get("fused", {}).get("relationship_map", {}),
+        "issues": anomalies if isinstance(anomalies, list) else [],
+        "issue_summary": issue_summary,
+        "fused_intel": payload.get("fused", {}),
+        "fusion_graph": payload.get("fused", {}).get("graph", {}),
+    }
+    plugin_results: list[dict] = []
+    plugin_errors: list[str] = []
+    if plugin_ids:
+        plugin_results, plugin_errors = await PLUGIN_MANAGER.run_plugins(
+            plugin_context,
+            scope=mode,
+            requested_plugins=list(plugin_ids),
+            include_all=False,
+            chain=True,
+        )
+
+    filter_context = dict(plugin_context)
+    filter_context.update(
+        {
+            "plugins": plugin_results,
+            "plugin_errors": plugin_errors,
+        }
+    )
+    filter_results: list[dict] = []
+    filter_errors: list[str] = []
+    if filter_ids:
+        filter_results, filter_errors = execute_filters(
+            scope=mode,
+            requested_filters=list(filter_ids),
+            include_all=False,
+            context=filter_context,
+        )
+
+    payload["plugins"] = plugin_results
+    payload["plugin_errors"] = plugin_errors
+    payload["filters"] = filter_results
+    payload["filter_errors"] = filter_errors
+    for item in plugin_errors:
+        print(c(f"[plugin] {item}", Colors.YELLOW))
+    for item in filter_errors:
+        print(c(f"[filter] {item}", Colors.YELLOW))
+
+    data_dir = os.path.join("output", "data", storage_target)
+    os.makedirs(data_dir, exist_ok=True)
+    json_path = os.path.join(data_dir, "orchestrator.json")
+    with open(json_path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+
+    summary = str(payload.get("cli_summary", "")).strip()
+    if summary:
+        print(c(summary, Colors.CYAN))
+
+    html_path = ""
+    if args.html:
+        html_path = os.path.join("output", "html", f"{storage_target}_orchestrator.html")
+        with open(html_path, "w", encoding="utf-8") as handle:
+            handle.write(str(payload.get("html_report", "")))
+        print(c(f"Orchestration HTML report generated -> {html_path}", Colors.GREEN))
+
+    print(c(f"[+] Orchestration bundle saved -> {json_path}", Colors.GREEN))
+
+    if args.json:
+        print(json.dumps(payload, indent=2))
+
+    append_framework_log(
+        "orchestrator_scan_done",
+        f"target={target_label} mode={mode} json={json_path} html={html_path or '-'}",
+    )
     return EXIT_SUCCESS
 
 
@@ -1487,6 +1787,7 @@ async def _handle_wizard_command(
             tor=None,
             proxy=None,
             preset="balanced",
+            extension_control="manual",
             timeout=None,
             max_concurrency=None,
             csv=write_csv,
@@ -1510,6 +1811,7 @@ async def _handle_wizard_command(
             tor=None,
             proxy=None,
             preset="balanced",
+            extension_control="manual",
             timeout=None,
             max_subdomains=None,
             ct=None,
@@ -1533,6 +1835,7 @@ async def _handle_wizard_command(
             proxy=None,
             profile_preset="balanced",
             surface_preset="balanced",
+            extension_control="manual",
             csv=write_csv,
             html=write_html,
             plugin=plugin_names,
@@ -1583,6 +1886,8 @@ async def _dispatch(args: argparse.Namespace, state: RunnerState, prompt_mode: b
         return await _handle_surface_command(args, state=state)
     if args.command in {"fusion", "full", "combo"}:
         return await _handle_fusion_command(args, state=state)
+    if args.command in {"orchestrate", "orch"}:
+        return await _handle_orchestrate_command(args, state=state)
     if args.command == "live":
         return await _handle_live_command(args, prompt_mode=prompt_mode)
     if args.command == "anonymity":
@@ -1702,13 +2007,29 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         if tokens and tokens[0] == "scan" and len(tokens) == 1:
             target = ask("Username target: ")
             tokens = ["scan", target]
-        if tokens and keyword_match in {"profile", "surface", "fusion"} and len(tokens) == 1:
+        if tokens and tokens[0] == "orchestrate" and len(tokens) == 1:
+            mode = ask("Orchestration mode [profile|surface|fusion] [profile]: ").strip().lower() or "profile"
+            primary_target = ask("Primary target: ").strip()
+            tokens = ["orchestrate", mode, primary_target]
+            if mode == "fusion":
+                secondary_target = ask("Secondary domain target: ").strip()
+                if secondary_target:
+                    tokens.extend(["--secondary-target", secondary_target])
+        if tokens and keyword_match in {"profile", "surface", "fusion", "orchestrate"} and len(tokens) == 1:
             if keyword_match == "profile":
                 target = ask("Username target: ")
                 tokens = ["profile", target]
             elif keyword_match == "surface":
                 target = ask("Domain target: ")
                 tokens = ["surface", target]
+            elif keyword_match == "orchestrate":
+                mode = ask("Orchestration mode [profile|surface|fusion] [profile]: ").strip().lower() or "profile"
+                primary_target = ask("Primary target: ").strip()
+                tokens = ["orchestrate", mode, primary_target]
+                if mode == "fusion":
+                    secondary_target = ask("Secondary domain target: ").strip()
+                    if secondary_target:
+                        tokens.extend(["--secondary-target", secondary_target])
             else:
                 username = ask("Username target: ")
                 domain = ask("Domain target: ")

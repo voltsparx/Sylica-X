@@ -44,15 +44,34 @@ class RelevanceFilter(BaseFilter):
     filter_id = "relevance"
 
     def apply(self, entities: Sequence[BaseEntity], context: Mapping[str, Any]) -> list[BaseEntity]:
-        target = str(context.get("target", "")).strip().lower()
-        if not target:
+        raw_targets = context.get("targets")
+        targets: list[str] = []
+        if isinstance(raw_targets, list):
+            targets.extend(
+                str(item).strip().lower()
+                for item in raw_targets
+                if isinstance(item, str) and item.strip()
+            )
+        primary_target = str(context.get("target", "")).strip().lower()
+        if primary_target:
+            targets.append(primary_target)
+
+        normalized_targets: list[str] = []
+        seen: set[str] = set()
+        for target in targets:
+            if target in seen:
+                continue
+            seen.add(target)
+            normalized_targets.append(target)
+
+        if not normalized_targets:
             return list(entities)
 
         filtered: list[BaseEntity] = []
         for entity in entities:
-            value_match = target in entity.value.strip().lower()
+            entity_value = entity.value.strip().lower()
             metadata_text = " ".join(str(value).lower() for value in dict(entity.attributes).values())
-            if value_match or target in metadata_text:
+            if any(target in entity_value or target in metadata_text for target in normalized_targets):
                 filtered.append(entity)
         return filtered
 

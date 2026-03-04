@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from typing import NoReturn
 
-from core.interface.cli_config import PROFILE_PRESETS, SURFACE_PRESETS
+from core.interface.cli_config import EXTENSION_CONTROL_MODES, PROFILE_PRESETS, SURFACE_PRESETS
 
 MODULE_SORT_FIELDS = [
     "framework",
@@ -110,6 +110,15 @@ def _add_filter_args(parser: argparse.ArgumentParser) -> None:
         "--list-filters",
         action="store_true",
         help="List compatible filters for this scope and exit.",
+    )
+
+
+def _add_extension_control_args(parser: argparse.ArgumentParser, *, default_mode: str) -> None:
+    parser.add_argument(
+        "--extension-control",
+        choices=list(EXTENSION_CONTROL_MODES),
+        default=default_mode,
+        help="Extension control mode: auto, manual, or hybrid.",
     )
 
 
@@ -301,6 +310,7 @@ def _add_profile_args(parser: argparse.ArgumentParser, *, default_dashboard_port
     )
     _add_plugin_args(parser)
     _add_filter_args(parser)
+    _add_extension_control_args(parser, default_mode="manual")
 
 
 def _add_surface_args(parser: argparse.ArgumentParser) -> None:
@@ -334,6 +344,7 @@ def _add_surface_args(parser: argparse.ArgumentParser) -> None:
     )
     _add_plugin_args(parser)
     _add_filter_args(parser)
+    _add_extension_control_args(parser, default_mode="manual")
 
 
 def _add_fusion_args(parser: argparse.ArgumentParser) -> None:
@@ -365,6 +376,83 @@ def _add_fusion_args(parser: argparse.ArgumentParser) -> None:
     )
     _add_plugin_args(parser)
     _add_filter_args(parser)
+    _add_extension_control_args(parser, default_mode="manual")
+
+
+def _add_orchestrate_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "mode",
+        choices=["profile", "surface", "fusion"],
+        help="Orchestration mode.",
+    )
+    parser.add_argument(
+        "target",
+        help="Primary target (username for profile/fusion, domain for surface).",
+    )
+    parser.add_argument(
+        "--secondary-target",
+        default="",
+        help="Secondary target (required for fusion mode: domain).",
+    )
+    _add_toggle_flags(parser, "tor", "Tor routing")
+    _add_toggle_flags(parser, "proxy", "HTTP proxy routing")
+    _add_toggle_flags(parser, "ct", "Certificate Transparency lookup")
+    _add_toggle_flags(parser, "rdap", "RDAP ownership lookup")
+    parser.add_argument(
+        "--profile",
+        choices=sorted(PROFILE_PRESETS.keys()),
+        default="balanced",
+        help="Execution policy profile.",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=positive_int,
+        default=None,
+        help="Task timeout override in seconds.",
+    )
+    parser.add_argument(
+        "--max-workers",
+        type=positive_int,
+        default=None,
+        help="Max orchestration workers override.",
+    )
+    parser.add_argument(
+        "--source-profile",
+        choices=["fast", "quick", "balanced", "deep", "max"],
+        default=None,
+        help="Source selection profile for username collection.",
+    )
+    parser.add_argument(
+        "--max-platforms",
+        type=positive_int,
+        default=None,
+        help="Maximum profile platforms for username collection.",
+    )
+    parser.add_argument(
+        "--max-subdomains",
+        type=positive_int,
+        default=None,
+        help="Maximum CT-derived subdomains for domain collection.",
+    )
+    parser.add_argument(
+        "--min-confidence",
+        type=float,
+        default=0.25,
+        help="Minimum confidence threshold for orchestration filter pipeline (0.0-1.0).",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print full orchestration payload as JSON.",
+    )
+    parser.add_argument(
+        "--html",
+        action="store_true",
+        help="Write orchestration HTML report into output/html.",
+    )
+    _add_plugin_args(parser)
+    _add_filter_args(parser)
+    _add_extension_control_args(parser, default_mode="auto")
 
 
 def build_root_parser(
@@ -411,6 +499,13 @@ def build_root_parser(
         help="Run profile + surface intelligence as one workflow.",
     )
     _add_fusion_args(fusion_parser)
+
+    orchestrate_parser = subparsers.add_parser(
+        "orchestrate",
+        aliases=["orch"],
+        help="Run policy-driven layered orchestration pipeline.",
+    )
+    _add_orchestrate_args(orchestrate_parser)
 
     live_parser = subparsers.add_parser("live", help="Launch live dashboard for saved results.")
     _add_live_args(live_parser, default_dashboard_port=default_dashboard_port)
@@ -488,6 +583,13 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
         add_help=False,
     )
     _add_fusion_args(fusion_parser)
+
+    orchestrate_parser = subparsers.add_parser(
+        "orchestrate",
+        aliases=["orch"],
+        add_help=False,
+    )
+    _add_orchestrate_args(orchestrate_parser)
 
     live_parser = subparsers.add_parser("live", add_help=False)
     _add_live_args(live_parser, default_dashboard_port=default_dashboard_port)

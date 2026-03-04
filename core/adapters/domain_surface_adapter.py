@@ -39,6 +39,7 @@ class DomainSurfaceAdapter:
         https_data = payload.get("https") if isinstance(payload.get("https"), dict) else {}
         http_data = payload.get("http") if isinstance(payload.get("http"), dict) else {}
         domain_confidence = 0.85 if https_data.get("status") else 0.55
+        domain_entity_id = make_entity_id("domain", "surface", normalized_domain)
 
         domain_attributes: dict[str, Any] = {
             "resolved_addresses": list(payload.get("resolved_addresses", [])),
@@ -51,7 +52,7 @@ class DomainSurfaceAdapter:
         }
         entities.append(
             DomainEntity(
-                id=make_entity_id("domain", "surface", normalized_domain),
+                id=domain_entity_id,
                 value=normalized_domain,
                 source="surface",
                 timestamp=timestamp,
@@ -73,6 +74,7 @@ class DomainSurfaceAdapter:
                     timestamp=timestamp,
                     confidence=0.8,
                     attributes={"domain": normalized_domain},
+                    relationships=(domain_entity_id,),
                     ip_version=ip_version,
                 )
             )
@@ -88,6 +90,7 @@ class DomainSurfaceAdapter:
                     timestamp=timestamp,
                     confidence=0.72,
                     attributes={"asset_kind": "subdomain", "parent_domain": normalized_domain},
+                    relationships=(domain_entity_id,),
                     asset_kind="subdomain",
                 )
             )
@@ -101,6 +104,7 @@ class DomainSurfaceAdapter:
                     timestamp=timestamp,
                     confidence=0.74,
                     attributes={"preview": payload.get("robots_preview", "")},
+                    relationships=(domain_entity_id,),
                     asset_kind="robots_txt",
                 )
             )
@@ -114,6 +118,7 @@ class DomainSurfaceAdapter:
                     timestamp=timestamp,
                     confidence=0.78,
                     attributes={"preview": payload.get("security_preview", "")},
+                    relationships=(domain_entity_id,),
                     asset_kind="security_txt",
                 )
             )

@@ -26,12 +26,17 @@ class TestDomainEntities(unittest.TestCase):
             source="github",
             confidence=0.8,
             attributes={"status": "FOUND"},
+            relationships=("user-1",),
             platform="github",
             profile_url="https://github.com/alice",
             status="FOUND",
         )
         with self.assertRaises(TypeError):
             entity.attributes["new"] = "value"  # type: ignore[index]
+        self.assertEqual(entity.type, "profile")
+        self.assertEqual(entity.confidence_score, 0.8)
+        self.assertEqual(entity.metadata["status"], "FOUND")
+        self.assertEqual(entity.relationships, ("user-1",))
 
 
 if __name__ == "__main__":

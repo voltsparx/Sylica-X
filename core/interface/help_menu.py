@@ -18,6 +18,7 @@ def show_flag_help() -> None:
     print("• profile <username...> - Scan usernames for profile intelligence.")
     print("• surface <domain> - Scan a domain for surface exposure signals.")
     print("• fusion <username> <domain> - Run profile and surface workflows together.")
+    print("• orchestrate <profile|surface|fusion> <target> [--secondary-target ...] - Run layered orchestration.")
     print("• plugins [--scope ...] - List available plugins.")
     print("• filters [--scope ...] - List available filters.")
     print(
@@ -36,6 +37,7 @@ def show_flag_help() -> None:
     print("• help - Show this help menu.\n")
 
     print("Common extension flags: --plugin --all-plugins --list-plugins --filter --all-filters --list-filters.")
+    print("Extension control: --extension-control auto|manual|hybrid (manual defaults on profile/surface/fusion).")
     print("Common routing flags: --tor --no-tor --proxy --no-proxy --check --prompt.")
     print("Output paths: output/data output/html output/cli output/logs.\n")
 
@@ -49,6 +51,7 @@ def show_prompt_help() -> None:
     print("• profile <username...> - Run profile workflow.")
     print("• surface <domain> - Run surface workflow.")
     print("• fusion <username> <domain> - Run fusion workflow.")
+    print("• orchestrate <profile|surface|fusion> <target> [--secondary-target ...] - Run layered orchestration.")
     print("• plugins [--scope ...] - List plugins.")
     print("• filters [--scope ...] - List filters.")
     print(
@@ -63,6 +66,7 @@ def show_prompt_help() -> None:
     print("• set filters <none|all|selector1,selector2> - Set module-compatible filters.")
     print("• set profile_preset <fast|quick|balanced|deep|max> - Set default profile preset.")
     print("• set surface_preset <quick|balanced|deep> - Set default surface preset.")
+    print("• profile/surface/fusion/orchestrate support --extension-control auto|manual|hybrid.")
     print("• anonymity [flags] - Check or change Tor and proxy routing.")
     print("• wizard - Run guided workflow.")
     print("• banner - Show banner.")
