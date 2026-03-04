@@ -7,7 +7,7 @@ from typing import Any
 
 from core.adapters import ProfileScannerAdapter
 from core.capabilities.base import Capability
-from core.domain import BaseEntity, EmailEntity, ProfileEntity
+from core.domain import AssetEntity, BaseEntity, EmailEntity, ProfileEntity
 
 
 class UsernameLookupCapability(Capability):
@@ -41,4 +41,4 @@ class UsernameLookupCapability(Capability):
         return list(entities)
 
     def supported_entities(self) -> tuple[type[BaseEntity], ...]:
-        return (ProfileEntity, EmailEntity)
+        return (ProfileEntity, EmailEntity, AssetEntity)

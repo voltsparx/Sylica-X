@@ -6,7 +6,7 @@ This tool is built by stitching together public OSINT workflows and studying how
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/images/silica-x-help-menu.png" alt="Silica-X Help Menu" width="600">
+  <img src="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/images/silica-x-menu.png" alt="Silica-X Help Menu" width="600">
 </p>
 
 ---

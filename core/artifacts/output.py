@@ -46,6 +46,18 @@ def _preview(values: list[str], limit: int = 8) -> str:
     return f"{', '.join(values[:limit])} ... (+{len(values) - limit} more)"
 
 
+def _top_scored_items(items: list[dict], *, limit: int = 8) -> list[dict]:
+    rows = [item for item in items if isinstance(item, dict)]
+    rows.sort(
+        key=lambda item: (
+            -float(item.get("score", item.get("confidence_score", 0.0)) or 0.0),
+            -int(item.get("supporting_entities", 0) or 0),
+            str(item.get("value", "")).lower(),
+        )
+    )
+    return rows[:limit]
+
+
 def _print_issue_block(issues: Iterable[dict[str, str]]) -> None:
     issue_list = list(issues)
     if not issue_list:
@@ -112,6 +124,85 @@ def _print_filter_block(
             print(c(f"- {err}", Colors.RED))
 
 
+def _print_intelligence_block(intelligence_bundle: dict | None) -> None:
+    bundle = intelligence_bundle or {}
+    if not bundle:
+        return
+
+    metadata = bundle.get("metadata", {}) or {}
+    risk_summary = bundle.get("risk_summary", {}) or {}
+    confidence_distribution = bundle.get("confidence_distribution", {}) or {}
+    facets = bundle.get("entity_facets", {}) or {}
+    scored_contacts = list(facets.get("scored_contacts", []) or [])
+    scored_entities = list(bundle.get("scored_entities", []) or [])
+    guidance = bundle.get("execution_guidance", {}) or {}
+    correlation_summary = bundle.get("correlation_summary", {}) or {}
+
+    print(c("\n[ Intelligence Scoring ]", Colors.BLUE))
+    print(c("------------------------------------", Colors.BLUE))
+    print(
+        c(
+            "Entities: "
+            f"{metadata.get('entity_count', 0)} "
+            f"| Evidence: {metadata.get('evidence_count', 0)} "
+            f"| Links: {correlation_summary.get('link_count', 0)}",
+            Colors.CYAN,
+        )
+    )
+    print(
+        c(
+            "Confidence distribution: "
+            f"high={confidence_distribution.get('high', 0)} "
+            f"medium={confidence_distribution.get('medium', 0)} "
+            f"low={confidence_distribution.get('low', 0)}",
+            Colors.CYAN,
+        )
+    )
+    print(c(f"Risk summary: {risk_summary}", Colors.MAGENTA))
+    print(c(f"Emails: {_preview(list(facets.get('emails', []) or []), limit=10)}", Colors.GREY))
+    print(c(f"Phones: {_preview(list(facets.get('phones', []) or []), limit=10)}", Colors.GREY))
+    print(c(f"Names: {_preview(list(facets.get('names', []) or []), limit=10)}", Colors.GREY))
+
+    top_contacts = _top_scored_items(scored_contacts, limit=8)
+    if top_contacts:
+        print(c("\nTop contact/name signals:", Colors.YELLOW))
+        for item in top_contacts:
+            print(
+                c(
+                    f"- [{str(item.get('kind', '?')).upper()}] {item.get('value', '-')}"
+                    f" score={item.get('score_percent', 0)}%"
+                    f" support={item.get('supporting_entities', 0)}"
+                    f" risk={item.get('risk_level', 'LOW')}",
+                    Colors.YELLOW,
+                )
+            )
+
+    top_entities = _top_scored_items(scored_entities, limit=10)
+    if top_entities:
+        print(c("\nTop scored entities:", Colors.CYAN))
+        for row in top_entities:
+            print(
+                c(
+                    f"- {row.get('entity_type', '-')} {row.get('value', '-')}"
+                    f" [{row.get('source', '-')}]"
+                    f" confidence={row.get('confidence_percent', 0)}%"
+                    f" risk={row.get('risk_level', '-')}"
+                    f" relations={row.get('relationship_count', 0)}",
+                    Colors.CYAN,
+                )
+            )
+
+    actions = guidance.get("actions", []) if isinstance(guidance.get("actions"), list) else []
+    if actions:
+        print(c("\nExplainable guidance:", Colors.GREEN))
+        for action in actions[:6]:
+            if not isinstance(action, dict):
+                continue
+            print(c(f"- [{action.get('priority', 'P3')}] {action.get('title', 'Action')}", Colors.GREEN))
+            print(c(f"  why: {action.get('rationale', '-')}", Colors.GREY))
+            print(c(f"  hint: {action.get('command_hint', '-')}", Colors.GREY))
+
+
 def display_results(
     results: list[dict],
     correlation: dict,
@@ -124,6 +215,7 @@ def display_results(
     plugin_errors: list[str] | None = None,
     filter_results: list[dict] | None = None,
     filter_errors: list[str] | None = None,
+    intelligence_bundle: dict | None = None,
 ) -> None:
     print(c("\n[ Scan Results ]", Colors.BLUE))
     print(c("------------------------------------", Colors.BLUE))
@@ -214,6 +306,7 @@ def display_results(
     print(c(f"Emails: {_preview(snapshot['emails'])}", Colors.GREY))
     print(c(f"Email domains: {_preview(snapshot['email_domains'])}", Colors.GREY))
     print(c(f"Phones: {_preview(snapshot['phones'])}", Colors.GREY))
+    print(c(f"Names: {_preview(snapshot['names'])}", Colors.GREY))
     print(c(f"Mentions: {_preview(snapshot['mentions'])}", Colors.GREY))
     print(c(f"External links: {_preview(snapshot['external_links'])}", Colors.GREY))
     print(c(f"Link domains: {_preview(snapshot['external_link_domains'])}", Colors.GREY))
@@ -238,6 +331,7 @@ def display_results(
     if issue_summary:
         print(c(f"\nRisk score: {issue_summary.get('risk_score', 0)}", Colors.MAGENTA))
         print(c(f"Severity breakdown: {issue_summary.get('severity_breakdown', {})}", Colors.MAGENTA))
+    _print_intelligence_block(intelligence_bundle)
     _print_plugin_block(plugin_results, plugin_errors)
     _print_filter_block(filter_results, filter_errors)
     if narrative:
@@ -257,6 +351,7 @@ def display_domain_results(
     plugin_errors: list[str] | None = None,
     filter_results: list[dict] | None = None,
     filter_errors: list[str] | None = None,
+    intelligence_bundle: dict | None = None,
 ) -> None:
     target = domain_result.get("target", "unknown")
     print(c("\n[ Domain Surface Scan ]", Colors.BLUE))
@@ -293,6 +388,7 @@ def display_domain_results(
     if issue_summary:
         print(c(f"\nRisk score: {issue_summary.get('risk_score', 0)}", Colors.MAGENTA))
         print(c(f"Severity breakdown: {issue_summary.get('severity_breakdown', {})}", Colors.MAGENTA))
+    _print_intelligence_block(intelligence_bundle)
     _print_plugin_block(plugin_results, plugin_errors)
     _print_filter_block(filter_results, filter_errors)
     if narrative:
@@ -352,6 +448,7 @@ def _render_cli_report(payload: dict) -> str:
     lines.append(f"- emails: {', '.join(snapshot['emails']) or 'none'}")
     lines.append(f"- email_domains: {', '.join(snapshot['email_domains']) or 'none'}")
     lines.append(f"- phones: {', '.join(snapshot['phones']) or 'none'}")
+    lines.append(f"- names: {', '.join(snapshot['names']) or 'none'}")
     lines.append(f"- mentions: {', '.join(snapshot['mentions']) or 'none'}")
     lines.append(f"- external_links: {', '.join(snapshot['external_links']) or 'none'}")
     lines.append(f"- external_link_domains: {', '.join(snapshot['external_link_domains']) or 'none'}")
@@ -432,6 +529,52 @@ def _render_cli_report(payload: dict) -> str:
         )
         lines.append("")
 
+    intelligence_bundle = payload.get("intelligence_bundle", {}) or {}
+    if intelligence_bundle:
+        metadata = intelligence_bundle.get("metadata", {}) or {}
+        facets = intelligence_bundle.get("entity_facets", {}) or {}
+        confidence_distribution = intelligence_bundle.get("confidence_distribution", {}) or {}
+        risk_summary = intelligence_bundle.get("risk_summary", {}) or {}
+        scored_entities = intelligence_bundle.get("scored_entities", []) or []
+        guidance = intelligence_bundle.get("execution_guidance", {}) or {}
+
+        lines.append("[Intelligence Scoring]")
+        lines.append(
+            f"- entities: {metadata.get('entity_count', 0)} evidence: {metadata.get('evidence_count', 0)}"
+        )
+        lines.append(
+            "- confidence_distribution: "
+            f"high={confidence_distribution.get('high', 0)} "
+            f"medium={confidence_distribution.get('medium', 0)} "
+            f"low={confidence_distribution.get('low', 0)}"
+        )
+        lines.append(f"- risk_summary: {risk_summary}")
+        lines.append(f"- emails: {', '.join(facets.get('emails', []) or []) or 'none'}")
+        lines.append(f"- phones: {', '.join(facets.get('phones', []) or []) or 'none'}")
+        lines.append(f"- names: {', '.join(facets.get('names', []) or []) or 'none'}")
+        if scored_entities:
+            lines.append("- top_scored_entities:")
+            for row in list(scored_entities)[:12]:
+                if not isinstance(row, dict):
+                    continue
+                lines.append(
+                    "  - "
+                    f"{row.get('entity_type', '-')} {row.get('value', '-')}"
+                    f" ({row.get('confidence_percent', 0)}%, risk={row.get('risk_level', '-')})"
+                )
+        actions = guidance.get("actions", []) if isinstance(guidance.get("actions"), list) else []
+        if actions:
+            lines.append("- guidance:")
+            for item in actions[:6]:
+                if not isinstance(item, dict):
+                    continue
+                lines.append(
+                    f"  - [{item.get('priority', 'P3')}] {item.get('title', 'Action')}: "
+                    f"{item.get('rationale', '-')}"
+                )
+                lines.append(f"    hint={item.get('command_hint', '-')}")
+        lines.append("")
+
     narrative = str(payload.get("narrative") or "").strip()
     lines.append("[Nano AI Brief]")
     lines.append(f"- {narrative or 'No narrative generated.'}")
@@ -479,6 +622,7 @@ def save_results(
     filter_errors: list[str] | None = None,
     fused_intel: dict | None = None,
     fusion_graph: dict | None = None,
+    intelligence_bundle: dict | None = None,
 ) -> str:
     ensure_output_tree()
     target_display = str(target or "").strip()
@@ -504,6 +648,7 @@ def save_results(
         "filter_errors": filter_errors or [],
         "fused_intel": fused_intel or {},
         "fusion_graph": fusion_graph or {},
+        "intelligence_bundle": intelligence_bundle or {},
         "narrative": narrative,
     }
 
@@ -513,6 +658,8 @@ def save_results(
     filters_count = len(payload["filters"]) if isinstance(payload["filters"], list) else 0
     fusion_nodes = len((payload.get("fusion_graph") or {}).get("nodes", []) or [])
     fusion_edges = len((payload.get("fusion_graph") or {}).get("edges", []) or [])
+    intelligence_entities = len((payload.get("intelligence_bundle") or {}).get("entities", []) or [])
+    intelligence_links = len((payload.get("intelligence_bundle") or {}).get("relationships", []) or [])
 
     json_path = results_json_path(target_key)
     with json_path.open("w", encoding="utf-8") as handle:
@@ -540,6 +687,8 @@ def save_results(
             f"filters={filters_count}\n"
             f"fusion_nodes={fusion_nodes}\n"
             f"fusion_edges={fusion_edges}\n"
+            f"intelligence_entities={intelligence_entities}\n"
+            f"intelligence_links={intelligence_links}\n"
             f"framework={framework_signature()}\n"
         ),
         encoding="utf-8",

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections import Counter
+import re
 from urllib.parse import urlparse
 
 
 FOCUS_STATUSES = ("FOUND", "ERROR", "BLOCKED")
 ERROR_STATUSES = ("ERROR", "BLOCKED")
+NAME_PATTERN = re.compile(r"\b([A-Z][a-z]{1,24}(?:\s+[A-Z][a-z]{1,24}){1,2})\b")
 
 
 def focused_profile_rows(results: list[dict]) -> list[dict]:
@@ -38,6 +40,25 @@ def _extract_domain(value: str) -> str:
     return host
 
 
+def _extract_name_candidates(text: str) -> list[str]:
+    tokens = []
+    for match in NAME_PATTERN.findall(str(text or "")):
+        token = " ".join(part for part in str(match).strip().split() if part)
+        if token:
+            tokens.append(token)
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for item in tokens:
+        lowered = item.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        deduped.append(item)
+        if len(deduped) >= 8:
+            break
+    return deduped
+
+
 def summarize_target_intel(results: list[dict]) -> dict:
     found_rows = found_profile_rows(results)
     error_rows = error_profile_rows(results)
@@ -47,6 +68,7 @@ def summarize_target_intel(results: list[dict]) -> dict:
     profile_links: set[str] = set()
     emails: set[str] = set()
     phones: set[str] = set()
+    names: set[str] = set()
     mentions: set[str] = set()
     external_links: set[str] = set()
     bios: set[str] = set()
@@ -96,6 +118,8 @@ def summarize_target_intel(results: list[dict]) -> dict:
         bio = str(row.get("bio") or "").strip()
         if bio:
             bios.add(bio)
+            for candidate in _extract_name_candidates(bio):
+                names.add(candidate)
 
         response_time = row.get("response_time_ms")
         if isinstance(response_time, int) and response_time > 0:
@@ -143,6 +167,7 @@ def summarize_target_intel(results: list[dict]) -> dict:
         "emails": sorted(emails),
         "email_domains": [f"{name}:{count}" for name, count in email_domains.most_common(10)],
         "phones": sorted(phones),
+        "names": sorted(names),
         "mentions": sorted(mentions),
         "external_links": sorted(external_links),
         "external_link_domains": [f"{name}:{count}" for name, count in link_domains.most_common(12)],

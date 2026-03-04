@@ -3,10 +3,45 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from typing import Any
 
 from core.collect.scanner import scan_username
-from core.domain import EmailEntity, ProfileEntity, make_entity_id
+from core.domain import AssetEntity, EmailEntity, ProfileEntity, make_entity_id
+
+
+_NAME_PATTERN = re.compile(r"\b([A-Z][a-z]{1,24}(?:\s+[A-Z][a-z]{1,24}){1,2})\b")
+_PHONE_DIGITS = re.compile(r"\d")
+
+
+def _extract_name_candidates(text: str) -> list[str]:
+    values: list[str] = []
+    for match in _NAME_PATTERN.findall(str(text or "")):
+        token = " ".join(part for part in str(match).strip().split() if part)
+        if token:
+            values.append(token)
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for item in values:
+        lowered = item.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        deduped.append(item)
+        if len(deduped) >= 8:
+            break
+    return deduped
+
+
+def _normalize_phone(raw: str) -> str:
+    digits = "".join(_PHONE_DIGITS.findall(str(raw)))
+    if len(digits) < 7:
+        return ""
+    if len(digits) == 10:
+        return f"+1{digits}"
+    if len(digits) == 11 and digits.startswith("1"):
+        return f"+{digits}"
+    return f"+{digits}"
 
 
 class ProfileScannerAdapter:
@@ -21,7 +56,7 @@ class ProfileScannerAdapter:
         source_profile: str,
         max_platforms: int | None,
         proxy_url: str | None,
-    ) -> list[ProfileEntity | EmailEntity]:
+    ) -> list[ProfileEntity | EmailEntity | AssetEntity]:
         rows = await scan_username(
             username=username,
             proxy_url=proxy_url,
@@ -32,7 +67,8 @@ class ProfileScannerAdapter:
         )
 
         timestamp = datetime.now(tz=timezone.utc)
-        entities: list[ProfileEntity | EmailEntity] = []
+        found_platform_count = sum(1 for row in rows if str(row.get("status", "")).upper() == "FOUND")
+        entities: list[ProfileEntity | EmailEntity | AssetEntity] = []
         for row in rows:
             if not isinstance(row, dict):
                 continue
@@ -42,6 +78,11 @@ class ProfileScannerAdapter:
             status = str(row.get("status", "UNKNOWN"))
             confidence = max(0.0, min(float(row.get("confidence", 0)) / 100.0, 1.0))
             profile_entity_id = make_entity_id("profile", platform, f"{username}:{profile_url}")
+            contacts = row.get("contacts") if isinstance(row.get("contacts"), dict) else {}
+            emails = contacts.get("emails") if isinstance(contacts.get("emails"), list) else []
+            phones = contacts.get("phones") if isinstance(contacts.get("phones"), list) else []
+            bio = str(row.get("bio") or "")
+            identity_names = _extract_name_candidates(bio)
 
             attributes: dict[str, Any] = {
                 "status": status,
@@ -50,6 +91,10 @@ class ProfileScannerAdapter:
                 "response_time_ms": row.get("response_time_ms"),
                 "links": list(row.get("links", [])),
                 "mentions": list(row.get("mentions", [])),
+                "contacts": {"emails": list(emails), "phones": list(phones)},
+                "bio": bio,
+                "identity_names": identity_names,
+                "platform_count": found_platform_count,
             }
 
             entities.append(
@@ -66,9 +111,7 @@ class ProfileScannerAdapter:
                 )
             )
 
-            contacts = row.get("contacts") if isinstance(row.get("contacts"), dict) else {}
-            email_values = contacts.get("emails") if isinstance(contacts.get("emails"), list) else []
-            for email in email_values:
+            for email in emails:
                 if not isinstance(email, str) or "@" not in email:
                     continue
                 email_domain = email.rsplit("@", maxsplit=1)[-1].strip().lower()
@@ -82,6 +125,49 @@ class ProfileScannerAdapter:
                         attributes={"owner": username, "from_profile_url": profile_url},
                         relationships=(profile_entity_id,),
                         email_domain=email_domain,
+                    )
+                )
+
+            for raw_phone in phones:
+                if not isinstance(raw_phone, str):
+                    continue
+                normalized_phone = _normalize_phone(raw_phone)
+                if not normalized_phone:
+                    continue
+                entities.append(
+                    AssetEntity(
+                        id=make_entity_id("asset", platform, f"phone:{normalized_phone}"),
+                        value=normalized_phone,
+                        source=platform,
+                        timestamp=timestamp,
+                        confidence=min(1.0, confidence + 0.05),
+                        attributes={
+                            "owner": username,
+                            "raw_phone": raw_phone,
+                            "from_profile_url": profile_url,
+                            "asset_kind": "contact_phone",
+                        },
+                        relationships=(profile_entity_id,),
+                        asset_kind="contact_phone",
+                    )
+                )
+
+            for name in identity_names:
+                entities.append(
+                    AssetEntity(
+                        id=make_entity_id("asset", platform, f"name:{name.lower()}"),
+                        value=name,
+                        source=platform,
+                        timestamp=timestamp,
+                        confidence=min(1.0, confidence + 0.06),
+                        attributes={
+                            "owner": username,
+                            "from_profile_url": profile_url,
+                            "identity_names": [name],
+                            "asset_kind": "identity_name",
+                        },
+                        relationships=(profile_entity_id,),
+                        asset_kind="identity_name",
                     )
                 )
 
