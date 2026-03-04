@@ -1,5 +1,7 @@
 # Modules Catalog
 
+Release: v9.0 (Theme: Lattice)
+
 Generated index for module-like capabilities discovered under `intel-sources/`.
 
 - `index.json`: full catalog with capability tags, scoring, and scope hints

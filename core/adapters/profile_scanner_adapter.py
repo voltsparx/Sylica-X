@@ -78,9 +78,16 @@ class ProfileScannerAdapter:
             status = str(row.get("status", "UNKNOWN"))
             confidence = max(0.0, min(float(row.get("confidence", 0)) / 100.0, 1.0))
             profile_entity_id = make_entity_id("profile", platform, f"{username}:{profile_url}")
-            contacts = row.get("contacts") if isinstance(row.get("contacts"), dict) else {}
-            emails = contacts.get("emails") if isinstance(contacts.get("emails"), list) else []
-            phones = contacts.get("phones") if isinstance(contacts.get("phones"), list) else []
+            contacts_raw = row.get("contacts")
+            contacts = contacts_raw if isinstance(contacts_raw, dict) else {}
+            emails_raw = contacts.get("emails")
+            emails = [item for item in emails_raw if isinstance(item, str)] if isinstance(emails_raw, list) else []
+            phones_raw = contacts.get("phones")
+            phones = [item for item in phones_raw if isinstance(item, str)] if isinstance(phones_raw, list) else []
+            links_raw = row.get("links")
+            links = [item for item in links_raw if isinstance(item, str)] if isinstance(links_raw, list) else []
+            mentions_raw = row.get("mentions")
+            mentions = [item for item in mentions_raw if isinstance(item, str)] if isinstance(mentions_raw, list) else []
             bio = str(row.get("bio") or "")
             identity_names = _extract_name_candidates(bio)
 
@@ -89,9 +96,9 @@ class ProfileScannerAdapter:
                 "context": row.get("context"),
                 "http_status": row.get("http_status"),
                 "response_time_ms": row.get("response_time_ms"),
-                "links": list(row.get("links", [])),
-                "mentions": list(row.get("mentions", [])),
-                "contacts": {"emails": list(emails), "phones": list(phones)},
+                "links": links,
+                "mentions": mentions,
+                "contacts": {"emails": emails, "phones": phones},
                 "bio": bio,
                 "identity_names": identity_names,
                 "platform_count": found_platform_count,

@@ -45,6 +45,19 @@ class TestExtensionControlPlane(unittest.TestCase):
         self.assertTrue(any("Unknown plugin selector" in item for item in plan.errors))
         self.assertTrue(any("Unknown filter selector" in item for item in plan.errors))
 
+    def test_manual_incompatible_selector_errors(self):
+        plan = resolve_extension_control(
+            scope="surface",
+            scan_mode="balanced",
+            control_mode="manual",
+            requested_plugins=["orbit_link_matrix"],
+            requested_filters=["contact_canonicalizer"],
+            include_all_plugins=False,
+            include_all_filters=False,
+        )
+        self.assertTrue(any("Incompatible plugin selector for scope 'surface'" in item for item in plan.errors))
+        self.assertTrue(any("Incompatible filter selector for scope 'surface'" in item for item in plan.errors))
+
     def test_manual_conflict_filter_errors(self):
         plan = resolve_extension_control(
             scope="fusion",

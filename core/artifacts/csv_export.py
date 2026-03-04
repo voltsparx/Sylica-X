@@ -8,6 +8,19 @@ import json
 from core.artifacts.storage import cli_report_path, legacy_results_json_path, results_json_path, sanitize_target
 
 
+def _safe_rows(value: object) -> list[dict]:
+    if not isinstance(value, list):
+        return []
+    return [row for row in value if isinstance(row, dict)]
+
+
+def _write_csv(path, header: list[str], rows: list[list[object]]) -> None:
+    with path.open("w", newline="", encoding="utf-8") as csvf:
+        writer = csv.writer(csvf)
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
 def export_to_csv(target: str) -> str | None:
     target_key = sanitize_target(target)
     json_file = results_json_path(target_key)
@@ -19,48 +32,179 @@ def export_to_csv(target: str) -> str | None:
             print(f"No JSON results found for {target_key}")
             return None
 
-    with json_file.open("r", encoding="utf-8") as handle:
-        data = json.load(handle)
+    try:
+        with json_file.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except json.JSONDecodeError as exc:
+        print(f"CSV export failed: malformed JSON for {target_key} ({exc})")
+        return None
+    except OSError as exc:
+        print(f"CSV export failed: unable to read JSON for {target_key} ({exc})")
+        return None
+
+    if not isinstance(data, dict):
+        print(f"CSV export failed: unexpected JSON payload type for {target_key}.")
+        return None
 
     csv_file = cli_report_path(target_key).with_suffix(".csv")
-    with csv_file.open("w", newline="", encoding="utf-8") as csvf:
-        writer = csv.writer(csvf)
-        writer.writerow(
+    mode = str((data.get("metadata", {}) or {}).get("mode", "")).strip()
+    target_name = str(data.get("target", target_key)).strip() or target_key
+    risk_score = (data.get("issue_summary", {}) or {}).get("risk_score", "")
+
+    result_rows: list[list[object]] = []
+    for row in _safe_rows(data.get("results")):
+        contacts = row.get("contacts", {}) or {}
+        result_rows.append(
             [
-                "Platform",
-                "Status",
-                "Confidence",
-                "HTTP",
-                "RTT_MS",
-                "Bio",
-                "Emails",
-                "Phones",
-                "ExtractedLinks",
-                "Mentions",
-                "URL",
-                "Context",
+                target_name,
+                mode,
+                row.get("platform", ""),
+                row.get("status", ""),
+                row.get("confidence", 0),
+                row.get("http_status", ""),
+                row.get("response_time_ms", ""),
+                row.get("bio", ""),
+                "; ".join(contacts.get("emails", []) or []),
+                "; ".join(contacts.get("phones", []) or []),
+                "; ".join(row.get("links", []) or []),
+                "; ".join(row.get("mentions", []) or []),
+                row.get("url", ""),
+                row.get("context", ""),
+                risk_score,
             ]
         )
 
-        for row in data.get("results", []):
-            contacts = row.get("contacts", {}) or {}
-            writer.writerow(
-                [
-                    row.get("platform", ""),
-                    row.get("status", ""),
-                    row.get("confidence", 0),
-                    row.get("http_status", ""),
-                    row.get("response_time_ms", ""),
-                    row.get("bio", ""),
-                    "; ".join(contacts.get("emails", []) or []),
-                    "; ".join(contacts.get("phones", []) or []),
-                    "; ".join(row.get("links", []) or []),
-                    "; ".join(row.get("mentions", []) or []),
-                    row.get("url", ""),
-                    row.get("context", ""),
-                ]
-            )
+    _write_csv(
+        csv_file,
+        [
+            "Target",
+            "Mode",
+            "Platform",
+            "Status",
+            "Confidence",
+            "HTTP",
+            "RTT_MS",
+            "Bio",
+            "Emails",
+            "Phones",
+            "ExtractedLinks",
+            "Mentions",
+            "URL",
+            "Context",
+            "RiskScore",
+        ],
+        result_rows,
+    )
+
+    companion_paths: list[str] = []
+
+    issues_file = cli_report_path(target_key).with_suffix(".issues.csv")
+    issue_rows = [
+        [
+            target_name,
+            mode,
+            row.get("severity", ""),
+            row.get("scope", ""),
+            row.get("title", ""),
+            row.get("evidence", ""),
+            row.get("recommendation", ""),
+        ]
+        for row in _safe_rows(data.get("issues"))
+    ]
+    _write_csv(
+        issues_file,
+        ["Target", "Mode", "Severity", "Scope", "Title", "Evidence", "Recommendation"],
+        issue_rows,
+    )
+    companion_paths.append(str(issues_file))
+
+    plugins_file = cli_report_path(target_key).with_suffix(".plugins.csv")
+    plugin_rows = [
+        [
+            target_name,
+            mode,
+            row.get("id", ""),
+            row.get("title", ""),
+            row.get("severity", ""),
+            row.get("summary", ""),
+            "; ".join(str(item) for item in (row.get("highlights", []) or [])),
+            json.dumps(row.get("data", {}) if isinstance(row.get("data"), dict) else {}, ensure_ascii=False),
+        ]
+        for row in _safe_rows(data.get("plugins"))
+    ]
+    _write_csv(
+        plugins_file,
+        ["Target", "Mode", "PluginId", "Title", "Severity", "Summary", "Highlights", "DataJson"],
+        plugin_rows,
+    )
+    companion_paths.append(str(plugins_file))
+
+    filters_file = cli_report_path(target_key).with_suffix(".filters.csv")
+    filter_rows = [
+        [
+            target_name,
+            mode,
+            row.get("id", ""),
+            row.get("title", ""),
+            row.get("severity", ""),
+            row.get("summary", ""),
+            "; ".join(str(item) for item in (row.get("highlights", []) or [])),
+            json.dumps(row.get("data", {}) if isinstance(row.get("data"), dict) else {}, ensure_ascii=False),
+        ]
+        for row in _safe_rows(data.get("filters"))
+    ]
+    _write_csv(
+        filters_file,
+        ["Target", "Mode", "FilterId", "Title", "Severity", "Summary", "Highlights", "DataJson"],
+        filter_rows,
+    )
+    companion_paths.append(str(filters_file))
+
+    intelligence_bundle = data.get("intelligence_bundle", {}) or {}
+    entities_file = cli_report_path(target_key).with_suffix(".intel-entities.csv")
+    entity_rows = [
+        [
+            target_name,
+            mode,
+            row.get("rank", ""),
+            row.get("entity_type", ""),
+            row.get("value", ""),
+            row.get("source", ""),
+            row.get("confidence_percent", ""),
+            row.get("risk_level", ""),
+            row.get("relationship_count", ""),
+        ]
+        for row in _safe_rows(intelligence_bundle.get("scored_entities"))
+    ]
+    _write_csv(
+        entities_file,
+        ["Target", "Mode", "Rank", "EntityType", "Value", "Source", "ConfidencePercent", "RiskLevel", "Links"],
+        entity_rows,
+    )
+    companion_paths.append(str(entities_file))
+
+    contacts_file = cli_report_path(target_key).with_suffix(".intel-contacts.csv")
+    scored_contacts = ((intelligence_bundle.get("entity_facets", {}) or {}).get("scored_contacts", []))
+    contact_rows = [
+        [
+            target_name,
+            mode,
+            row.get("kind", ""),
+            row.get("value", ""),
+            row.get("score_percent", ""),
+            row.get("supporting_entities", ""),
+            row.get("risk_level", ""),
+        ]
+        for row in _safe_rows(scored_contacts)
+    ]
+    _write_csv(
+        contacts_file,
+        ["Target", "Mode", "Kind", "Value", "ScorePercent", "SupportingEntities", "RiskLevel"],
+        contact_rows,
+    )
+    companion_paths.append(str(contacts_file))
 
     print(f"CSV exported -> {csv_file}")
+    print(f"CSV companion exports -> {', '.join(companion_paths)}")
     return str(csv_file)
 

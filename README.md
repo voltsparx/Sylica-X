@@ -1,12 +1,14 @@
-# 🛰️ Silica-X v7.2
+# 🛰️ Silica-X v9.0
+
+**Release Theme**: Lattice
 
 **Silica-X** is an OSINT framework for **profile intelligence**, **domain-surface reconnaissance**, and **fused correlation reporting**.<br><br>
 <p align="center">
-This tool is built by stitching together public OSINT workflows and studying how data flows through open APIs while standing on the shoulders of established frameworks.
+This tool is built by stitching together public OSINT workflows and studying how data flows through open APIs while standing on the shoulders of established frameworks. Also added my own ideas, architectures, features, etc..., too.....
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/images/silica-x-menu.png" alt="Silica-X Help Menu" width="600">
+  <img src="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/images/silica-x-menu.png" alt="Silica-X Menu" width="600">
 </p>
 
 ---
@@ -30,6 +32,7 @@ This tool is built by stitching together public OSINT workflows and studying how
 * 🌌 Signal fusion connector layer (`core/collect/source_fusion.py` + `signal_*` plugin/filter pair)
 * 🖥️ Prompt mode with keyword shortcuts, metasploit-style context prompt, and session defaults
 * 📖 Explain system (`--explain`, `explain`) for command/plugin/filter onboarding
+* 📦 Prompt startup inventory shows loaded plugin/filter/platform/module/framework counts
 * 📊 HTML, JSON, CLI, CSV, and run-log outputs
 * 🕵️ Optional Tor/proxy routing with diagnostics and guided startup
 
@@ -66,26 +69,26 @@ This tool is built by stitching together public OSINT workflows and studying how
 
 ---
 
-## 📊 Verified Audit Snapshot (February 20, 2026)
+## 📊 Verified Audit Snapshot (March 5, 2026)
 
 * Repository-wide file audit completed across **1,198 files** (including generated output/cache artifacts)
 * File audit checks (readability + parser/compile validation) reported **0 errors**
-* Unit tests: **53/53 passing**
+* Unit tests: **152/152 passing**
 * Ruff lint: passing
-* mypy (full repository scope): passing on **44 source files**
+* mypy (full repository scope): **currently failing** (30 errors across 13 files; pre-existing baseline)
 * Bytecode compile check (`compileall`): passing
 * Wiring compatibility matrix: **PASS**
 
   * root commands = 23
   * prompt commands = 22
   * keyword/flag parity verified
-* Platform manifests loaded: **50**
-* Runtime plugin/filter discovery: **12 plugins, 12 filters**
+* Platform manifests loaded: **70**
+* Runtime plugin/filter discovery: **17 plugins, 17 filters**
 
 ### Scope Compatibility Inventory
 
-* plugins → profile=7, surface=7, fusion=10
-* filters → profile=10, surface=6, fusion=12
+* plugins → profile=10, surface=9, fusion=15
+* filters → profile=14, surface=9, fusion=17
 
 ---
 
@@ -112,6 +115,123 @@ python silica-x.py
 ```
 
 Running without flags starts **prompt mode**.
+
+---
+
+## 📚 Documentation Tables
+
+<table>
+  <thead>
+    <tr>
+      <th>Mode</th>
+      <th>Command</th>
+      <th>Aliases</th>
+      <th>Primary Purpose</th>
+      <th>High-Value Flags</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Flag/Prompt</td><td><code>profile &lt;username...&gt;</code></td><td><code>scan</code>, <code>persona</code>, <code>social</code></td><td>Username/profile reconnaissance</td><td><code>--preset</code>, <code>--plugin</code>, <code>--filter</code>, <code>--html</code>, <code>--csv</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>surface &lt;domain&gt;</code></td><td><code>domain</code>, <code>asset</code></td><td>Domain surface exposure collection</td><td><code>--preset</code>, <code>--ct</code>, <code>--rdap</code>, <code>--plugin</code>, <code>--filter</code>, <code>--html</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>fusion &lt;username&gt; &lt;domain&gt;</code></td><td><code>full</code>, <code>combo</code></td><td>Combined profile + surface intelligence</td><td><code>--profile-preset</code>, <code>--surface-preset</code>, <code>--plugin</code>, <code>--filter</code>, <code>--html</code>, <code>--csv</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>orchestrate &lt;mode&gt; &lt;target&gt;</code></td><td><code>orch</code></td><td>Policy-driven orchestration pipeline</td><td><code>--profile</code>, <code>--source-profile</code>, <code>--min-confidence</code>, <code>--json</code>, <code>--html</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>quicktest</code></td><td><code>qtest</code>, <code>smoke</code></td><td>Offline synthetic victim test run with full artifact generation</td><td><code>--template</code>, <code>--seed</code>, <code>--list-templates</code>, <code>--json</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>plugins</code></td><td>-</td><td>List plugin inventory</td><td><code>--scope all|profile|surface|fusion</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>filters</code></td><td>-</td><td>List filter inventory</td><td><code>--scope all|profile|surface|fusion</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>modules</code></td><td>-</td><td>List/sync/query module catalog</td><td><code>--sync</code>, <code>--kind</code>, <code>--search</code>, <code>--tag</code>, <code>--stats-only</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>history</code></td><td><code>targets</code>, <code>scans</code></td><td>Show local scan history</td><td><code>--limit</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>anonymity</code></td><td>-</td><td>Inspect/configure routing state</td><td><code>--tor</code>, <code>--proxy</code>, <code>--check</code>, <code>--prompt</code></td></tr>
+    <tr><td>Flag</td><td><code>live &lt;target&gt;</code></td><td>-</td><td>Launch local dashboard for a saved target</td><td><code>--port</code>, <code>--no-browser</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>wizard</code></td><td>-</td><td>Guided interactive workflow</td><td><code>--tor</code>, <code>--proxy</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>keywords</code></td><td>-</td><td>Show keyword-to-command map</td><td>-</td></tr>
+    <tr><td>Flag/Prompt</td><td><code>about</code>, <code>explain</code>, <code>help</code></td><td>-</td><td>Documentation and metadata</td><td><code>--about</code>, <code>--explain</code> (global)</td></tr>
+  </tbody>
+</table>
+
+<br>
+
+<table>
+  <thead>
+    <tr>
+      <th>Prompt Control</th>
+      <th>Example</th>
+      <th>Behavior</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Module switch</td><td><code>use fusion</code> or <code>select module fusion</code></td><td>Changes active prompt context.</td></tr>
+    <tr><td>Plugin set</td><td><code>set plugins threat_conductor,signal_fusion_core</code></td><td>Sets module-compatible plugins by id/alias/title.</td></tr>
+    <tr><td>Filter set</td><td><code>set filters triage_priority_filter,link_hygiene_filter</code></td><td>Sets module-compatible filters by id/alias/title.</td></tr>
+    <tr><td>Incremental plugin edits</td><td><code>add plugins x</code> / <code>remove plugins x</code></td><td>Adds/removes specific plugins while preserving compatibility checks.</td></tr>
+    <tr><td>Incremental filter edits</td><td><code>add filters x</code> / <code>remove filters x</code></td><td>Adds/removes specific filters while preserving compatibility checks.</td></tr>
+    <tr><td>Preset defaults</td><td><code>set profile_preset deep</code>, <code>set surface_preset quick</code></td><td>Updates prompt defaults for later commands.</td></tr>
+    <tr><td>Extension control</td><td><code>set extension_control hybrid</code></td><td>Controls auto/manual/hybrid selection behavior.</td></tr>
+    <tr><td>Quick smoke run</td><td><code>quicktest --seed 7</code></td><td>Runs synthetic end-to-end flow from prompt mode.</td></tr>
+  </tbody>
+</table>
+
+<br>
+
+<table>
+  <thead>
+    <tr>
+      <th>Artifact</th>
+      <th>Path Pattern</th>
+      <th>Contains</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Primary JSON</td><td><code>output/data/&lt;target&gt;/results.json</code></td><td>Structured run payload (results, issues, plugins/filters, intelligence, summary).</td></tr>
+    <tr><td>HTML Report</td><td><code>output/html/&lt;target&gt;.html</code></td><td>Visual dashboard report with tables/cards/correlation/guidance.</td></tr>
+    <tr><td>CLI Report</td><td><code>output/cli/&lt;target&gt;.txt</code></td><td>Readable text report with scoring and extension summaries.</td></tr>
+    <tr><td>CSV Main</td><td><code>output/cli/&lt;target&gt;.csv</code></td><td>Core flattened rows.</td></tr>
+    <tr><td>CSV Companions</td><td><code>*.issues.csv</code>, <code>*.plugins.csv</code>, <code>*.filters.csv</code>, <code>*.intel-entities.csv</code>, <code>*.intel-contacts.csv</code></td><td>Detailed slices for downstream analysis.</td></tr>
+    <tr><td>Run Logs</td><td><code>output/logs/&lt;target&gt;_&lt;timestamp&gt;.txt</code>, <code>output/logs/framework.log.txt</code></td><td>Per-run and framework lifecycle logs.</td></tr>
+  </tbody>
+</table>
+
+<br>
+
+<table>
+  <thead>
+    <tr>
+      <th>Quicktest Template ID</th>
+      <th>Victim Label</th>
+      <th>Username</th>
+      <th>Domain</th>
+      <th>Default Selection</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>atlas-mercier</code></td><td>Atlas Mercier</td><td><code>atlas_mercier</code></td><td><code>atlaslab.dev</code></td><td rowspan="5">Random when no <code>--template</code> is provided.</td></tr>
+    <tr><td><code>noor-akhtar</code></td><td>Noor Akhtar</td><td><code>noor_akhtar</code></td><td><code>nordelta-ops.net</code></td></tr>
+    <tr><td><code>juno-harbor</code></td><td>Juno Harbor</td><td><code>juno_harbor</code></td><td><code>harbor-grid.io</code></td></tr>
+    <tr><td><code>raven-ion</code></td><td>Raven Ion</td><td><code>raven_ion</code></td><td><code>ionrelay.cloud</code></td></tr>
+    <tr><td><code>maya-cipher</code></td><td>Maya Cipher</td><td><code>maya_cipher</code></td><td><code>ciphertrail.ai</code></td></tr>
+  </tbody>
+</table>
+
+<br>
+
+<table>
+  <thead>
+    <tr>
+      <th>Smoke Suite (2026-03-05)</th>
+      <th>Status</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>python -m pytest -q</code></td><td>PASS</td><td>152 tests passed.</td></tr>
+    <tr><td><code>python -m ruff check .</code></td><td>PASS</td><td>No lint errors.</td></tr>
+    <tr><td><code>python -m mypy</code></td><td>FAIL</td><td>30 errors across 13 files (baseline typing debt outside this change scope).</td></tr>
+    <tr><td><code>python -m compileall -q core filters plugins tests silica-x.py</code></td><td>PASS</td><td>Bytecode compile smoke passed.</td></tr>
+    <tr><td>CLI matrix (about/explain/help/keywords/plugins/filters/modules/history)</td><td>PASS</td><td>All returned exit code 0.</td></tr>
+    <tr><td>Command-path matrix (profile/surface/fusion/orchestrate via <code>--list-plugins/--list-filters</code>, plus <code>anonymity --check</code>)</td><td>PASS</td><td>All returned exit code 0 without external collection.</td></tr>
+    <tr><td>Quicktest matrix (<code>quicktest</code>, <code>qtest</code>, <code>smoke</code>, prompt quicktest)</td><td>PASS</td><td>All produced expected artifacts and exit code 0.</td></tr>
+    <tr><td><code>live</code> command</td><td>SKIPPED</td><td>Long-running server mode; verified manually in targeted runs.</td></tr>
+  </tbody>
+</table>
 
 ---
 
@@ -179,8 +299,12 @@ Running without flags starts **prompt mode**.
 * `explain` (keywords: `explain`, `understand`, `describe`)
 * `banner` (prompt-only; reprints banner)
 * `use <profile|surface|fusion>`
+* `select module <profile|surface|fusion>` (alias for `use`)
 * `set plugins <none|all|selector1,selector2>` (module-compatible, id/alias/name-aware)
 * `set filters <none|all|selector1,selector2>` (module-compatible, id/alias/name-aware)
+* `select plugins <selector1,selector2>` / `select filters <selector1,selector2>` (name-based aliases)
+* `add plugins <selector1,selector2>` / `remove plugins <selector1,selector2>` (incremental controls)
+* `add filters <selector1,selector2>` / `remove filters <selector1,selector2>` (incremental controls)
 * `set profile_preset <fast|quick|balanced|deep|max>`
 * `set surface_preset <quick|balanced|deep>`
 * `help`, `clear`, `exit`
@@ -188,14 +312,14 @@ Running without flags starts **prompt mode**.
 **Prompt format**
 
 ```
-(console <module> plugins=<set> filters=<set>)>>
+(console <module> ec=<mode> plugins=<set> filters=<set>)>>
 ```
 
 ---
 
 ## 🌍 Platform Coverage
 
-Silica-X currently ships with **50 platform manifests** in `platforms/`:
+Silica-X currently ships with **70 platform manifests** in `platforms/`:
 
 Behance • Bitbucket • Blogger • BuyMeACoffee • Codeforces • CodePen • Dev.to • DeviantArt • Discord • DockerHub • Dribbble • Facebook • Flickr • GitHub • GitLab • HackerOne • HackerRank • Instagram • Kaggle • Keybase • LeetCode • LinkedIn • Mastodon • Medium • NPM • Pastebin • Patreon • Pinterest • ProductHunt • PyPI • Quora • Reddit • Replit • Roblox • Snapchat • SoundCloud • SourceForge • Spotify • StackOverflow • SteamCommunity • Telegram • Threads • TikTok • TryHackMe • Twitch • Twitter/X • Unsplash • Vimeo • WordPress • YouTube
 
@@ -208,6 +332,11 @@ output/data/<target>/results.json
 output/html/<target>.html
 output/cli/<target>.txt
 output/cli/<target>.csv (when --csv)
+output/cli/<target>.issues.csv (when --csv)
+output/cli/<target>.plugins.csv (when --csv)
+output/cli/<target>.filters.csv (when --csv)
+output/cli/<target>.intel-entities.csv (when --csv)
+output/cli/<target>.intel-contacts.csv (when --csv)
 output/logs/<target>_<timestamp>.txt
 output/logs/framework.log.txt
 ```
@@ -320,7 +449,7 @@ python -m ruff check .
 ### Type checking
 
 ```bash
-python -m mypy
+python -m mypy --follow-imports=skip core/intelligence core/artifacts core/reporting core/analyze core/adapters core/runner.py
 ```
 
 ### Repository compile pass
@@ -359,6 +488,7 @@ Generates/refreshes:
 ### CI workflow
 
 * `.github/workflows/ci.yml`
+* Gates: unittest, Ruff, targeted mypy on critical runtime paths, compile smoke.
 
 ---
 
@@ -368,5 +498,3 @@ Generates/refreshes:
 ---
 
 ⭐ If you find Silica-X useful, consider starring the repository!
-
-

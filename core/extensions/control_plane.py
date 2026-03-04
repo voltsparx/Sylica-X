@@ -33,12 +33,22 @@ AUTO_EXTENSION_MATRIX: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
             "filters": ("noise_suppression_filter", "exposure_tier_matrix"),
         },
         "deep": {
-            "plugins": ("threat_conductor", "orbit_link_matrix", "contact_lattice"),
+            "plugins": (
+                "threat_conductor",
+                "orbit_link_matrix",
+                "contact_lattice",
+                "account_recovery_exposure_probe",
+                "link_outbound_risk_profiler",
+            ),
             "filters": (
                 "noise_suppression_filter",
                 "exposure_tier_matrix",
                 "contact_canonicalizer",
                 "entity_name_resolver",
+                "triage_priority_filter",
+                "contact_quality_filter",
+                "link_hygiene_filter",
+                "evidence_consistency_filter",
             ),
         },
         "max": {
@@ -49,6 +59,9 @@ AUTO_EXTENSION_MATRIX: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
                 "cross_platform_activity_timeline",
                 "identity_fusion_core",
                 "module_capability_matrix",
+                "account_recovery_exposure_probe",
+                "link_outbound_risk_profiler",
+                "username_impersonation_probe",
             ),
             "filters": (
                 "noise_suppression_filter",
@@ -58,6 +71,10 @@ AUTO_EXTENSION_MATRIX: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
                 "module_filter_router",
                 "signal_lane_fusion",
                 "pii_signal_classifier",
+                "triage_priority_filter",
+                "contact_quality_filter",
+                "link_hygiene_filter",
+                "evidence_consistency_filter",
             ),
         },
     },
@@ -76,12 +93,17 @@ AUTO_EXTENSION_MATRIX: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
                 "subdomain_risk_atlas",
                 "domain_takeover_risk_probe",
                 "module_capability_matrix",
+                "rdap_lifecycle_inspector",
+                "surface_transport_stability_probe",
             ),
             "filters": (
                 "noise_suppression_filter",
                 "exposure_tier_matrix",
                 "takeover_priority_filter",
                 "disclosure_readiness_filter",
+                "triage_priority_filter",
+                "subdomain_attack_path_filter",
+                "evidence_consistency_filter",
             ),
         },
         "max": {
@@ -92,6 +114,8 @@ AUTO_EXTENSION_MATRIX: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
                 "security_txt_analyzer",
                 "threat_conductor",
                 "module_capability_matrix",
+                "rdap_lifecycle_inspector",
+                "surface_transport_stability_probe",
             ),
             "filters": (
                 "noise_suppression_filter",
@@ -100,6 +124,9 @@ AUTO_EXTENSION_MATRIX: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
                 "disclosure_readiness_filter",
                 "module_filter_router",
                 "signal_lane_fusion",
+                "triage_priority_filter",
+                "subdomain_attack_path_filter",
+                "evidence_consistency_filter",
             ),
         },
     },
@@ -118,12 +145,20 @@ AUTO_EXTENSION_MATRIX: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
                 "threat_conductor",
                 "email_pattern_inference",
                 "module_capability_matrix",
+                "account_recovery_exposure_probe",
+                "link_outbound_risk_profiler",
+                "rdap_lifecycle_inspector",
+                "surface_transport_stability_probe",
             ),
             "filters": (
                 "signal_lane_fusion",
                 "exposure_tier_matrix",
                 "contact_canonicalizer",
                 "mailbox_provider_profiler",
+                "triage_priority_filter",
+                "contact_quality_filter",
+                "link_hygiene_filter",
+                "evidence_consistency_filter",
             ),
         },
         "max": {
@@ -134,6 +169,11 @@ AUTO_EXTENSION_MATRIX: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
                 "module_capability_matrix",
                 "subdomain_risk_atlas",
                 "cross_platform_activity_timeline",
+                "account_recovery_exposure_probe",
+                "link_outbound_risk_profiler",
+                "username_impersonation_probe",
+                "rdap_lifecycle_inspector",
+                "surface_transport_stability_probe",
             ),
             "filters": (
                 "signal_lane_fusion",
@@ -142,6 +182,11 @@ AUTO_EXTENSION_MATRIX: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
                 "mailbox_provider_profiler",
                 "module_filter_router",
                 "pii_signal_classifier",
+                "triage_priority_filter",
+                "contact_quality_filter",
+                "link_hygiene_filter",
+                "subdomain_attack_path_filter",
+                "evidence_consistency_filter",
             ),
         },
     },
@@ -342,11 +387,19 @@ def resolve_extension_control(
     if normalized_control not in VALID_CONTROL_MODES:
         errors.append(f"Unsupported extension control mode: {control_mode}")
 
-    plugin_descriptors = list_plugin_descriptors(scope=normalized_scope if normalized_scope in VALID_SCOPES else None)
-    filter_descriptors = list_filter_descriptors(scope=normalized_scope if normalized_scope in VALID_SCOPES else None)
+    scoped_plugin_descriptors = list_plugin_descriptors(
+        scope=normalized_scope if normalized_scope in VALID_SCOPES else None
+    )
+    scoped_filter_descriptors = list_filter_descriptors(
+        scope=normalized_scope if normalized_scope in VALID_SCOPES else None
+    )
+    global_plugin_descriptors = list_plugin_descriptors(scope=None)
+    global_filter_descriptors = list_filter_descriptors(scope=None)
 
-    plugin_lookup, available_plugin_ids = _build_lookup(plugin_descriptors)
-    filter_lookup, available_filter_ids = _build_lookup(filter_descriptors)
+    plugin_lookup, available_plugin_ids = _build_lookup(scoped_plugin_descriptors)
+    filter_lookup, available_filter_ids = _build_lookup(scoped_filter_descriptors)
+    global_plugin_lookup, _ = _build_lookup(global_plugin_descriptors)
+    global_filter_lookup, _ = _build_lookup(global_filter_descriptors)
 
     requested_plugin_names = [item for item in (requested_plugins or []) if str(item).strip()]
     requested_filter_names = [item for item in (requested_filters or []) if str(item).strip()]
@@ -371,14 +424,28 @@ def resolve_extension_control(
     else:
         manual_plugins, unknown_plugins = _resolve_selector_ids(requested_plugin_names, plugin_lookup)
         for unknown in unknown_plugins:
-            errors.append(f"Unknown plugin selector: {unknown}")
+            keys = selector_keys(unknown)
+            if normalized_scope in VALID_SCOPES and any(key in global_plugin_lookup for key in keys):
+                errors.append(
+                    f"Incompatible plugin selector for scope '{normalized_scope}': {unknown}. "
+                    "Inspect compatible selectors with `plugins --scope ...`."
+                )
+            else:
+                errors.append(f"Unknown plugin selector: {unknown}")
 
     if include_all_filters:
         manual_filters = sorted(available_filter_ids)
     else:
         manual_filters, unknown_filters = _resolve_selector_ids(requested_filter_names, filter_lookup)
         for unknown in unknown_filters:
-            errors.append(f"Unknown filter selector: {unknown}")
+            keys = selector_keys(unknown)
+            if normalized_scope in VALID_SCOPES and any(key in global_filter_lookup for key in keys):
+                errors.append(
+                    f"Incompatible filter selector for scope '{normalized_scope}': {unknown}. "
+                    "Inspect compatible selectors with `filters --scope ...`."
+                )
+            else:
+                errors.append(f"Unknown filter selector: {unknown}")
 
     auto_plugins, auto_filters = _auto_extensions_for_scope(
         scope=normalized_scope if normalized_scope in VALID_SCOPES else "profile",

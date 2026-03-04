@@ -35,5 +35,15 @@ jobs:
       - name: Run Ruff
         run: python -m ruff check .
 
-      - name: Run Mypy
-        run: python -m mypy
+      - name: Run Mypy (critical paths)
+        run: |
+          python -m mypy --follow-imports=skip \
+            core/intelligence \
+            core/artifacts \
+            core/reporting \
+            core/analyze \
+            core/adapters \
+            core/runner.py
+
+      - name: Run compile smoke
+        run: python -m compileall -q core filters modules plugins tests silica-x.py

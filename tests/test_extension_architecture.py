@@ -117,6 +117,34 @@ class TestExtensionArchitecture(unittest.TestCase):
         self.assertTrue(any("broken_filter" in error and "import failed" in error for error in errors))
         self.assertTrue(any("broken_filter" in error and "import failed" in error for error in exec_errors))
 
+    def test_plugin_package_discovery_failure_is_reported(self):
+        with patch("core.extensions.signal_forge._iter_plugin_module_names", side_effect=RuntimeError("pkg_missing")):
+            errors = list_plugin_discovery_errors()
+            results, exec_errors = execute_plugins(
+                scope="profile",
+                requested_plugins=["orbit_link_matrix"],
+                include_all=False,
+                context={"target": "alice", "mode": "profile"},
+            )
+
+        self.assertEqual(results, [])
+        self.assertTrue(any("Plugin package discovery failed" in error for error in errors))
+        self.assertTrue(any("Plugin package discovery failed" in error for error in exec_errors))
+
+    def test_filter_package_discovery_failure_is_reported(self):
+        with patch("core.extensions.signal_sieve._iter_filter_module_names", side_effect=RuntimeError("pkg_missing")):
+            errors = list_filter_discovery_errors()
+            results, exec_errors = execute_filters(
+                scope="profile",
+                requested_filters=["contact_canonicalizer"],
+                include_all=False,
+                context={"target": "alice", "mode": "profile"},
+            )
+
+        self.assertEqual(results, [])
+        self.assertTrue(any("Filter package discovery failed" in error for error in errors))
+        self.assertTrue(any("Filter package discovery failed" in error for error in exec_errors))
+
 
 if __name__ == "__main__":
     unittest.main()

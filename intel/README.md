@@ -1,5 +1,7 @@
 # Silica-X Intel
 
+Release: v9.0 (Theme: Lattice)
+
 Generated internal capability intelligence for Silica-X architecture alignment.
 
 - Sources scanned: 8

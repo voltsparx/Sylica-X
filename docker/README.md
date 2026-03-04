@@ -1,5 +1,7 @@
 # Tor Wrappers
 
+Release: v9.0 (Theme: Lattice)
+
 This folder now contains Tor wrapper scripts for container and host OS usage.
 
 ## Files

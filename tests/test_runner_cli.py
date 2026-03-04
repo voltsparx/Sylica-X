@@ -1,11 +1,16 @@
 import unittest
 import asyncio
+import argparse
 import io
 from contextlib import redirect_stdout
+from unittest.mock import patch
 
 from core.runner import (
+    EXIT_FAILURE,
     EXIT_USAGE,
     RunnerState,
+    _normalize_multi_select_args,
+    _split_csv_tokens,
     _keyword_to_command,
     build_prompt_parser,
     build_root_parser,
@@ -35,6 +40,8 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(_keyword_to_command("pii"), "filters")
         self.assertEqual(_keyword_to_command("modules"), "modules")
         self.assertEqual(_keyword_to_command("catalog"), "modules")
+        self.assertEqual(_keyword_to_command("quicktest"), "quicktest")
+        self.assertEqual(_keyword_to_command("smoketest"), "quicktest")
         self.assertEqual(_keyword_to_command("tor"), "anonymity")
         self.assertEqual(_keyword_to_command("history"), "history")
         self.assertEqual(_keyword_to_command("targets"), "history")
@@ -250,6 +257,14 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.command, "history")
         self.assertEqual(args.limit, 10)
 
+    def test_quicktest_parser_parses_flags(self):
+        parser = build_root_parser()
+        args = parser.parse_args(["quicktest", "--template", "atlas-mercier", "--seed", "9", "--json"])
+        self.assertEqual(args.command, "quicktest")
+        self.assertEqual(args.template, "atlas-mercier")
+        self.assertEqual(args.seed, 9)
+        self.assertTrue(args.json)
+
     def test_capability_pack_parser_parses_command(self):
         parser = build_root_parser()
         args = parser.parse_args(["capability-pack"])
@@ -289,6 +304,14 @@ class TestRunnerCli(unittest.TestCase):
             status = asyncio.run(run(["--about", "profile", "alice"]))
         self.assertEqual(status, EXIT_USAGE)
 
+    def test_run_handles_modules_catalog_failure(self):
+        stream = io.StringIO()
+        with patch("core.runner.ensure_module_catalog", side_effect=RuntimeError("catalog_corrupted")):
+            with redirect_stdout(stream):
+                status = asyncio.run(run(["modules"]))
+        self.assertEqual(status, EXIT_FAILURE)
+        self.assertIn("Module catalog query failed", stream.getvalue())
+
     def test_root_live_parser_rejects_invalid_port(self):
         parser = build_root_parser()
         with self.assertRaises(SystemExit):
@@ -298,6 +321,23 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(safe_path_component(" example.com "), "example.com")
         self.assertEqual(safe_path_component("john/doe"), "john_doe")
         self.assertEqual(safe_path_component("...."), "target")
+
+    def test_split_csv_tokens_supports_comma_and_dedup(self):
+        values = _split_csv_tokens(["threat_conductor, contact_lattice", "THREAT_conductor", " "])
+        self.assertEqual(values, ["threat_conductor", "contact_lattice"])
+
+    def test_normalize_multi_select_args_expands_modules_fields(self):
+        args = argparse.Namespace(
+            plugin=["threat_conductor,contact_lattice"],
+            filter=["contact_canonicalizer,entity_name_resolver"],
+            framework=["sherlock,spiderfoot"],
+            tag=["identity,pii"],
+        )
+        _normalize_multi_select_args(args)
+        self.assertEqual(args.plugin, ["threat_conductor", "contact_lattice"])
+        self.assertEqual(args.filter, ["contact_canonicalizer", "entity_name_resolver"])
+        self.assertEqual(args.framework, ["sherlock", "spiderfoot"])
+        self.assertEqual(args.tag, ["identity", "pii"])
 
     def test_prompt_parser_raises_value_error_for_unknown_command(self):
         parser = build_prompt_parser()
@@ -324,6 +364,12 @@ class TestRunnerCli(unittest.TestCase):
         args = parser.parse_args(["modules", "--kind", "plugin"])
         self.assertEqual(args.command, "modules")
         self.assertEqual(args.kind, "plugin")
+
+    def test_prompt_parser_parses_quicktest_command(self):
+        parser = build_prompt_parser()
+        args = parser.parse_args(["quicktest", "--template", "maya-cipher"])
+        self.assertEqual(args.command, "quicktest")
+        self.assertEqual(args.template, "maya-cipher")
 
     def test_prompt_parser_parses_orchestrate_command(self):
         parser = build_prompt_parser()

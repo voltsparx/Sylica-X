@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 
 
 PROJECT_NAME = "Silica-X"
-VERSION = "7.2"
+VERSION = "9.0"
+VERSION_THEME = "Lattice"
 AUTHOR = "voltsparx"
 AUTHOR_HANDLE = "voltsparx"
 CONTACT_EMAIL = "voltsparx@gmail.com"
@@ -19,12 +20,13 @@ def utc_timestamp() -> str:
 
 
 def framework_signature() -> str:
-    return f"{PROJECT_NAME} v{VERSION} by {AUTHOR} ({CONTACT_EMAIL})"
+    return f"{PROJECT_NAME} v{VERSION} [{VERSION_THEME}] by {AUTHOR} ({CONTACT_EMAIL})"
 
 
 def about_block() -> str:
     return (
         f"{PROJECT_NAME} v{VERSION}\n"
+        f"Theme: {VERSION_THEME}\n"
         f"Author: {AUTHOR}\n"
         f"Contact: {CONTACT_EMAIL}\n"
         f"Repo: {REPOSITORY_URL}\n"

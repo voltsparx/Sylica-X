@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from typing import Iterable
+from typing import Any, Iterable
 
 from core.foundation.colors import Colors, c
 from core.foundation.metadata import framework_signature, utc_timestamp
+from core.interface.symbols import symbol
 from core.analyze.profile_summary import (
     error_profile_rows,
     focused_profile_rows,
@@ -25,6 +26,43 @@ from core.artifacts.storage import (
     run_log_path,
     sanitize_target,
 )
+
+
+def _safe_dict_rows(value: object) -> list[dict]:
+    if not isinstance(value, list):
+        return []
+    return [row for row in value if isinstance(row, dict)]
+
+
+def _severity_breakdown(rows: list[dict]) -> dict[str, int]:
+    counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
+    for row in rows:
+        severity = str(row.get("severity", "INFO")).strip().upper()
+        if severity not in counts:
+            severity = "INFO"
+        counts[severity] += 1
+    return counts
+
+
+def _compact_data_snapshot(data: object, *, max_items: int = 5) -> str:
+    if not isinstance(data, dict) or not data:
+        return "-"
+    pairs: list[str] = []
+    for key in sorted(data.keys(), key=str):
+        value = data.get(key)
+        if isinstance(value, (str, int, float, bool)):
+            pairs.append(f"{key}={value}")
+        elif isinstance(value, list):
+            pairs.append(f"{key}[{len(value)}]")
+        elif isinstance(value, dict):
+            pairs.append(f"{key}{{{len(value)}}}")
+        elif value is None:
+            pairs.append(f"{key}=null")
+        else:
+            pairs.append(f"{key}=...")
+        if len(pairs) >= max_items:
+            break
+    return ", ".join(pairs) if pairs else "-"
 
 
 def _status_color(status: str) -> str:
@@ -46,6 +84,11 @@ def _preview(values: list[str], limit: int = 8) -> str:
     return f"{', '.join(values[:limit])} ... (+{len(values) - limit} more)"
 
 
+def _section(title: str, color: str = Colors.BLUE) -> None:
+    print(c(f"\n{symbol('major')} {title}", color))
+    print(c("-" * 36, color))
+
+
 def _top_scored_items(items: list[dict], *, limit: int = 8) -> list[dict]:
     rows = [item for item in items if isinstance(item, dict)]
     rows.sort(
@@ -61,67 +104,70 @@ def _top_scored_items(items: list[dict], *, limit: int = 8) -> list[dict]:
 def _print_issue_block(issues: Iterable[dict[str, str]]) -> None:
     issue_list = list(issues)
     if not issue_list:
-        print(c("\n[ Exposure Findings ] none", Colors.GREEN))
+        print(c(f"\n{symbol('ok')} Exposure Findings: none", Colors.GREEN))
         return
 
-    print(c("\n[ Exposure Findings ]", Colors.MAGENTA))
+    _section("Exposure Findings", Colors.MAGENTA)
     for idx, issue in enumerate(issue_list, start=1):
         severity = issue.get("severity", "LOW")
         severity_color = Colors.RED if severity in {"HIGH", "CRITICAL"} else Colors.YELLOW
-        print(c(f"{idx}. [{severity}] {issue.get('title', 'Issue')}", severity_color))
-        print(c(f"   scope: {issue.get('scope', '-')}", Colors.GREY))
-        print(c(f"   evidence: {issue.get('evidence', '-')}", Colors.GREY))
-        print(c(f"   recommendation: {issue.get('recommendation', '-')}", Colors.CYAN))
+        marker = symbol("error") if severity in {"HIGH", "CRITICAL"} else symbol("warn")
+        print(c(f"{marker} #{idx} [{severity}] {issue.get('title', 'Issue')}", severity_color))
+        print(c(f"  {symbol('bullet')} scope: {issue.get('scope', '-')}", Colors.GREY))
+        print(c(f"  {symbol('bullet')} evidence: {issue.get('evidence', '-')}", Colors.GREY))
+        print(c(f"  {symbol('tip')} recommendation: {issue.get('recommendation', '-')}", Colors.CYAN))
 
 
 def _print_plugin_block(
     plugin_results: Iterable[dict] | None,
     plugin_errors: Iterable[str] | None,
 ) -> None:
-    rows = list(plugin_results or [])
+    rows = _safe_dict_rows(list(plugin_results or []))
     errors = list(plugin_errors or [])
     if not rows and not errors:
         return
 
-    print(c("\n[ Plugin Intelligence ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    _section("Plugin Intelligence", Colors.BLUE)
     for row in rows:
         severity = str(row.get("severity", "INFO")).upper()
         color = Colors.RED if severity in {"HIGH", "CRITICAL"} else Colors.YELLOW if severity == "MEDIUM" else Colors.CYAN
-        print(c(f"[{severity}] {row.get('title', row.get('id', 'plugin'))}", color))
-        print(c(f"  summary: {row.get('summary', '')}", Colors.GREY))
+        marker = symbol("error") if severity in {"HIGH", "CRITICAL"} else symbol("warn") if severity == "MEDIUM" else symbol("feature")
+        print(c(f"{marker} [{severity}] {row.get('title', row.get('id', 'plugin'))}", color))
+        print(c(f"  {symbol('bullet')} summary: {row.get('summary', '')}", Colors.GREY))
+        print(c(f"  {symbol('bullet')} data: {_compact_data_snapshot(row.get('data', {}))}", Colors.GREY))
         highlights = row.get("highlights", [])
         for item in highlights[:6]:
-            print(c(f"  - {item}", Colors.GREY))
+            print(c(f"  {symbol('bullet')} {item}", Colors.GREY))
     if errors:
-        print(c("\nPlugin errors:", Colors.RED))
+        print(c(f"\n{symbol('warn')} Plugin errors:", Colors.RED))
         for err in errors:
-            print(c(f"- {err}", Colors.RED))
+            print(c(f"{symbol('error')} {err}", Colors.RED))
 
 
 def _print_filter_block(
     filter_results: Iterable[dict] | None,
     filter_errors: Iterable[str] | None,
 ) -> None:
-    rows = list(filter_results or [])
+    rows = _safe_dict_rows(list(filter_results or []))
     errors = list(filter_errors or [])
     if not rows and not errors:
         return
 
-    print(c("\n[ Filter Intelligence ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    _section("Filter Intelligence", Colors.BLUE)
     for row in rows:
         severity = str(row.get("severity", "INFO")).upper()
         color = Colors.RED if severity in {"HIGH", "CRITICAL"} else Colors.YELLOW if severity == "MEDIUM" else Colors.CYAN
-        print(c(f"[{severity}] {row.get('title', row.get('id', 'filter'))}", color))
-        print(c(f"  summary: {row.get('summary', '')}", Colors.GREY))
+        marker = symbol("error") if severity in {"HIGH", "CRITICAL"} else symbol("warn") if severity == "MEDIUM" else symbol("feature")
+        print(c(f"{marker} [{severity}] {row.get('title', row.get('id', 'filter'))}", color))
+        print(c(f"  {symbol('bullet')} summary: {row.get('summary', '')}", Colors.GREY))
+        print(c(f"  {symbol('bullet')} data: {_compact_data_snapshot(row.get('data', {}))}", Colors.GREY))
         highlights = row.get("highlights", [])
         for item in highlights[:6]:
-            print(c(f"  - {item}", Colors.GREY))
+            print(c(f"  {symbol('bullet')} {item}", Colors.GREY))
     if errors:
-        print(c("\nFilter errors:", Colors.RED))
+        print(c(f"\n{symbol('warn')} Filter errors:", Colors.RED))
         for err in errors:
-            print(c(f"- {err}", Colors.RED))
+            print(c(f"{symbol('error')} {err}", Colors.RED))
 
 
 def _print_intelligence_block(intelligence_bundle: dict | None) -> None:
@@ -138,8 +184,7 @@ def _print_intelligence_block(intelligence_bundle: dict | None) -> None:
     guidance = bundle.get("execution_guidance", {}) or {}
     correlation_summary = bundle.get("correlation_summary", {}) or {}
 
-    print(c("\n[ Intelligence Scoring ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    _section("Intelligence Scoring", Colors.BLUE)
     print(
         c(
             "Entities: "
@@ -165,11 +210,11 @@ def _print_intelligence_block(intelligence_bundle: dict | None) -> None:
 
     top_contacts = _top_scored_items(scored_contacts, limit=8)
     if top_contacts:
-        print(c("\nTop contact/name signals:", Colors.YELLOW))
+        print(c(f"\n{symbol('major')} Top contact/name signals", Colors.YELLOW))
         for item in top_contacts:
             print(
                 c(
-                    f"- [{str(item.get('kind', '?')).upper()}] {item.get('value', '-')}"
+                    f"{symbol('bullet')} [{str(item.get('kind', '?')).upper()}] {item.get('value', '-')}"
                     f" score={item.get('score_percent', 0)}%"
                     f" support={item.get('supporting_entities', 0)}"
                     f" risk={item.get('risk_level', 'LOW')}",
@@ -179,11 +224,11 @@ def _print_intelligence_block(intelligence_bundle: dict | None) -> None:
 
     top_entities = _top_scored_items(scored_entities, limit=10)
     if top_entities:
-        print(c("\nTop scored entities:", Colors.CYAN))
+        print(c(f"\n{symbol('major')} Top scored entities", Colors.CYAN))
         for row in top_entities:
             print(
                 c(
-                    f"- {row.get('entity_type', '-')} {row.get('value', '-')}"
+                    f"{symbol('bullet')} {row.get('entity_type', '-')} {row.get('value', '-')}"
                     f" [{row.get('source', '-')}]"
                     f" confidence={row.get('confidence_percent', 0)}%"
                     f" risk={row.get('risk_level', '-')}"
@@ -194,13 +239,68 @@ def _print_intelligence_block(intelligence_bundle: dict | None) -> None:
 
     actions = guidance.get("actions", []) if isinstance(guidance.get("actions"), list) else []
     if actions:
-        print(c("\nExplainable guidance:", Colors.GREEN))
+        print(c(f"\n{symbol('major')} Explainable guidance", Colors.GREEN))
         for action in actions[:6]:
             if not isinstance(action, dict):
                 continue
-            print(c(f"- [{action.get('priority', 'P3')}] {action.get('title', 'Action')}", Colors.GREEN))
-            print(c(f"  why: {action.get('rationale', '-')}", Colors.GREY))
-            print(c(f"  hint: {action.get('command_hint', '-')}", Colors.GREY))
+            print(c(f"{symbol('action')} [{action.get('priority', 'P3')}] {action.get('title', 'Action')}", Colors.GREEN))
+            print(c(f"  {symbol('bullet')} why: {action.get('rationale', '-')}", Colors.GREY))
+            print(c(f"  {symbol('tip')} hint: {action.get('command_hint', '-')}", Colors.GREY))
+
+
+def _build_payload_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    results = _safe_dict_rows(payload.get("results"))
+    found = [row for row in results if str(row.get("status", "")).upper() == "FOUND"]
+    errors = [row for row in results if str(row.get("status", "")).upper() in {"ERROR", "BLOCKED"}]
+    issues = _safe_dict_rows(payload.get("issues"))
+    plugins = _safe_dict_rows(payload.get("plugins"))
+    filters = _safe_dict_rows(payload.get("filters"))
+
+    summary: dict[str, Any] = {
+        "result_count": len(results),
+        "found_count": len(found),
+        "error_or_blocked_count": len(errors),
+        "issue_count": len(issues),
+        "plugin_count": len(plugins),
+        "filter_count": len(filters),
+        "plugin_error_count": len(payload.get("plugin_errors") or []),
+        "filter_error_count": len(payload.get("filter_errors") or []),
+        "issue_severity": _severity_breakdown(issues),
+        "plugin_severity": _severity_breakdown(plugins),
+        "filter_severity": _severity_breakdown(filters),
+    }
+    return summary
+
+
+def _print_extension_summary(summary: dict[str, Any]) -> None:
+    _section("Extension Summary", Colors.BLUE)
+    issue_severity = summary.get("issue_severity", {}) if isinstance(summary.get("issue_severity"), dict) else {}
+    plugin_severity = summary.get("plugin_severity", {}) if isinstance(summary.get("plugin_severity"), dict) else {}
+    filter_severity = summary.get("filter_severity", {}) if isinstance(summary.get("filter_severity"), dict) else {}
+    print(
+        c(
+            f"{symbol('bullet')} results={summary.get('result_count', 0)} "
+            f"found={summary.get('found_count', 0)} "
+            f"errors={summary.get('error_or_blocked_count', 0)}",
+            Colors.CYAN,
+        )
+    )
+    print(
+        c(
+            f"{symbol('bullet')} issues={summary.get('issue_count', 0)} "
+            f"plugins={summary.get('plugin_count', 0)} "
+            f"filters={summary.get('filter_count', 0)}",
+            Colors.CYAN,
+        )
+    )
+    print(
+        c(
+            f"{symbol('warn')} issue_severity={issue_severity} "
+            f"plugin_severity={plugin_severity} "
+            f"filter_severity={filter_severity}",
+            Colors.GREY,
+        )
+    )
 
 
 def display_results(
@@ -217,63 +317,60 @@ def display_results(
     filter_errors: list[str] | None = None,
     intelligence_bundle: dict | None = None,
 ) -> None:
-    print(c("\n[ Scan Results ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    _section("Scan Results", Colors.BLUE)
     resolved_target = (target or "").strip() or "unknown"
-    print(c(f"Target: {resolved_target}", Colors.CYAN))
+    print(c(f"{symbol('action')} Target: {resolved_target}", Colors.CYAN))
 
     found_rows = found_profile_rows(results)
     error_rows = error_profile_rows(results)
     focus_rows = focused_profile_rows(results)
     snapshot = summarize_target_intel(results)
 
-    print(c("\n[ Found Social Media ]", Colors.GREEN))
-    print(c("------------------------------------", Colors.GREEN))
+    _section("Found Social Media", Colors.GREEN)
     if not found_rows:
-        print(c("No FOUND profiles.", Colors.GREY))
+        print(c(f"{symbol('warn')} No FOUND profiles.", Colors.GREY))
     for item in found_rows:
         platform = item.get("platform", "Unknown")
         url = item.get("url", "")
         confidence = int(item.get("confidence", 0) or 0)
-        print(c(f"[FOUND] {platform} ({confidence}%)", Colors.GREEN))
-        print(c(f"  profile: {url}", Colors.CYAN))
+        print(c(f"{symbol('ok')} {platform} ({confidence}%)", Colors.GREEN))
+        print(c(f"  {symbol('bullet')} profile: {url}", Colors.CYAN))
         contacts = item.get("contacts", {})
         if item.get("bio"):
-            print(c(f"  bio: {str(item['bio'])[:180]}", Colors.GREY))
+            print(c(f"  {symbol('bullet')} bio: {str(item['bio'])[:180]}", Colors.GREY))
         if item.get("links"):
             top_links = ", ".join(item["links"][:6])
-            print(c(f"  extracted links: {top_links}", Colors.YELLOW))
+            print(c(f"  {symbol('bullet')} extracted links: {top_links}", Colors.YELLOW))
         if contacts.get("emails"):
-            print(c(f"  emails: {', '.join(contacts['emails'])}", Colors.YELLOW))
+            print(c(f"  {symbol('bullet')} emails: {', '.join(contacts['emails'])}", Colors.YELLOW))
         if contacts.get("phones"):
-            print(c(f"  phones: {', '.join(contacts['phones'])}", Colors.YELLOW))
+            print(c(f"  {symbol('bullet')} phones: {', '.join(contacts['phones'])}", Colors.YELLOW))
         if item.get("mentions"):
-            print(c(f"  mentions: {', '.join(item['mentions'][:8])}", Colors.GREY))
+            print(c(f"  {symbol('bullet')} mentions: {', '.join(item['mentions'][:8])}", Colors.GREY))
         if item.get("http_status") is not None:
-            print(c(f"  http: {item['http_status']}", Colors.GREY))
+            print(c(f"  {symbol('bullet')} http: {item['http_status']}", Colors.GREY))
         if item.get("response_time_ms") is not None:
-            print(c(f"  rtt: {item['response_time_ms']} ms", Colors.GREY))
+            print(c(f"  {symbol('bullet')} rtt: {item['response_time_ms']} ms", Colors.GREY))
 
-    print(c("\n[ Errored / Blocked Websites ]", Colors.RED))
-    print(c("------------------------------------", Colors.RED))
+    _section("Errored / Blocked Websites", Colors.RED)
     if not error_rows:
-        print(c("No ERROR/BLOCKED websites.", Colors.GREY))
+        print(c(f"{symbol('ok')} No ERROR/BLOCKED websites.", Colors.GREY))
     for item in error_rows:
         status = item.get("status", "ERROR")
         status_color = _status_color(status)
         platform = item.get("platform", "Unknown")
         url = item.get("url", "")
-        print(c(f"[{status}] {platform}", status_color))
-        print(c(f"  profile: {url}", Colors.CYAN))
+        marker = symbol("warn") if status in {"BLOCKED", "INVALID_USERNAME"} else symbol("error")
+        print(c(f"{marker} [{status}] {platform}", status_color))
+        print(c(f"  {symbol('bullet')} profile: {url}", Colors.CYAN))
         if item.get("http_status") is not None:
-            print(c(f"  http: {item['http_status']}", Colors.GREY))
+            print(c(f"  {symbol('bullet')} http: {item['http_status']}", Colors.GREY))
         if item.get("response_time_ms") is not None:
-            print(c(f"  rtt: {item['response_time_ms']} ms", Colors.GREY))
+            print(c(f"  {symbol('bullet')} rtt: {item['response_time_ms']} ms", Colors.GREY))
         if item.get("context"):
-            print(c(f"  reason: {item['context']}", Colors.YELLOW))
+            print(c(f"  {symbol('warn')} reason: {item['context']}", Colors.YELLOW))
 
-    print(c("\n[ Summary ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    _section("Summary", Colors.BLUE)
     status_counter: Counter = Counter(item.get("status", "UNKNOWN") for item in results)
     preferred_order = ["FOUND", "ERROR", "BLOCKED", "NOT FOUND", "INVALID_USERNAME"]
     summary_parts: list[str] = []
@@ -284,58 +381,68 @@ def display_results(
         if key not in preferred_order:
             summary_parts.append(f"{key.replace(' ', '_')}={status_counter[key]}")
     summary_line = " ".join(summary_parts)
-    print(c(summary_line or "No results", Colors.CYAN))
-    print(c(f"VISIBLE_ROWS={len(focus_rows)}", Colors.CYAN))
-    print(c(f"TOTAL_RESULTS={snapshot['total_results']}", Colors.CYAN))
-    print(c(f"FOUND_PROFILES={snapshot['found_count']}", Colors.GREEN))
-    print(c(f"ERRORED_WEBSITES={snapshot['error_count']}", Colors.RED))
-    print(c(f"COVERAGE_RATIO={snapshot['coverage_ratio']}", Colors.CYAN))
-    print(c(f"AVG_FOUND_CONFIDENCE={snapshot['avg_found_confidence']}", Colors.CYAN))
-    print(c(f"AVG_FOUND_RTT_MS={snapshot['avg_found_response_time_ms']}", Colors.CYAN))
-    print(c(f"AVG_ERROR_RTT_MS={snapshot['avg_error_response_time_ms']}", Colors.CYAN))
-    print(c(f"STATUS_BREAKDOWN={snapshot['status_breakdown']}", Colors.CYAN))
+    print(c(f"{symbol('bullet')} {summary_line or 'No results'}", Colors.CYAN))
+    print(c(f"{symbol('bullet')} VISIBLE_ROWS={len(focus_rows)}", Colors.CYAN))
+    print(c(f"{symbol('bullet')} TOTAL_RESULTS={snapshot['total_results']}", Colors.CYAN))
+    print(c(f"{symbol('ok')} FOUND_PROFILES={snapshot['found_count']}", Colors.GREEN))
+    print(c(f"{symbol('error')} ERRORED_WEBSITES={snapshot['error_count']}", Colors.RED))
+    print(c(f"{symbol('bullet')} COVERAGE_RATIO={snapshot['coverage_ratio']}", Colors.CYAN))
+    print(c(f"{symbol('bullet')} AVG_FOUND_CONFIDENCE={snapshot['avg_found_confidence']}", Colors.CYAN))
+    print(c(f"{symbol('bullet')} AVG_FOUND_RTT_MS={snapshot['avg_found_response_time_ms']}", Colors.CYAN))
+    print(c(f"{symbol('bullet')} AVG_ERROR_RTT_MS={snapshot['avg_error_response_time_ms']}", Colors.CYAN))
+    print(c(f"{symbol('bullet')} STATUS_BREAKDOWN={snapshot['status_breakdown']}", Colors.CYAN))
 
     if snapshot["profile_links"]:
-        print(c("\n[ Confirmed Profile Links ]", Colors.GREEN))
+        _section("Confirmed Profile Links", Colors.GREEN)
         for link in snapshot["profile_links"]:
-            print(c(f"- {link}", Colors.GREEN))
+            print(c(f"{symbol('bullet')} {link}", Colors.GREEN))
 
-    print(c("\n[ Target Intelligence Snapshot ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
-    print(c(f"Found platforms: {_preview(snapshot['found_platforms'])}", Colors.GREY))
-    print(c(f"Emails: {_preview(snapshot['emails'])}", Colors.GREY))
-    print(c(f"Email domains: {_preview(snapshot['email_domains'])}", Colors.GREY))
-    print(c(f"Phones: {_preview(snapshot['phones'])}", Colors.GREY))
-    print(c(f"Names: {_preview(snapshot['names'])}", Colors.GREY))
-    print(c(f"Mentions: {_preview(snapshot['mentions'])}", Colors.GREY))
-    print(c(f"External links: {_preview(snapshot['external_links'])}", Colors.GREY))
-    print(c(f"Link domains: {_preview(snapshot['external_link_domains'])}", Colors.GREY))
+    _section("Target Intelligence Snapshot", Colors.BLUE)
+    print(c(f"{symbol('bullet')} Found platforms: {_preview(snapshot['found_platforms'])}", Colors.GREY))
+    print(c(f"{symbol('bullet')} Emails: {_preview(snapshot['emails'])}", Colors.GREY))
+    print(c(f"{symbol('bullet')} Email domains: {_preview(snapshot['email_domains'])}", Colors.GREY))
+    print(c(f"{symbol('bullet')} Phones: {_preview(snapshot['phones'])}", Colors.GREY))
+    print(c(f"{symbol('bullet')} Names: {_preview(snapshot['names'])}", Colors.GREY))
+    print(c(f"{symbol('bullet')} Mentions: {_preview(snapshot['mentions'])}", Colors.GREY))
+    print(c(f"{symbol('bullet')} External links: {_preview(snapshot['external_links'])}", Colors.GREY))
+    print(c(f"{symbol('bullet')} Link domains: {_preview(snapshot['external_link_domains'])}", Colors.GREY))
     if snapshot["bios"]:
-        print(c(f"Bio snippets captured: {len(snapshot['bios'])}", Colors.GREY))
+        print(c(f"{symbol('bullet')} Bio snippets captured: {len(snapshot['bios'])}", Colors.GREY))
 
     shared_links = correlation.get("shared_links", {})
     shared_emails = correlation.get("shared_emails", {})
     shared_phones = correlation.get("shared_phones", {})
     overlap_score = correlation.get("identity_overlap_score", 0)
-    print(c("\n[ Correlation ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
-    print(c(f"Identity overlap score: {overlap_score}/100", Colors.CYAN))
-    print(c(f"Shared links: {len(shared_links)}", Colors.GREY))
-    print(c(f"Shared emails: {len(shared_emails)}", Colors.GREY))
-    print(c(f"Shared phones: {len(shared_phones)}", Colors.GREY))
+    _section("Correlation", Colors.BLUE)
+    print(c(f"{symbol('action')} Identity overlap score: {overlap_score}/100", Colors.CYAN))
+    print(c(f"{symbol('bullet')} Shared links: {len(shared_links)}", Colors.GREY))
+    print(c(f"{symbol('bullet')} Shared emails: {len(shared_emails)}", Colors.GREY))
+    print(c(f"{symbol('bullet')} Shared phones: {len(shared_phones)}", Colors.GREY))
     cluster_map = correlation.get("confidence_cluster_map", {})
-    print(c(f"High-confidence cluster: {', '.join(cluster_map.get('high', [])) or 'None'}", Colors.GREY))
+    print(c(f"{symbol('bullet')} High-confidence cluster: {', '.join(cluster_map.get('high', [])) or 'None'}", Colors.GREY))
 
     if issues is not None:
         _print_issue_block(issues)
     if issue_summary:
-        print(c(f"\nRisk score: {issue_summary.get('risk_score', 0)}", Colors.MAGENTA))
-        print(c(f"Severity breakdown: {issue_summary.get('severity_breakdown', {})}", Colors.MAGENTA))
+        print(c(f"\n{symbol('warn')} Risk score: {issue_summary.get('risk_score', 0)}", Colors.MAGENTA))
+        print(c(f"{symbol('bullet')} Severity breakdown: {issue_summary.get('severity_breakdown', {})}", Colors.MAGENTA))
+    _print_extension_summary(
+        _build_payload_summary(
+            {
+                "results": results,
+                "issues": issues or [],
+                "plugins": plugin_results or [],
+                "filters": filter_results or [],
+                "plugin_errors": plugin_errors or [],
+                "filter_errors": filter_errors or [],
+            }
+        )
+    )
     _print_intelligence_block(intelligence_bundle)
     _print_plugin_block(plugin_results, plugin_errors)
     _print_filter_block(filter_results, filter_errors)
     if narrative:
-        print(c("\n[ Nano AI Brief ]", Colors.CYAN))
+        _section("Nano AI Brief", Colors.CYAN)
         print(c(narrative, Colors.CYAN))
 
     print(c(f"\n{framework_signature()}", Colors.GREY))
@@ -354,45 +461,56 @@ def display_domain_results(
     intelligence_bundle: dict | None = None,
 ) -> None:
     target = domain_result.get("target", "unknown")
-    print(c("\n[ Domain Surface Scan ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
-    print(c(f"Target: {target}", Colors.CYAN))
+    _section("Domain Surface Scan", Colors.BLUE)
+    print(c(f"{symbol('action')} Target: {target}", Colors.CYAN))
     addresses = domain_result.get("resolved_addresses", [])
-    print(c(f"Resolved addresses ({len(addresses)}): {', '.join(addresses) or 'none'}", Colors.GREY))
+    print(c(f"{symbol('bullet')} Resolved addresses ({len(addresses)}): {', '.join(addresses) or 'none'}", Colors.GREY))
 
     https_data = domain_result.get("https", {})
     http_data = domain_result.get("http", {})
-    print(c(f"HTTPS status: {https_data.get('status')} final={https_data.get('final_url')}", Colors.GREY))
-    print(c(f"HTTP status: {http_data.get('status')} final={http_data.get('final_url')}", Colors.GREY))
-    print(c(f"HTTP->HTTPS redirect: {http_data.get('redirects_to_https')}", Colors.GREY))
+    print(c(f"{symbol('bullet')} HTTPS status: {https_data.get('status')} final={https_data.get('final_url')}", Colors.GREY))
+    print(c(f"{symbol('bullet')} HTTP status: {http_data.get('status')} final={http_data.get('final_url')}", Colors.GREY))
+    print(c(f"{symbol('bullet')} HTTP->HTTPS redirect: {http_data.get('redirects_to_https')}", Colors.GREY))
 
     subdomains = domain_result.get("subdomains", [])
     if subdomains:
-        print(c(f"Subdomains ({len(subdomains)}):", Colors.YELLOW))
+        print(c(f"{symbol('action')} Subdomains ({len(subdomains)}):", Colors.YELLOW))
         for name in subdomains[:25]:
-            print(c(f"- {name}", Colors.YELLOW))
+            print(c(f"{symbol('bullet')} {name}", Colors.YELLOW))
         if len(subdomains) > 25:
-            print(c(f"... and {len(subdomains) - 25} more", Colors.YELLOW))
+            print(c(f"{symbol('tip')} ... and {len(subdomains) - 25} more", Colors.YELLOW))
     else:
-        print(c("Subdomains: none", Colors.GREY))
+        print(c(f"{symbol('bullet')} Subdomains: none", Colors.GREY))
 
-    print(c(f"robots.txt present: {domain_result.get('robots_txt_present')}", Colors.GREY))
-    print(c(f"security.txt present: {domain_result.get('security_txt_present')}", Colors.GREY))
+    print(c(f"{symbol('bullet')} robots.txt present: {domain_result.get('robots_txt_present')}", Colors.GREY))
+    print(c(f"{symbol('bullet')} security.txt present: {domain_result.get('security_txt_present')}", Colors.GREY))
     if domain_result.get("scan_notes"):
-        print(c("Scan notes:", Colors.YELLOW))
+        print(c(f"{symbol('tip')} Scan notes:", Colors.YELLOW))
         for note in domain_result["scan_notes"]:
-            print(c(f"- {note}", Colors.YELLOW))
+            print(c(f"{symbol('bullet')} {note}", Colors.YELLOW))
 
     if issues is not None:
         _print_issue_block(issues)
     if issue_summary:
-        print(c(f"\nRisk score: {issue_summary.get('risk_score', 0)}", Colors.MAGENTA))
-        print(c(f"Severity breakdown: {issue_summary.get('severity_breakdown', {})}", Colors.MAGENTA))
+        print(c(f"\n{symbol('warn')} Risk score: {issue_summary.get('risk_score', 0)}", Colors.MAGENTA))
+        print(c(f"{symbol('bullet')} Severity breakdown: {issue_summary.get('severity_breakdown', {})}", Colors.MAGENTA))
+    _print_extension_summary(
+        _build_payload_summary(
+            {
+                "results": [],
+                "issues": issues or [],
+                "plugins": plugin_results or [],
+                "filters": filter_results or [],
+                "plugin_errors": plugin_errors or [],
+                "filter_errors": filter_errors or [],
+            }
+        )
+    )
     _print_intelligence_block(intelligence_bundle)
     _print_plugin_block(plugin_results, plugin_errors)
     _print_filter_block(filter_results, filter_errors)
     if narrative:
-        print(c("\n[ Nano AI Brief ]", Colors.CYAN))
+        _section("Nano AI Brief", Colors.CYAN)
         print(c(narrative, Colors.CYAN))
 
     print(c(f"\n{framework_signature()}", Colors.GREY))
@@ -400,6 +518,7 @@ def display_domain_results(
 
 def _render_cli_report(payload: dict) -> str:
     metadata = payload.get("metadata", {}) or {}
+    summary = payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
     lines: list[str] = []
     lines.append(f"Framework: {metadata.get('framework', '-')}")
     lines.append(f"Generated UTC: {metadata.get('generated_at_utc', '-')}")
@@ -408,6 +527,20 @@ def _render_cli_report(payload: dict) -> str:
     if payload.get("target_key"):
         lines.append(f"Storage Key: {payload.get('target_key')}")
     lines.append("")
+    if summary:
+        lines.append("[Artifact Summary]")
+        lines.append(
+            f"- results={summary.get('result_count', 0)} found={summary.get('found_count', 0)} "
+            f"errors={summary.get('error_or_blocked_count', 0)}"
+        )
+        lines.append(
+            f"- issues={summary.get('issue_count', 0)} plugins={summary.get('plugin_count', 0)} "
+            f"filters={summary.get('filter_count', 0)}"
+        )
+        lines.append(f"- issue_severity={summary.get('issue_severity', {})}")
+        lines.append(f"- plugin_severity={summary.get('plugin_severity', {})}")
+        lines.append(f"- filter_severity={summary.get('filter_severity', {})}")
+        lines.append("")
 
     results = payload.get("results", []) or []
     snapshot = summarize_target_intel(results)
@@ -491,13 +624,14 @@ def _render_cli_report(payload: dict) -> str:
     if not plugin_rows and not plugin_errors:
         lines.append("- none")
     else:
-        for row in plugin_rows:
+        for row in _safe_dict_rows(plugin_rows):
             lines.append(
                 f"- [{str(row.get('severity', 'INFO')).upper()}] "
-                f"{row.get('title', row.get('id', 'plugin'))}: {row.get('summary', '')}"
+                f"{row.get('title', row.get('id', 'plugin'))}: {row.get('summary', '')} "
+                f"(data: {_compact_data_snapshot(row.get('data', {}), max_items=4)})"
             )
         for err in plugin_errors:
-            lines.append(f"- [ERROR] {err}")
+            lines.append(f"- {symbol('error')} {err}")
     lines.append("")
 
     filter_rows = payload.get("filters", []) or []
@@ -506,13 +640,14 @@ def _render_cli_report(payload: dict) -> str:
     if not filter_rows and not filter_errors:
         lines.append("- none")
     else:
-        for row in filter_rows:
+        for row in _safe_dict_rows(filter_rows):
             lines.append(
                 f"- [{str(row.get('severity', 'INFO')).upper()}] "
-                f"{row.get('title', row.get('id', 'filter'))}: {row.get('summary', '')}"
+                f"{row.get('title', row.get('id', 'filter'))}: {row.get('summary', '')} "
+                f"(data: {_compact_data_snapshot(row.get('data', {}), max_items=4)})"
             )
         for err in filter_errors:
-            lines.append(f"- [ERROR] {err}")
+            lines.append(f"- {symbol('error')} {err}")
     lines.append("")
 
     fused_intel = payload.get("fused_intel", {}) or {}
@@ -629,7 +764,7 @@ def save_results(
     target_key = sanitize_target(target_display)
     data_target_dir(target_key).mkdir(parents=True, exist_ok=True)
 
-    payload = {
+    payload: dict[str, Any] = {
         "metadata": {
             "generated_at_utc": utc_timestamp(),
             "mode": mode,
@@ -651,15 +786,24 @@ def save_results(
         "intelligence_bundle": intelligence_bundle or {},
         "narrative": narrative,
     }
+    payload["summary"] = _build_payload_summary(payload)
 
     results_count = len(payload["results"]) if isinstance(payload["results"], list) else 0
     issues_count = len(payload["issues"]) if isinstance(payload["issues"], list) else 0
     plugins_count = len(payload["plugins"]) if isinstance(payload["plugins"], list) else 0
     filters_count = len(payload["filters"]) if isinstance(payload["filters"], list) else 0
-    fusion_nodes = len((payload.get("fusion_graph") or {}).get("nodes", []) or [])
-    fusion_edges = len((payload.get("fusion_graph") or {}).get("edges", []) or [])
-    intelligence_entities = len((payload.get("intelligence_bundle") or {}).get("entities", []) or [])
-    intelligence_links = len((payload.get("intelligence_bundle") or {}).get("relationships", []) or [])
+    payload_summary = payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
+    plugin_severity = payload_summary.get("plugin_severity", {}) if isinstance(payload_summary.get("plugin_severity"), dict) else {}
+    filter_severity = payload_summary.get("filter_severity", {}) if isinstance(payload_summary.get("filter_severity"), dict) else {}
+    issue_severity = payload_summary.get("issue_severity", {}) if isinstance(payload_summary.get("issue_severity"), dict) else {}
+    fusion_graph_raw = payload.get("fusion_graph")
+    fusion_graph_payload: dict[str, Any] = fusion_graph_raw if isinstance(fusion_graph_raw, dict) else {}
+    intelligence_raw = payload.get("intelligence_bundle")
+    intelligence_payload: dict[str, Any] = intelligence_raw if isinstance(intelligence_raw, dict) else {}
+    fusion_nodes = len(fusion_graph_payload.get("nodes", []) or [])
+    fusion_edges = len(fusion_graph_payload.get("edges", []) or [])
+    intelligence_entities = len(intelligence_payload.get("entities", []) or [])
+    intelligence_links = len(intelligence_payload.get("relationships", []) or [])
 
     json_path = results_json_path(target_key)
     with json_path.open("w", encoding="utf-8") as handle:
@@ -685,6 +829,9 @@ def save_results(
             f"issues={issues_count}\n"
             f"plugins={plugins_count}\n"
             f"filters={filters_count}\n"
+            f"issue_severity={issue_severity}\n"
+            f"plugin_severity={plugin_severity}\n"
+            f"filter_severity={filter_severity}\n"
             f"fusion_nodes={fusion_nodes}\n"
             f"fusion_edges={fusion_edges}\n"
             f"intelligence_entities={intelligence_entities}\n"
@@ -701,8 +848,8 @@ def save_results(
         ),
     )
 
-    print(c(f"\nResults JSON saved to {json_path}", Colors.GREEN))
-    print(c(f"CLI report saved to {cli_path}", Colors.GREEN))
-    print(c(f"Run log saved to {run_log}", Colors.GREEN))
+    print(c(f"\n{symbol('ok')} Results JSON saved to {json_path}", Colors.GREEN))
+    print(c(f"{symbol('ok')} CLI report saved to {cli_path}", Colors.GREEN))
+    print(c(f"{symbol('ok')} Run log saved to {run_log}", Colors.GREEN))
     return str(json_path)
 

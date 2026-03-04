@@ -70,7 +70,13 @@ def _normalize_spec(module_name: str, raw: dict[str, Any]) -> FilterSpec:
 def _discover_filter_specs(scope: str | None = None) -> tuple[list[FilterSpec], list[str]]:
     specs: list[FilterSpec] = []
     errors: list[str] = []
-    for module_name in _iter_filter_module_names():
+    try:
+        module_names = _iter_filter_module_names()
+    except Exception as exc:  # pragma: no cover - defensive import safety
+        errors.append(f"Filter package discovery failed: {exc}")
+        return [], errors
+
+    for module_name in module_names:
         try:
             module = _load_filter_module(module_name)
         except Exception as exc:  # pragma: no cover - defensive import safety

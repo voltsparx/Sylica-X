@@ -228,19 +228,24 @@ def _summarize_correlation_links(links: Sequence[CorrelationLink]) -> dict[str, 
         }
 
     reason_counter = Counter(link.reason for link in links)
-    strongest = sorted(
-        (
-            {
-                "source_entity_id": link.source_entity_id,
-                "target_entity_id": link.target_entity_id,
-                "reason": link.reason,
-                "strength_score": round(float(link.strength_score), 4),
-                "evidence_reference": link.evidence_reference,
-            }
-            for link in links
-        ),
-        key=lambda item: (-float(item["strength_score"]), item["reason"], item["source_entity_id"]),
-    )[:150]
+    strongest_rows: list[dict[str, Any]] = [
+        {
+            "source_entity_id": link.source_entity_id,
+            "target_entity_id": link.target_entity_id,
+            "reason": link.reason,
+            "strength_score": round(float(link.strength_score), 4),
+            "evidence_reference": link.evidence_reference,
+        }
+        for link in links
+    ]
+    strongest_rows.sort(
+        key=lambda item: (
+            -float(item.get("strength_score", 0.0) or 0.0),
+            str(item.get("reason", "")),
+            str(item.get("source_entity_id", "")),
+        )
+    )
+    strongest = strongest_rows[:150]
 
     return {
         "link_count": len(links),
@@ -462,9 +467,9 @@ class IntelligenceEngine:
             evidence_ids = row.get("evidence_ids", [])
             evidence_reliability = 0.5
             if isinstance(evidence_ids, Sequence) and evidence_ids:
-                evidence = evidence_by_id.get(str(evidence_ids[0]))
-                if evidence is not None:
-                    evidence_reliability = float(evidence.reliability_score)
+                evidence_row = evidence_by_id.get(str(evidence_ids[0]))
+                if evidence_row is not None:
+                    evidence_reliability = float(evidence_row.reliability_score)
 
             heuristic_bonus, applied_heuristics = self._heuristics.evaluate(
                 row,
@@ -578,4 +583,3 @@ class IntelligenceEngine:
                 )
             )
         return unique
-

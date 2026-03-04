@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 from datetime import datetime
 
 from core.foundation.metadata import AUTHOR, PROJECT_NAME, VERSION, framework_signature
@@ -13,6 +14,43 @@ from core.analyze.profile_summary import (
     summarize_target_intel,
 )
 from core.artifacts.storage import ensure_output_tree, html_report_path, sanitize_target
+
+
+def _safe_dict_rows(value: object) -> list[dict]:
+    if not isinstance(value, list):
+        return []
+    return [row for row in value if isinstance(row, dict)]
+
+
+def _severity_breakdown(rows: list[dict]) -> dict[str, int]:
+    counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
+    for row in rows:
+        severity = str(row.get("severity", "INFO")).strip().upper()
+        if severity not in counts:
+            severity = "INFO"
+        counts[severity] += 1
+    return counts
+
+
+def _compact_data_snapshot(data: object, *, max_items: int = 6) -> str:
+    if not isinstance(data, dict) or not data:
+        return "-"
+    tokens: list[str] = []
+    for key in sorted(data.keys(), key=str):
+        value = data.get(key)
+        if isinstance(value, (str, int, float, bool)):
+            tokens.append(f"{key}={value}")
+        elif isinstance(value, list):
+            tokens.append(f"{key}[{len(value)}]")
+        elif isinstance(value, dict):
+            tokens.append(f"{key}{{{len(value)}}}")
+        elif value is None:
+            tokens.append(f"{key}=null")
+        else:
+            tokens.append(f"{key}=...")
+        if len(tokens) >= max_items:
+            break
+    return ", ".join(tokens) if tokens else "-"
 
 
 def _status_badge(status: str) -> str:
@@ -264,17 +302,24 @@ def _render_plugins(plugin_results: list[dict], plugin_errors: list[str]) -> str
         return "<p class='muted'>No plugins were executed for this run.</p>"
 
     cards = []
-    for plugin in plugin_results:
+    for plugin in _safe_dict_rows(plugin_results):
         highlights = plugin.get("highlights", []) or []
         highlight_html = "".join(f"<li>{html.escape(str(item))}</li>" for item in highlights[:8]) or "<li>None</li>"
+        payload_preview = _compact_data_snapshot(plugin.get("data", {}))
+        payload_json = html.escape(json.dumps(plugin.get("data", {}), indent=2, default=str))
+        severity = str(plugin.get("severity", "INFO")).upper()
         cards.append(
             "<div class='subpanel'>"
             f"<h4>{html.escape(plugin.get('title', plugin.get('id', 'Plugin')))} "
-            f"<span class='muted'>[{html.escape(str(plugin.get('severity', 'INFO')).upper())}]</span></h4>"
+            f"<span class='badge badge-inline'>{html.escape(severity)}</span></h4>"
             f"<p>{html.escape(plugin.get('summary', ''))}</p>"
+            f"<p><strong>Data Snapshot:</strong> {html.escape(payload_preview)}</p>"
             "<ul>"
             f"{highlight_html}"
             "</ul>"
+            "<details><summary>Raw plugin data payload</summary>"
+            f"<pre>{payload_json}</pre>"
+            "</details>"
             "</div>"
         )
     if plugin_errors:
@@ -289,17 +334,24 @@ def _render_filters(filter_results: list[dict], filter_errors: list[str]) -> str
         return "<p class='muted'>No filters were executed for this run.</p>"
 
     cards = []
-    for row in filter_results:
+    for row in _safe_dict_rows(filter_results):
         highlights = row.get("highlights", []) or []
         highlight_html = "".join(f"<li>{html.escape(str(item))}</li>" for item in highlights[:8]) or "<li>None</li>"
+        payload_preview = _compact_data_snapshot(row.get("data", {}))
+        payload_json = html.escape(json.dumps(row.get("data", {}), indent=2, default=str))
+        severity = str(row.get("severity", "INFO")).upper()
         cards.append(
             "<div class='subpanel'>"
             f"<h4>{html.escape(row.get('title', row.get('id', 'Filter')))} "
-            f"<span class='muted'>[{html.escape(str(row.get('severity', 'INFO')).upper())}]</span></h4>"
+            f"<span class='badge badge-inline'>{html.escape(severity)}</span></h4>"
             f"<p>{html.escape(row.get('summary', ''))}</p>"
+            f"<p><strong>Data Snapshot:</strong> {html.escape(payload_preview)}</p>"
             "<ul>"
             f"{highlight_html}"
             "</ul>"
+            "<details><summary>Raw filter data payload</summary>"
+            f"<pre>{payload_json}</pre>"
+            "</details>"
             "</div>"
         )
 
@@ -307,6 +359,40 @@ def _render_filters(filter_results: list[dict], filter_errors: list[str]) -> str
         err = "".join(f"<li>{html.escape(str(item))}</li>" for item in filter_errors)
         cards.append(f"<h4>Filter Errors</h4><ul>{err}</ul>")
     return "".join(cards)
+
+
+def _render_extension_overview(
+    issues: list[dict[str, str]],
+    issue_summary: dict,
+    plugin_results: list[dict],
+    plugin_errors: list[str],
+    filter_results: list[dict],
+    filter_errors: list[str],
+) -> str:
+    safe_issues = _safe_dict_rows(issues)
+    safe_plugins = _safe_dict_rows(plugin_results)
+    safe_filters = _safe_dict_rows(filter_results)
+    issue_breakdown = _severity_breakdown(safe_issues)
+    plugin_breakdown = _severity_breakdown(safe_plugins)
+    filter_breakdown = _severity_breakdown(safe_filters)
+
+    cards = "".join(
+        [
+            _metric_card("Risk Score", str(issue_summary.get("risk_score", 0)), "exposure model"),
+            _metric_card("Issues", str(len(safe_issues)), f"critical={issue_breakdown.get('CRITICAL', 0)}"),
+            _metric_card("Plugins", str(len(safe_plugins)), f"errors={len(plugin_errors)}"),
+            _metric_card("Filters", str(len(safe_filters)), f"errors={len(filter_errors)}"),
+        ]
+    )
+    return (
+        "<section class='panel'>"
+        "<h3>Extension Signal Overview</h3>"
+        f"<div class='metrics'>{cards}</div>"
+        f"<p><strong>Issue Severity:</strong> {html.escape(str(issue_breakdown))}</p>"
+        f"<p><strong>Plugin Severity:</strong> {html.escape(str(plugin_breakdown))}</p>"
+        f"<p><strong>Filter Severity:</strong> {html.escape(str(filter_breakdown))}</p>"
+        "</section>"
+    )
 
 
 def _render_intelligence_bundle(intelligence_bundle: dict | None) -> str:
@@ -505,6 +591,25 @@ def generate_html(
           box-shadow: var(--shadow);
           backdrop-filter: blur(6px);
         }}
+        .quick-nav {{
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 14px;
+        }}
+        .quick-nav a {{
+          border: 1px solid var(--line);
+          border-radius: 999px;
+          padding: 6px 12px;
+          background: rgba(255,255,255,0.03);
+          color: var(--text);
+          font-size: 0.82rem;
+          text-decoration: none;
+        }}
+        .quick-nav a:hover {{
+          border-color: var(--accent-2);
+          transform: translateY(-1px);
+        }}
         .header h1 {{ margin: 0 0 8px 0; font-size: 1.75rem; }}
         .muted {{ color: var(--muted); }}
         .metrics {{
@@ -551,6 +656,15 @@ def generate_html(
           font-weight: 700;
           letter-spacing: 0.03em;
         }}
+        .badge-inline {{
+          background: rgba(94,169,255,0.22);
+          border: 1px solid rgba(94,169,255,0.45);
+          color: var(--text);
+          margin-left: 8px;
+          padding: 2px 8px;
+          font-size: 0.74rem;
+          vertical-align: middle;
+        }}
         .chip-group {{ margin-top: 12px; }}
         .chip-group h4 {{ margin: 0 0 6px 0; }}
         .chip {{
@@ -582,6 +696,30 @@ def generate_html(
         a {{ color: var(--accent-2); text-decoration: none; }}
         a:hover {{ text-decoration: underline; }}
         ul {{ padding-left: 20px; }}
+        details {{
+          margin-top: 8px;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 8px;
+          padding: 6px 8px;
+          background: rgba(7,11,18,0.38);
+        }}
+        summary {{
+          cursor: pointer;
+          color: #c7dbef;
+          font-weight: 600;
+        }}
+        pre {{
+          white-space: pre-wrap;
+          word-break: break-word;
+          max-height: 240px;
+          overflow: auto;
+          background: rgba(0, 0, 0, 0.35);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 8px;
+          padding: 8px;
+          color: #d6e4f3;
+          font-size: 0.8rem;
+        }}
         .brief {{
           background: rgba(39,216,154,0.09);
           border: 1px solid rgba(39,216,154,0.38);
@@ -606,11 +744,24 @@ def generate_html(
           <strong>Framework:</strong> {html.escape(framework_signature())}</div>
         </div>
 
+        <div class="quick-nav">
+          <a href="#overview">Overview</a>
+          <a href="#profiles">Profiles</a>
+          <a href="#errors">Errors</a>
+          <a href="#correlation">Correlation</a>
+          <a href="#exposure">Exposure</a>
+          <a href="#plugins">Plugins</a>
+          <a href="#filters">Filters</a>
+          <a href="#intelligence">Intelligence</a>
+        </div>
+
         <div class="metrics">{metrics_html}</div>
 
-        {_render_target_snapshot(target_display, snapshot, len(results))}
+        <div id="overview">{_render_target_snapshot(target_display, snapshot, len(results))}</div>
 
-        <section class="panel">
+        {_render_extension_overview(issues, issue_summary, plugin_results, plugin_errors, filter_results, filter_errors)}
+
+        <section class="panel" id="profiles">
           <h3>Found Social Media Profiles</h3>
           <div class="table-wrap">
             <table>
@@ -623,7 +774,7 @@ def generate_html(
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" id="errors">
           <h3>Errored / Blocked Websites</h3>
           <div class="table-wrap">
             <table>
@@ -633,29 +784,29 @@ def generate_html(
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" id="correlation">
           <h3>Correlation Engine</h3>
           {_render_correlation(correlation)}
         </section>
 
         {_render_domain_section(domain_result)}
 
-        <section class="panel">
+        <section class="panel" id="exposure">
           <h3>Exposure & Vulnerability Signals</h3>
           {_render_issues(issues, issue_summary)}
         </section>
 
-        <section class="panel">
+        <section class="panel" id="plugins">
           <h3>Plugin Intelligence</h3>
           {_render_plugins(plugin_results, plugin_errors)}
         </section>
 
-        <section class="panel">
+        <section class="panel" id="filters">
           <h3>Filter Intelligence</h3>
           {_render_filters(filter_results, filter_errors)}
         </section>
 
-        <section class="panel">
+        <section class="panel" id="intelligence">
           <h3>Intelligence Scoring & Guidance</h3>
           {_render_intelligence_bundle(intelligence_bundle)}
         </section>

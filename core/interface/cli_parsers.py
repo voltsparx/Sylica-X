@@ -80,7 +80,7 @@ def _add_plugin_args(parser: argparse.ArgumentParser) -> None:
         "--plugin",
         action="append",
         default=[],
-        help="Plugin selector (id/alias/name) to execute (repeatable).",
+        help="Plugin selector (id/alias/name), repeatable or comma-separated.",
     )
     parser.add_argument(
         "--all-plugins",
@@ -99,7 +99,7 @@ def _add_filter_args(parser: argparse.ArgumentParser) -> None:
         "--filter",
         action="append",
         default=[],
-        help="Filter selector (id/alias/name) to execute (repeatable).",
+        help="Filter selector (id/alias/name), repeatable or comma-separated.",
     )
     parser.add_argument(
         "--all-filters",
@@ -157,7 +157,7 @@ def _add_modules_args(parser: argparse.ArgumentParser) -> None:
         "--framework",
         action="append",
         default=[],
-        help="Filter by framework name (repeatable).",
+        help="Filter by framework name (repeatable or comma-separated).",
     )
     parser.add_argument(
         "--search",
@@ -168,7 +168,7 @@ def _add_modules_args(parser: argparse.ArgumentParser) -> None:
         "--tag",
         action="append",
         default=[],
-        help="Capability tag filter (repeatable, example: --tag identity --tag correlation).",
+        help="Capability tag filter (repeatable or comma-separated).",
     )
     parser.add_argument(
         "--min-score",
@@ -227,6 +227,30 @@ def _add_history_args(parser: argparse.ArgumentParser) -> None:
         type=positive_int,
         default=25,
         help="Maximum number of scanned targets to list from output/data and output/html.",
+    )
+
+
+def _add_quicktest_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--template",
+        default="",
+        help="Template id override; when omitted one of five templates is selected randomly.",
+    )
+    parser.add_argument(
+        "--seed",
+        type=non_negative_int,
+        default=None,
+        help="Random seed for deterministic template choice (used only when --template is omitted).",
+    )
+    parser.add_argument(
+        "--list-templates",
+        action="store_true",
+        help="List bundled quicktest templates and exit.",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the generated quicktest payload as JSON after report generation.",
     )
 
 
@@ -532,6 +556,12 @@ def build_root_parser(
         help="List scanned targets discovered from output/data and output/html artifacts.",
     )
     _add_history_args(history_parser)
+    quicktest_parser = subparsers.add_parser(
+        "quicktest",
+        aliases=["qtest", "smoke"],
+        help="Run an offline quicktest using one random built-in victim template.",
+    )
+    _add_quicktest_args(quicktest_parser)
     subparsers.add_parser("help", help="Show command-line usage help.")
     subparsers.add_parser("about", help="Display framework metadata and contact details.")
     subparsers.add_parser("explain", help="Display plain-language workflow, plugin, and filter explanations.")
@@ -606,6 +636,8 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
     _add_modules_args(modules_parser)
     history_parser = subparsers.add_parser("history", aliases=["targets", "scans"], add_help=False)
     _add_history_args(history_parser)
+    quicktest_parser = subparsers.add_parser("quicktest", aliases=["qtest", "smoke"], add_help=False)
+    _add_quicktest_args(quicktest_parser)
     subparsers.add_parser("help", add_help=False)
     subparsers.add_parser("about", add_help=False)
     subparsers.add_parser("explain", add_help=False)

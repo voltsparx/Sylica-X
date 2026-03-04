@@ -1,5 +1,7 @@
 # Silica Capability Scan
 
+Release: v9.0 (Theme: Lattice)
+
 Frameworks scanned: 8
 
 | Framework | Files | Async | Retry | RateLimit | Cache | Plugins | Parallel | Exports | Tor/Proxy | Tests |

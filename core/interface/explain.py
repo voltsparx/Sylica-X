@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from core.foundation.metadata import PROJECT_NAME, VERSION
+from core.foundation.metadata import PROJECT_NAME, VERSION, VERSION_THEME
+from core.interface.symbols import symbol
 from core.extensions.signal_forge import list_plugin_descriptors
 from core.extensions.signal_sieve import list_filter_descriptors
 
@@ -22,6 +23,10 @@ COMMAND_EXPLANATIONS: dict[str, str] = {
         "Builds/lists the source-intel module catalog from intel-sources with "
         "scope/kind/search/tag/score controls, plus pagination and integrity validation."
     ),
+    "quicktest": (
+        "Runs one random built-in victim template (5 total) and generates full JSON/CLI/CSV/HTML reports "
+        "without live network collection."
+    ),
     "history": "Shows previously scanned targets from local output/data and output/html artifacts.",
     "anonymity": "Checks or updates Tor/proxy routing for current session execution.",
     "live": "Starts the local dashboard for a saved target result bundle.",
@@ -36,44 +41,49 @@ def build_explain_text() -> str:
     filters = list_filter_descriptors(scope=None)
 
     lines: list[str] = []
-    lines.append(f"{PROJECT_NAME} v{VERSION} - Explain Mode")
+    lines.append(f"{symbol('major')} {PROJECT_NAME} v{VERSION} [{VERSION_THEME}] - Explain Mode")
+    lines.append("-" * 36)
     lines.append("")
-    lines.append("What this tool does:")
+    lines.append(f"{symbol('major')} What this tool does")
     lines.append(
-        "- Collects public OSINT signals from usernames and domains, then fuses correlation, exposure, and reporting."
+        f"{symbol('bullet')} Collects public OSINT signals from usernames and domains, then fuses correlation, exposure, and reporting."
     )
     lines.append("")
-    lines.append("Global flags:")
-    lines.append("- --about: print tool description and identity block.")
-    lines.append("- --explain: print this explain guide and exit.")
+    lines.append(f"{symbol('major')} Global flags")
+    lines.append(f"{symbol('bullet')} --about: print tool description and identity block.")
+    lines.append(f"{symbol('bullet')} --explain: print this explain guide and exit.")
     lines.append("")
-    lines.append("Commands:")
+    lines.append(f"{symbol('major')} Commands")
     for command, description in sorted(COMMAND_EXPLANATIONS.items()):
-        lines.append(f"- {command}: {description}")
+        lines.append(f"{symbol('bullet')} {command}: {description}")
     lines.append("")
-    lines.append("Plugins:")
+    lines.append(f"{symbol('major')} Plugins")
     for row in sorted(plugins, key=lambda item: str(item.get("id", ""))):
         scopes = ", ".join(row.get("scopes", []))
-        lines.append(f"- {row.get('id')}: {row.get('description')} (scopes: {scopes})")
+        lines.append(f"{symbol('feature')} {row.get('id')}: {row.get('description')} (scopes: {scopes})")
     lines.append("")
-    lines.append("Filters:")
+    lines.append(f"{symbol('major')} Filters")
     for row in sorted(filters, key=lambda item: str(item.get("id", ""))):
         scopes = ", ".join(row.get("scopes", []))
-        lines.append(f"- {row.get('id')}: {row.get('description')} (scopes: {scopes})")
+        lines.append(f"{symbol('feature')} {row.get('id')}: {row.get('description')} (scopes: {scopes})")
     lines.append("")
-    lines.append("Prompt-only controls:")
-    lines.append("- banner: print the banner again.")
-    lines.append("- clear: clear terminal only (banner stays hidden until you run banner).")
-    lines.append("- use profile|surface|fusion: switch active module context.")
-    lines.append("- set plugins ... / set filters ...: module-compatible defaults, supports aliases, comma-separated.")
-    lines.append("- set extension_control ...: module default for --extension-control auto|manual|hybrid.")
-    lines.append("- set orchestrate_extension_control ...: default --extension-control for orchestrate.")
-    lines.append("- Prompt format: (console <module> ec=<mode> plugins=<set> filters=<set>)>>")
+    lines.append(f"{symbol('major')} Prompt-only controls")
+    lines.append(f"{symbol('bullet')} banner: print the banner again.")
+    lines.append(f"{symbol('bullet')} clear: clear terminal only (banner stays hidden until you run banner).")
+    lines.append(f"{symbol('bullet')} use profile|surface|fusion: switch active module context.")
+    lines.append(f"{symbol('bullet')} select module <name>: alias for use command module switch.")
+    lines.append(f"{symbol('bullet')} set plugins ... / set filters ...: module-compatible defaults, supports aliases, comma-separated.")
+    lines.append(f"{symbol('bullet')} select plugins ... / select filters ...: name-based aliases for set controls.")
+    lines.append(f"{symbol('bullet')} add/remove plugins ...: incremental plugin control by selector name.")
+    lines.append(f"{symbol('bullet')} add/remove filters ...: incremental filter control by selector name.")
+    lines.append(f"{symbol('bullet')} set extension_control ...: module default for --extension-control auto|manual|hybrid.")
+    lines.append(f"{symbol('bullet')} set orchestrate_extension_control ...: default --extension-control for orchestrate.")
+    lines.append(f"{symbol('bullet')} Prompt format: (console <module> ec=<mode> plugins=<set> filters=<set>)>>")
     lines.append("")
-    lines.append("Flag parity notes:")
-    lines.append("- profile/surface/fusion share plugin/filter flags: --plugin, --all-plugins, --list-plugins.")
-    lines.append("- profile/surface/fusion share filter flags: --filter, --all-filters, --list-filters.")
-    lines.append("- extension controls: --extension-control auto|manual|hybrid with conflict validation.")
-    lines.append("- explain command and --explain flag produce the same explain output.")
+    lines.append(f"{symbol('major')} Flag parity notes")
+    lines.append(f"{symbol('bullet')} profile/surface/fusion share plugin/filter flags: --plugin, --all-plugins, --list-plugins.")
+    lines.append(f"{symbol('bullet')} profile/surface/fusion share filter flags: --filter, --all-filters, --list-filters.")
+    lines.append(f"{symbol('bullet')} extension controls: --extension-control auto|manual|hybrid with conflict validation.")
+    lines.append(f"{symbol('bullet')} explain command and --explain flag produce the same explain output.")
     return "\n".join(lines)
 

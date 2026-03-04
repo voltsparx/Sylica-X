@@ -1,5 +1,7 @@
 # Core Module Layout
 
+Release: v9.0 (Theme: Lattice)
+
 Core modules are grouped by responsibility to keep runtime wiring and ownership clear.
 
 ## Runtime + Interface
@@ -17,6 +19,9 @@ Core modules are grouped by responsibility to keep runtime wiring and ownership 
 
 - `core/extensions/` -> plugin/filter discovery and execution wiring.
 - `core/artifacts/` -> storage, csv/html/json output, and report generation.
+- `core/artifacts/output.py` -> enriched CLI + JSON artifact summaries, extension severity rollups, and run logs.
+- `core/artifacts/html_report.py` -> rich HTML report sections with extension overview and payload drill-down.
+- `core/artifacts/csv_export.py` -> primary result CSV + companion CSV exports (`issues`, `plugins`, `filters`, `intel`).
 
 ## Engines + Foundation
 

@@ -19,8 +19,10 @@ class StrategicAdvisor:
         intelligence_bundle = fused_data.get("intelligence_bundle", {})
         if not isinstance(intelligence_bundle, dict):
             intelligence_bundle = {}
-        guidance = intelligence_bundle.get("execution_guidance", {})
-        actions = guidance.get("actions") if isinstance(guidance, dict) and isinstance(guidance.get("actions"), list) else []
+        guidance_raw = intelligence_bundle.get("execution_guidance")
+        guidance = guidance_raw if isinstance(guidance_raw, dict) else {}
+        actions_raw = guidance.get("actions")
+        actions = actions_raw if isinstance(actions_raw, list) else []
 
         if confidence < 50:
             recommendations.append("Increase scan depth and rerun with balanced or deep profile.")
@@ -69,13 +71,11 @@ class StrategicAdvisor:
 
         anomalies = fused_data.get("anomalies") if isinstance(fused_data.get("anomalies"), list) else []
         graph = fused_data.get("graph") if isinstance(fused_data.get("graph"), dict) else {}
-        edge_count = len(graph.get("edges", [])) if isinstance(graph.get("edges"), list) else 0
+        edges_raw = graph.get("edges") if isinstance(graph, dict) else []
+        edge_count = len(edges_raw) if isinstance(edges_raw, list) else 0
         intelligence_bundle = fused_data.get("intelligence_bundle", {})
-        risk_summary = (
-            intelligence_bundle.get("risk_summary", {})
-            if isinstance(intelligence_bundle, dict) and isinstance(intelligence_bundle.get("risk_summary"), dict)
-            else {}
-        )
+        risk_summary_raw = intelligence_bundle.get("risk_summary") if isinstance(intelligence_bundle, dict) else {}
+        risk_summary = risk_summary_raw if isinstance(risk_summary_raw, dict) else {}
         critical_count = int(risk_summary.get("CRITICAL", 0) or 0)
         high_count = int(risk_summary.get("HIGH", 0) or 0)
 

@@ -32,8 +32,9 @@ from core.artifacts.html_report import generate_html
 from core.engines.fusion_engine import FusionEngine
 from core.intel.advisor import IntelligenceAdvisor
 from core.extensions.control_plane import merge_scan_modes, resolve_extension_control
+from core.interface.symbols import symbol
 from core.orchestrator import Orchestrator
-from core.foundation.metadata import PROJECT_NAME, VERSION, framework_signature
+from core.foundation.metadata import PROJECT_NAME, VERSION, framework_signature, utc_timestamp
 from core.analyze.narrative import build_nano_brief
 from core.collect.network import get_network_settings
 from modules.catalog import ensure_module_catalog, query_module_catalog, summarize_module_catalog
@@ -49,7 +50,7 @@ from core.intel.prompt_engine import PromptEngine
 from core.artifacts.reporting import ReportGenerator
 from core.intel.capability_matrix import build_capability_pack, write_capability_report
 from core.extensions.signal_forge import list_plugin_descriptors, list_plugin_discovery_errors
-from core.collect.platform_schema import PlatformValidationError
+from core.collect.platform_schema import PlatformValidationError, load_platforms
 from core.analyze.profile_summary import error_profile_rows, found_profile_rows, summarize_target_intel
 from core.collect.scanner import scan_username
 from core.domain import BaseEntity
@@ -57,8 +58,10 @@ from core.foundation.session_state import PromptSessionState
 from core.intelligence import IntelligenceEngine
 from core.intelligence.entity_builder import build_fusion_entities, build_profile_entities, build_surface_entities
 from core.artifacts.storage import ensure_output_tree, results_json_path, sanitize_target
+from core.utils.quicktest_data import list_quicktest_templates, pick_quicktest_template
 from core.prompt_handlers import (
     apply_prompt_defaults as _apply_prompt_defaults_impl,
+    handle_prompt_control_command as _handle_prompt_control_command_impl,
     handle_prompt_set_command as _handle_prompt_set_command_impl,
     handle_prompt_use_command as _handle_prompt_use_command_impl,
     keyword_to_command as _keyword_to_command_impl,
@@ -140,10 +143,10 @@ def _tor_status_lines() -> list[str]:
 
 
 def _print_tor_status() -> None:
-    print(c("\n[ Tor Diagnostics ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    print(c(f"\n{symbol('major')} Tor Diagnostics", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
     for line in _tor_status_lines():
-        print(c(line, Colors.CYAN))
+        print(c(f"{symbol('bullet')} {line}", Colors.CYAN))
     print()
 
 
@@ -169,11 +172,11 @@ def _ensure_tor_ready(*, prompt_user: bool) -> tuple[bool, str | None]:
         if not allow_install:
             return False, "Tor required for --tor was declined by user."
 
-        print(c("[*] Installing Tor...", Colors.YELLOW))
+        print(c(f"{symbol('action')} Installing Tor...", Colors.YELLOW))
         ok, message = install_tor()
         if not ok:
             return False, f"Tor install failed: {message}"
-        print(c(f"[+] Tor install completed: {message}", Colors.GREEN))
+        print(c(f"{symbol('ok')} Tor install completed: {message}", Colors.GREEN))
         status = probe_tor_status()
 
     if status.socks_reachable:
@@ -186,7 +189,7 @@ def _ensure_tor_ready(*, prompt_user: bool) -> tuple[bool, str | None]:
     if not allow_start:
         return False, "Tor startup declined by user."
 
-    print(c("[*] Starting Tor...", Colors.YELLOW))
+    print(c(f"{symbol('action')} Starting Tor...", Colors.YELLOW))
     ok, message = start_tor(status.binary_path)
     if not ok:
         return False, f"Failed to start Tor: {message}"
@@ -194,7 +197,7 @@ def _ensure_tor_ready(*, prompt_user: bool) -> tuple[bool, str | None]:
     final_status = probe_tor_status()
     if not final_status.socks_reachable:
         return False, "Tor start command completed but SOCKS endpoint is still unreachable."
-    print(c(f"[+] Tor is ON: {message}", Colors.GREEN))
+    print(c(f"{symbol('ok')} Tor is ON: {message}", Colors.GREEN))
     return True, None
 
 
@@ -234,11 +237,11 @@ def set_anonymity_interactive(state: RunnerState) -> bool:
     if not ok:
         state.use_tor = previous.use_tor
         state.use_proxy = previous.use_proxy
-        print(c(f"[!] {error}", Colors.RED))
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
         append_framework_log("anonymity_update_failed", error or "unknown", level="WARN")
         return False
 
-    print(c("[+] Anonymity settings saved.", Colors.GREEN))
+    print(c(f"{symbol('ok')} Anonymity settings saved.", Colors.GREEN))
     append_framework_log("anonymity_update", get_anonymity_status(state))
     return True
 
@@ -253,13 +256,13 @@ def apply_anonymity_flags(
     updated = compute_effective_state(state, tor_override=tor, proxy_override=proxy)
     ok, error = _validate_network_settings(updated, prompt_user=prompt_user)
     if not ok:
-        print(c(f"[!] {error}", Colors.RED))
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
         append_framework_log("anonymity_update_failed", error or "unknown", level="WARN")
         return False
 
     state.use_tor = updated.use_tor
     state.use_proxy = updated.use_proxy
-    print(c("[+] Anonymity settings saved.", Colors.GREEN))
+    print(c(f"{symbol('ok')} Anonymity settings saved.", Colors.GREEN))
     append_framework_log("anonymity_update", get_anonymity_status(state))
     return True
 
@@ -269,10 +272,10 @@ def _keyword_to_command(value: str) -> str | None:
 
 
 def _print_keyword_inventory() -> None:
-    print(c("\n[ Prompt Keywords ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    print(c(f"\n{symbol('major')} Prompt Keywords", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
     for command, keywords in PROMPT_KEYWORDS.items():
-        print(c(f"{command}: {', '.join(sorted(keywords))}", Colors.CYAN))
+        print(c(f"{symbol('bullet')} {command}: {', '.join(sorted(keywords))}", Colors.CYAN))
     print()
 
 
@@ -281,12 +284,12 @@ def _print_plugin_inventory(scope: str | None = None) -> None:
     plugins = list_plugin_descriptors(scope=resolved_scope)
     discovery_errors = list_plugin_discovery_errors(scope=resolved_scope)
     title_suffix = "all scopes" if resolved_scope is None else f"scope={resolved_scope}"
-    print(c(f"\n[ Plugins ] ({title_suffix})", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    print(c(f"\n{symbol('major')} Plugins ({title_suffix})", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
     if not plugins:
-        print(c("No plugins discovered.", Colors.YELLOW))
+        print(c(f"{symbol('warn')} No plugins discovered.", Colors.YELLOW))
         for error in discovery_errors:
-            print(c(f"[!] {error}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} {error}", Colors.YELLOW))
         print()
         return
 
@@ -294,12 +297,12 @@ def _print_plugin_inventory(scope: str | None = None) -> None:
         scopes_text = ", ".join(plugin.get("scopes", []))
         aliases = plugin.get("aliases", [])
         alias_text = ", ".join(aliases) if aliases else "-"
-        print(c(f"{plugin.get('id')} - {plugin.get('title')}", Colors.CYAN))
+        print(c(f"{symbol('feature')} {plugin.get('id')} - {plugin.get('title')}", Colors.CYAN))
         print(c(f"  scopes: {scopes_text}", Colors.GREY))
         print(c(f"  aliases: {alias_text}", Colors.GREY))
         print(c(f"  desc: {plugin.get('description')}", Colors.GREY))
     for error in discovery_errors:
-        print(c(f"[!] {error}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {error}", Colors.YELLOW))
     print()
 
 
@@ -308,12 +311,12 @@ def _print_filter_inventory(scope: str | None = None) -> None:
     filters = list_filter_descriptors(scope=resolved_scope)
     discovery_errors = list_filter_discovery_errors(scope=resolved_scope)
     title_suffix = "all scopes" if resolved_scope is None else f"scope={resolved_scope}"
-    print(c(f"\n[ Filters ] ({title_suffix})", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    print(c(f"\n{symbol('major')} Filters ({title_suffix})", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
     if not filters:
-        print(c("No filters discovered.", Colors.YELLOW))
+        print(c(f"{symbol('warn')} No filters discovered.", Colors.YELLOW))
         for error in discovery_errors:
-            print(c(f"[!] {error}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} {error}", Colors.YELLOW))
         print()
         return
 
@@ -321,12 +324,12 @@ def _print_filter_inventory(scope: str | None = None) -> None:
         scopes_text = ", ".join(row.get("scopes", []))
         aliases = row.get("aliases", [])
         alias_text = ", ".join(aliases) if aliases else "-"
-        print(c(f"{row.get('id')} - {row.get('title')}", Colors.CYAN))
+        print(c(f"{symbol('feature')} {row.get('id')} - {row.get('title')}", Colors.CYAN))
         print(c(f"  scopes: {scopes_text}", Colors.GREY))
         print(c(f"  aliases: {alias_text}", Colors.GREY))
         print(c(f"  desc: {row.get('description')}", Colors.GREY))
     for error in discovery_errors:
-        print(c(f"[!] {error}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {error}", Colors.YELLOW))
     print()
 
 
@@ -384,8 +387,8 @@ def _print_modules_inventory(
     returned_count = int(payload.get("returned_count", len(rows)))
     has_more = bool(payload.get("has_more", False))
 
-    print(c(f"\n[ Modules ] (scope={scope}, kind={kind})", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    print(c(f"\n{symbol('major')} Modules (scope={scope}, kind={kind})", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
     print(c(f"frameworks: {summary.get('framework_count', 0)}", Colors.CYAN))
     print(c(f"module_count: {summary.get('module_count', 0)}", Colors.CYAN))
     print(c(f"matched_total: {matched_total}", Colors.CYAN))
@@ -453,21 +456,21 @@ def _print_modules_inventory(
     )
 
     if has_more:
-        print(c("more_results=true (increase --offset or --limit to continue).", Colors.YELLOW))
+        print(c(f"{symbol('tip')} more_results=true (increase --offset or --limit to continue).", Colors.YELLOW))
 
     if stats_only:
-        print(c("stats_only=true (entry listing skipped).", Colors.YELLOW))
+        print(c(f"{symbol('tip')} stats_only=true (entry listing skipped).", Colors.YELLOW))
         print()
         return
 
     if not rows:
-        print(c("No module entries matched this query.", Colors.YELLOW))
-        print(c("Run `modules --sync` if catalog is empty or stale.", Colors.YELLOW))
+        print(c(f"{symbol('warn')} No module entries matched this query.", Colors.YELLOW))
+        print(c(f"{symbol('tip')} Run `modules --sync` if catalog is empty or stale.", Colors.YELLOW))
         print()
         return
 
     for row in rows:
-        print(c(f"{row.get('framework')} :: {row.get('file')}", Colors.CYAN))
+        print(c(f"{symbol('feature')} {row.get('framework')} :: {row.get('file')}", Colors.CYAN))
         print(
             c(
                 f"  kind: {row.get('kind')} | scopes: {', '.join(row.get('scopes', []))} "
@@ -496,10 +499,10 @@ def _print_modules_inventory(
 
 def _print_scan_history(limit: int = 25) -> None:
     rows = list_scanned_targets(limit=limit)
-    print(c("\n[ Scan History ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    print(c(f"\n{symbol('major')} Scan History", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
     if not rows:
-        print(c("No scan artifacts found under output/data or output/html.", Colors.YELLOW))
+        print(c(f"{symbol('warn')} No scan artifacts found under output/data or output/html.", Colors.YELLOW))
         print()
         return
 
@@ -510,6 +513,114 @@ def _print_scan_history(limit: int = 25) -> None:
             print(c(f"  source: {row['source']}", Colors.GREY))
         print(c(f"  file: {row['path']}", Colors.GREY))
     print()
+
+
+def _print_quicktest_templates() -> None:
+    rows = list_quicktest_templates()
+    print(c(f"\n{symbol('major')} Quicktest Templates", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
+    for row in rows:
+        print(
+            c(
+                f"{symbol('feature')} {row.get('id')} :: {row.get('label')} "
+                f"(username={row.get('username')} domain={row.get('domain')})",
+                Colors.CYAN,
+            )
+        )
+    print(c(f"{symbol('tip')} Run `quicktest` to pick one randomly.", Colors.GREY))
+    print()
+
+
+def _count_scope_coverage(rows: list[dict]) -> dict[str, int]:
+    counts = {"profile": 0, "surface": 0, "fusion": 0}
+    for row in rows:
+        scopes = row.get("scopes", [])
+        if not isinstance(scopes, list):
+            continue
+        scope_set = {str(scope).strip().lower() for scope in scopes if isinstance(scope, str)}
+        for scope in ("profile", "surface", "fusion"):
+            if scope in scope_set:
+                counts[scope] += 1
+    return counts
+
+
+def _print_runtime_loaded_inventory() -> None:
+    plugins = list_plugin_descriptors(scope=None)
+    filters = list_filter_descriptors(scope=None)
+    plugin_errors = list_plugin_discovery_errors(scope=None)
+    filter_errors = list_filter_discovery_errors(scope=None)
+    plugin_scope_counts = _count_scope_coverage(plugins)
+    filter_scope_counts = _count_scope_coverage(filters)
+
+    platform_count = 0
+    platform_error: str | None = None
+    try:
+        platform_count = len(load_platforms())
+    except Exception as exc:  # pragma: no cover - startup diagnostics
+        platform_error = str(exc)
+
+    framework_count = 0
+    module_count = 0
+    module_plugin_count = 0
+    module_filter_count = 0
+    module_error: str | None = None
+    try:
+        catalog = ensure_module_catalog(
+            refresh=False,
+            validate_catalog=True,
+            verify_source_fingerprint=False,
+        )
+        summary = summarize_module_catalog(catalog)
+        framework_count = int(summary.get("framework_count", 0) or 0)
+        module_count = int(summary.get("module_count", 0) or 0)
+        kind_counts_raw = summary.get("kind_counts", {})
+        kind_counts = kind_counts_raw if isinstance(kind_counts_raw, dict) else {}
+        module_plugin_count = int(kind_counts.get("plugin", 0) or 0)
+        module_filter_count = int(kind_counts.get("filter", 0) or 0)
+    except Exception as exc:  # pragma: no cover - startup diagnostics
+        module_error = str(exc)
+
+    print(c(f"\n{symbol('major')} Runtime Inventory Loaded", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
+    print(
+        c(
+            f"{symbol('ok')} plugins={len(plugins)} filters={len(filters)} platforms={platform_count}",
+            Colors.CYAN,
+        )
+    )
+    print(
+        c(
+            f"{symbol('ok')} modules={module_count} frameworks={framework_count} "
+            f"(plugin_modules={module_plugin_count} filter_modules={module_filter_count})",
+            Colors.CYAN,
+        )
+    )
+    print(
+        c(
+            f"{symbol('feature')} plugin_scope_coverage "
+            f"profile={plugin_scope_counts['profile']} "
+            f"surface={plugin_scope_counts['surface']} "
+            f"fusion={plugin_scope_counts['fusion']}",
+            Colors.GREY,
+        )
+    )
+    print(
+        c(
+            f"{symbol('feature')} filter_scope_coverage "
+            f"profile={filter_scope_counts['profile']} "
+            f"surface={filter_scope_counts['surface']} "
+            f"fusion={filter_scope_counts['fusion']}",
+            Colors.GREY,
+        )
+    )
+    if plugin_errors:
+        print(c(f"{symbol('warn')} plugin discovery warnings={len(plugin_errors)}", Colors.YELLOW))
+    if filter_errors:
+        print(c(f"{symbol('warn')} filter discovery warnings={len(filter_errors)}", Colors.YELLOW))
+    if platform_error:
+        print(c(f"{symbol('warn')} platform inventory unavailable: {platform_error}", Colors.YELLOW))
+    if module_error:
+        print(c(f"{symbol('warn')} module catalog unavailable: {module_error}", Colors.YELLOW))
 
 
 def launch_live_dashboard(
@@ -685,17 +796,17 @@ def launch_live_dashboard(
 
     def run_server() -> None:
         server_address = ("", port)
-        print(c(f"[+] Dashboard live at http://localhost:{port}/", Colors.GREEN))
+        print(c(f"{symbol('ok')} Dashboard live at http://localhost:{port}/", Colors.GREEN))
         if open_browser:
             try:
                 webbrowser.open(f"http://localhost:{port}/")
             except Exception as exc:  # pragma: no cover - environment-dependent
-                print(c(f"[!] Failed to open browser: {exc}", Colors.YELLOW))
+                print(c(f"{symbol('warn')} Failed to open browser: {exc}", Colors.YELLOW))
         with HTTPServer(server_address, Handler) as httpd:
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
-                print(c("\n[!] Live dashboard stopped.", Colors.YELLOW))
+                print(c(f"\n{symbol('warn')} Live dashboard stopped.", Colors.YELLOW))
 
     if background:
         thread = threading.Thread(target=run_server, daemon=True)
@@ -740,13 +851,13 @@ def _print_extension_control_feedback(
 ) -> None:
     print(
         c(
-            f"Extension control ({scope}): mode={mode_name} control={control_mode} "
+            f"{symbol('action')} Extension control ({scope}): mode={mode_name} control={control_mode} "
             f"plugins={len(plugin_ids)} filters={len(filter_ids)}",
             Colors.CYAN,
         )
     )
     for warning in warnings:
-        print(c(f"[!] {warning}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {warning}", Colors.YELLOW))
 
 
 def _resolve_extension_plan_or_fail(
@@ -769,9 +880,23 @@ def _resolve_extension_plan_or_fail(
         include_all_filters=include_all_filters,
     )
     if plan.errors:
-        print(c("[!] Extension configuration errors:", Colors.RED))
+        print(c(f"{symbol('error')} Extension configuration errors:", Colors.RED))
         for item in plan.errors:
-            print(c(f" - {item}", Colors.RED))
+            print(c(f" {symbol('error')} {item}", Colors.RED))
+        print(c(f"{symbol('warn')} Stop: extension plan invalid; scan was not started.", Colors.RED))
+        print(
+            c(
+                f"{symbol('tip')} Inspect compatible selectors with: "
+                f"`plugins --scope {scope}` and `filters --scope {scope}`.",
+                Colors.YELLOW,
+            )
+        )
+        print(
+            c(
+                f"{symbol('tip')} Use `--extension-control manual|hybrid` for explicit selector control.",
+                Colors.YELLOW,
+            )
+        )
         return (), (), (), False
 
     _print_extension_control_feedback(
@@ -884,6 +1009,36 @@ def _analyze_intelligence_bundle(
         return {}
 
 
+def _print_runtime_guidance_checks(
+    *,
+    mode: str,
+    target: str,
+    state: RunnerState,
+    timeout_seconds: int,
+    worker_budget: int,
+    plugin_names: Sequence[str] | None = None,
+    filter_names: Sequence[str] | None = None,
+    include_all_plugins: bool = False,
+    include_all_filters: bool = False,
+) -> None:
+    selected_plugins = list(plugin_names or [])
+    selected_filters = list(filter_names or [])
+    plugin_label = "all" if include_all_plugins else (", ".join(selected_plugins) if selected_plugins else "none")
+    filter_label = "all" if include_all_filters else (", ".join(selected_filters) if selected_filters else "none")
+
+    print(c(f"\n{symbol('major')} Execution Guidance Checks", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
+    print(c(f"{symbol('action')} mode={mode} target={target}", Colors.CYAN))
+    print(c(f"{symbol('action')} anonymity={get_anonymity_status(state)}", Colors.CYAN))
+    print(c(f"{symbol('action')} timeout_seconds={timeout_seconds} worker_budget={worker_budget}", Colors.CYAN))
+    print(c(f"{symbol('feature')} plugins={plugin_label}", Colors.CYAN))
+    print(c(f"{symbol('feature')} filters={filter_label}", Colors.CYAN))
+    if not include_all_plugins and not selected_plugins:
+        print(c(f"{symbol('tip')} enable focused plugins for richer enrichment.", Colors.GREY))
+    if not include_all_filters and not selected_filters:
+        print(c(f"{symbol('tip')} enable filters to reduce low-signal noise.", Colors.GREY))
+
+
 async def run_profile_scan(
     username: str,
     state: RunnerState,
@@ -906,26 +1061,37 @@ async def run_profile_scan(
     append_framework_log("profile_scan_start", f"target={username}")
     ok, error = _validate_network_settings(state, prompt_user=prompt_mode)
     if not ok:
-        print(c(f"[!] {error}", Colors.RED))
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
         append_framework_log("profile_scan_failed", f"target={username} reason={error}", level="WARN")
         return EXIT_FAILURE, None
 
     try:
         proxy_url = get_network_settings(state.use_proxy, state.use_tor)
         if proxy_url:
-            print(c("[+] Network anonymization ENABLED", Colors.GREEN))
+            print(c(f"{symbol('ok')} Network anonymization ENABLED", Colors.GREEN))
     except RuntimeError as exc:
-        print(c(f"[!] {exc}", Colors.RED))
+        print(c(f"{symbol('warn')} {exc}", Colors.RED))
         append_framework_log("profile_scan_failed", f"target={username} reason={exc}", level="WARN")
         return EXIT_FAILURE, None
 
-    print(c(f"\nProfile scan target: {username}\n", Colors.CYAN))
+    print(c(f"\n{symbol('action')} Profile scan target: {username}\n", Colors.CYAN))
     print(
         c(
-            "Source profile: "
+            f"{symbol('bullet')} Source profile: "
             f"{source_profile} | platform budget: {max_platforms if max_platforms is not None else 'all'}",
             Colors.CYAN,
         )
+    )
+    _print_runtime_guidance_checks(
+        mode="profile",
+        target=username,
+        state=state,
+        timeout_seconds=timeout_seconds,
+        worker_budget=max_concurrency,
+        plugin_names=plugin_names,
+        filter_names=filter_names,
+        include_all_plugins=include_all_plugins,
+        include_all_filters=include_all_filters,
     )
     try:
         results = await scan_username(
@@ -937,11 +1103,11 @@ async def run_profile_scan(
             max_platforms=max_platforms,
         )
     except PlatformValidationError as exc:
-        print(c(f"[!] Platform manifest validation failed: {exc}", Colors.RED))
+        print(c(f"{symbol('warn')} Platform manifest validation failed: {exc}", Colors.RED))
         append_framework_log("profile_scan_failed", f"target={username} reason={exc}", level="WARN")
         return EXIT_FAILURE, None
     except Exception as exc:
-        print(c(f"[!] Scan failed: {exc}", Colors.RED))
+        print(c(f"{symbol('warn')} Scan failed: {exc}", Colors.RED))
         append_framework_log("profile_scan_failed", f"target={username} reason={exc}", level="WARN")
         return EXIT_FAILURE, None
 
@@ -1043,7 +1209,7 @@ async def run_profile_scan(
             print(c(f"HTML report generated -> {report_path}", Colors.GREEN))
     except Exception as exc:  # pragma: no cover - defensive
         append_framework_log("profile_html_failed", f"target={username} reason={exc}", level="WARN")
-        print(c(f"[!] HTML report generation failed: {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} HTML report generation failed: {exc}", Colors.YELLOW))
 
     if live_dashboard:
         launch_live_dashboard(
@@ -1086,26 +1252,37 @@ async def run_surface_scan(
 ) -> tuple[int, dict | None]:
     normalized_domain = normalize_domain(domain)
     if not normalized_domain:
-        print(c("[!] Invalid domain.", Colors.RED))
+        print(c(f"{symbol('warn')} Invalid domain.", Colors.RED))
         return EXIT_USAGE, None
 
     append_framework_log("surface_scan_start", f"target={normalized_domain}")
     ok, error = _validate_network_settings(state, prompt_user=False)
     if not ok:
-        print(c(f"[!] {error}", Colors.RED))
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
         append_framework_log("surface_scan_failed", f"target={normalized_domain} reason={error}", level="WARN")
         return EXIT_FAILURE, None
 
     try:
         proxy_url = get_network_settings(state.use_proxy, state.use_tor)
         if proxy_url:
-            print(c("[+] Network anonymization ENABLED", Colors.GREEN))
+            print(c(f"{symbol('ok')} Network anonymization ENABLED", Colors.GREEN))
     except RuntimeError as exc:
-        print(c(f"[!] {exc}", Colors.RED))
+        print(c(f"{symbol('warn')} {exc}", Colors.RED))
         append_framework_log("surface_scan_failed", f"target={normalized_domain} reason={exc}", level="WARN")
         return EXIT_FAILURE, None
 
-    print(c(f"\nDomain surface target: {normalized_domain}\n", Colors.CYAN))
+    print(c(f"\n{symbol('action')} Domain surface target: {normalized_domain}\n", Colors.CYAN))
+    _print_runtime_guidance_checks(
+        mode="surface",
+        target=normalized_domain,
+        state=state,
+        timeout_seconds=timeout_seconds,
+        worker_budget=max_subdomains,
+        plugin_names=plugin_names,
+        filter_names=filter_names,
+        include_all_plugins=include_all_plugins,
+        include_all_filters=include_all_filters,
+    )
     try:
         domain_result = await scan_domain_surface(
             domain=normalized_domain,
@@ -1115,7 +1292,7 @@ async def run_surface_scan(
             max_subdomains=max_subdomains,
         )
     except Exception as exc:
-        print(c(f"[!] Domain scan failed: {exc}", Colors.RED))
+        print(c(f"{symbol('warn')} Domain scan failed: {exc}", Colors.RED))
         append_framework_log("surface_scan_failed", f"target={normalized_domain} reason={exc}", level="WARN")
         return EXIT_FAILURE, None
 
@@ -1220,7 +1397,7 @@ async def run_surface_scan(
             print(c(f"HTML report generated -> {report_path}", Colors.GREEN))
     except Exception as exc:  # pragma: no cover - defensive
         append_framework_log("surface_html_failed", f"target={normalized_domain} reason={exc}", level="WARN")
-        print(c(f"[!] HTML report generation failed: {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} HTML report generation failed: {exc}", Colors.YELLOW))
 
     append_framework_log("surface_scan_done", f"target={normalized_domain} report={report_path or '-'}")
 
@@ -1269,9 +1446,32 @@ def _extract_explicit_flags(tokens: list[str]) -> tuple[str, ...]:
     return tuple(ordered)
 
 
+def _split_csv_tokens(values: list[str]) -> list[str]:
+    expanded: list[str] = []
+    seen: set[str] = set()
+    for raw in values:
+        for chunk in str(raw).split(","):
+            token = chunk.strip()
+            if not token:
+                continue
+            lowered = token.lower()
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            expanded.append(token)
+    return expanded
+
+
+def _normalize_multi_select_args(args: argparse.Namespace) -> None:
+    for field in ("plugin", "filter", "framework", "tag"):
+        value = getattr(args, field, None)
+        if isinstance(value, list):
+            setattr(args, field, _split_csv_tokens(value))
+
+
 def _print_prompt_config(session: PromptSessionState, state: RunnerState) -> None:
-    print(c("\n[ Prompt Configuration ]", Colors.BLUE))
-    print(c("------------------------------------", Colors.BLUE))
+    print(c(f"\n{symbol('major')} Prompt Configuration", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
     print(c(f"prompt: {session.module_prompt()}", Colors.CYAN))
     print(c(f"module: {session.module}", Colors.CYAN))
     print(c(f"plugins: {session.plugins_label()}", Colors.CYAN))
@@ -1313,6 +1513,10 @@ def _handle_prompt_use_command(command_text: str, session: PromptSessionState) -
     return _handle_prompt_use_command_impl(command_text, session)
 
 
+def _handle_prompt_control_command(command_text: str, session: PromptSessionState) -> bool:
+    return _handle_prompt_control_command_impl(command_text, session)
+
+
 async def _handle_profile_command(
     args: argparse.Namespace,
     state: RunnerState,
@@ -1326,7 +1530,7 @@ async def _handle_profile_command(
         return EXIT_SUCCESS
 
     if args.live and len(args.usernames) != 1:
-        print(c("[!] --live supports a single username at a time.", Colors.RED))
+        print(c(f"{symbol('warn')} --live supports a single username at a time.", Colors.RED))
         return EXIT_USAGE
 
     plugin_ids, filter_ids, _, ok_plan = _resolve_extension_plan_or_fail(
@@ -1344,7 +1548,7 @@ async def _handle_profile_command(
     effective_state = compute_effective_state(state, args.tor, args.proxy)
     ok, error = _validate_network_settings(effective_state, prompt_user=True)
     if not ok:
-        print(c(f"[!] {error}", Colors.RED))
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
         return EXIT_FAILURE
 
     timeout_seconds, max_concurrency, source_profile, max_platforms = _resolve_profile_runtime(args)
@@ -1352,7 +1556,7 @@ async def _handle_profile_command(
     for username in args.usernames:
         clean_username = username.strip()
         if not _validate_username(clean_username):
-            print(c(f"[!] Invalid username: '{username}'", Colors.RED))
+            print(c(f"{symbol('warn')} Invalid username: '{username}'", Colors.RED))
             failures += 1
             continue
         status, _ = await run_profile_scan(
@@ -1401,7 +1605,7 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
     effective_state = compute_effective_state(state, args.tor, args.proxy)
     ok, error = _validate_network_settings(effective_state, prompt_user=True)
     if not ok:
-        print(c(f"[!] {error}", Colors.RED))
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
         return EXIT_FAILURE
 
     timeout_seconds, max_subdomains = _resolve_surface_runtime(args)
@@ -1450,16 +1654,25 @@ async def _handle_fusion_command(
     effective_state = compute_effective_state(state, args.tor, args.proxy)
     ok, error = _validate_network_settings(effective_state, prompt_user=True)
     if not ok:
-        print(c(f"[!] {error}", Colors.RED))
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
         return EXIT_FAILURE
 
     username = args.username.strip()
     if not _validate_username(username):
-        print(c(f"[!] Invalid username: '{args.username}'", Colors.RED))
+        print(c(f"{symbol('warn')} Invalid username: '{args.username}'", Colors.RED))
         return EXIT_USAGE
 
     profile_preset = PROFILE_PRESETS[args.profile_preset]
     surface_preset = SURFACE_PRESETS[args.surface_preset]
+    _print_runtime_guidance_checks(
+        mode="fusion",
+        target=f"{username} + {normalize_domain(args.domain)}",
+        state=effective_state,
+        timeout_seconds=max(int(profile_preset["timeout"]), int(surface_preset["timeout"])),
+        worker_budget=max(int(profile_preset["max_concurrency"]), int(surface_preset["max_subdomains"])),
+        plugin_names=list(plugin_ids),
+        filter_names=list(filter_ids),
+    )
 
     profile_status, profile_data = await run_profile_scan(
         username=username,
@@ -1589,14 +1802,14 @@ async def _handle_fusion_command(
         else []
     )
     if isinstance(guidance_actions, list) and guidance_actions:
-        print(c("\n[ Fusion Guidance ]", Colors.GREEN))
-        print(c("------------------------------------", Colors.GREEN))
+        print(c(f"\n{symbol('major')} Fusion Guidance", Colors.GREEN))
+        print(c("-" * 36, Colors.GREEN))
         for action in guidance_actions[:5]:
             if not isinstance(action, dict):
                 continue
-            print(c(f"- [{action.get('priority', 'P3')}] {action.get('title', 'Action')}", Colors.GREEN))
-            print(c(f"  why: {action.get('rationale', '-')}", Colors.GREY))
-            print(c(f"  hint: {action.get('command_hint', '-')}", Colors.GREY))
+            print(c(f"{symbol('action')} [{action.get('priority', 'P3')}] {action.get('title', 'Action')}", Colors.GREEN))
+            print(c(f"  {symbol('bullet')} why: {action.get('rationale', '-')}", Colors.GREY))
+            print(c(f"  {symbol('tip')} hint: {action.get('command_hint', '-')}", Colors.GREY))
 
     report_path = ""
     try:
@@ -1623,9 +1836,9 @@ async def _handle_fusion_command(
             print(c(f"Fusion HTML report generated -> {report_path}", Colors.GREEN))
     except Exception as exc:  # pragma: no cover - defensive
         append_framework_log("fusion_html_failed", f"target={combined_target} reason={exc}", level="WARN")
-        print(c(f"[!] Fusion HTML report generation failed: {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} Fusion HTML report generation failed: {exc}", Colors.YELLOW))
 
-    print(c(f"[+] Fusion bundle saved under output/data/{combined_target}/", Colors.GREEN))
+    print(c(f"{symbol('ok')} Fusion bundle saved under output/data/{combined_target}/", Colors.GREEN))
     append_framework_log("fusion_scan_done", f"target={combined_target} report={report_path or '-'}")
     return EXIT_SUCCESS
 
@@ -1654,12 +1867,12 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
     effective_state = compute_effective_state(state, args.tor, args.proxy)
     ok, error = _validate_network_settings(effective_state, prompt_user=True)
     if not ok:
-        print(c(f"[!] {error}", Colors.RED))
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
         return EXIT_FAILURE
 
     primary_target = args.target.strip()
     if not primary_target:
-        print(c("[!] Target is required.", Colors.RED))
+        print(c(f"{symbol('warn')} Target is required.", Colors.RED))
         return EXIT_USAGE
 
     secondary_target = str(args.secondary_target or "").strip()
@@ -1669,12 +1882,12 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
 
     if mode == "profile":
         if not _validate_username(primary_target):
-            print(c(f"[!] Invalid username target: '{primary_target}'", Colors.RED))
+            print(c(f"{symbol('warn')} Invalid username target: '{primary_target}'", Colors.RED))
             return EXIT_USAGE
     elif mode == "surface":
         normalized = normalize_domain(primary_target)
         if not normalized:
-            print(c(f"[!] Invalid domain target: '{primary_target}'", Colors.RED))
+            print(c(f"{symbol('warn')} Invalid domain target: '{primary_target}'", Colors.RED))
             return EXIT_USAGE
         orchestrator_target = normalized
         storage_target = safe_path_component(normalized)
@@ -1682,16 +1895,16 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
     elif mode == "fusion":
         normalized_secondary = normalize_domain(secondary_target)
         if not _validate_username(primary_target):
-            print(c(f"[!] Invalid fusion username target: '{primary_target}'", Colors.RED))
+            print(c(f"{symbol('warn')} Invalid fusion username target: '{primary_target}'", Colors.RED))
             return EXIT_USAGE
         if not normalized_secondary:
-            print(c("[!] Fusion mode requires --secondary-target with a valid domain.", Colors.RED))
+            print(c(f"{symbol('warn')} Fusion mode requires --secondary-target with a valid domain.", Colors.RED))
             return EXIT_USAGE
         orchestrator_target = primary_target
         storage_target = safe_path_component(f"{primary_target}_fusion_{normalized_secondary}")
         target_label = f"{primary_target} + {normalized_secondary}"
     else:
-        print(c(f"[!] Unsupported mode: {mode}", Colors.RED))
+        print(c(f"{symbol('warn')} Unsupported mode: {mode}", Colors.RED))
         return EXIT_USAGE
 
     profile_preset = PROFILE_PRESETS[args.profile]
@@ -1720,7 +1933,7 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
     include_rdap = True if args.rdap is None else bool(args.rdap)
     min_confidence_value = float(args.min_confidence)
     if min_confidence_value < 0.0 or min_confidence_value > 1.0:
-        print(c("[!] --min-confidence must be between 0.0 and 1.0.", Colors.RED))
+        print(c(f"{symbol('warn')} --min-confidence must be between 0.0 and 1.0.", Colors.RED))
         return EXIT_USAGE
     min_confidence = min_confidence_value
 
@@ -1743,7 +1956,17 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         config["profile_target"] = primary_target
         config["surface_target"] = normalized_secondary
 
-    print(c(f"\nOrchestration mode: {mode} | target: {target_label}\n", Colors.CYAN))
+    _print_runtime_guidance_checks(
+        mode=f"orchestrate:{mode}",
+        target=target_label,
+        state=effective_state,
+        timeout_seconds=timeout_seconds,
+        worker_budget=max_workers,
+        plugin_names=list(plugin_ids),
+        filter_names=list(filter_ids),
+    )
+
+    print(c(f"\n{symbol('action')} Orchestration mode: {mode} | target: {target_label}\n", Colors.CYAN))
     append_framework_log(
         "orchestrator_scan_start",
         f"mode={mode} target={target_label} policy={args.profile} source_profile={source_profile}",
@@ -1754,7 +1977,7 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         payload = await orchestrator.run()
     except Exception as exc:
         append_framework_log("orchestrator_scan_failed", f"target={target_label} reason={exc}", level="WARN")
-        print(c(f"[!] Orchestration failed: {exc}", Colors.RED))
+        print(c(f"{symbol('warn')} Orchestration failed: {exc}", Colors.RED))
         return EXIT_FAILURE
 
     anomalies = payload.get("fused", {}).get("anomalies", [])
@@ -1803,9 +2026,9 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
     payload["filters"] = filter_results
     payload["filter_errors"] = filter_errors
     for item in plugin_errors:
-        print(c(f"[plugin] {item}", Colors.YELLOW))
+        print(c(f"{symbol('feature')} plugin: {item}", Colors.YELLOW))
     for item in filter_errors:
-        print(c(f"[filter] {item}", Colors.YELLOW))
+        print(c(f"{symbol('feature')} filter: {item}", Colors.YELLOW))
 
     data_dir = os.path.join("output", "data", storage_target)
     os.makedirs(data_dir, exist_ok=True)
@@ -1824,7 +2047,7 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
             handle.write(str(payload.get("html_report", "")))
         print(c(f"Orchestration HTML report generated -> {html_path}", Colors.GREEN))
 
-    print(c(f"[+] Orchestration bundle saved -> {json_path}", Colors.GREEN))
+    print(c(f"{symbol('ok')} Orchestration bundle saved -> {json_path}", Colors.GREEN))
 
     if args.json:
         print(json.dumps(payload, indent=2))
@@ -1866,7 +2089,7 @@ async def _handle_anonymity_command(
         if state.use_tor:
             ok, error = _validate_network_settings(state, prompt_user=True)
             if not ok:
-                print(c(f"[!] {error}", Colors.RED))
+                print(c(f"{symbol('warn')} {error}", Colors.RED))
                 return EXIT_FAILURE
             print(c("Tor routing is enabled and operational.", Colors.GREEN))
         else:
@@ -1896,27 +2119,207 @@ async def _handle_filters_command(args: argparse.Namespace) -> int:
 
 
 async def _handle_modules_command(args: argparse.Namespace) -> int:
-    _print_modules_inventory(
-        scope=args.scope,
-        kind=args.kind,
-        frameworks=args.framework,
-        search=args.search,
-        tags=args.tag,
-        min_score=args.min_score,
-        sort_by=args.sort_by,
-        descending=args.descending,
-        limit=args.limit,
-        offset=args.offset,
-        sync=args.sync,
-        validate_catalog=args.validate,
-        as_json=args.json,
-        stats_only=args.stats_only,
-    )
+    try:
+        _print_modules_inventory(
+            scope=args.scope,
+            kind=args.kind,
+            frameworks=args.framework,
+            search=args.search,
+            tags=args.tag,
+            min_score=args.min_score,
+            sort_by=args.sort_by,
+            descending=args.descending,
+            limit=args.limit,
+            offset=args.offset,
+            sync=args.sync,
+            validate_catalog=args.validate,
+            as_json=args.json,
+            stats_only=args.stats_only,
+        )
+    except Exception as exc:  # pragma: no cover - defensive user-facing guard
+        append_framework_log("modules_query_failed", str(exc), level="WARN")
+        print(c(f"{symbol('warn')} Module catalog query failed: {exc}", Colors.RED))
+        print(c(f"{symbol('tip')} Try `modules --sync` to rebuild catalog metadata.", Colors.YELLOW))
+        return EXIT_FAILURE
     return EXIT_SUCCESS
 
 
 async def _handle_history_command(args: argparse.Namespace) -> int:
     _print_scan_history(limit=args.limit)
+    return EXIT_SUCCESS
+
+
+async def _handle_quicktest_command(args: argparse.Namespace) -> int:
+    if args.list_templates:
+        _print_quicktest_templates()
+        return EXIT_SUCCESS
+
+    template_name = str(args.template or "").strip()
+    seed_value = int(args.seed) if args.seed is not None else None
+    try:
+        selected = pick_quicktest_template(
+            template_id=template_name or None,
+            seed=seed_value,
+        )
+    except ValueError as exc:
+        print(c(f"{symbol('warn')} {exc}", Colors.RED))
+        return EXIT_USAGE
+
+    template_id = str(selected.get("id", "template")).strip() or "template"
+    username = str(selected.get("username", "subject")).strip() or "subject"
+    domain = normalize_domain(str(selected.get("domain", "")).strip())
+    if not domain:
+        print(c(f"{symbol('warn')} Quicktest template '{template_id}' has invalid domain.", Colors.RED))
+        return EXIT_FAILURE
+
+    profile_results = list(selected.get("profile_results", []) or [])
+    domain_result = dict(selected.get("domain_result", {}) or {})
+    domain_result["target"] = domain
+    correlation = correlate(profile_results)
+    profile_issues = assess_profile_exposure(profile_results)
+    domain_issues = assess_domain_exposure(
+        domain,
+        domain_result.get("https", {}).get("headers", {}),
+        bool(domain_result.get("http", {}).get("redirects_to_https")),
+        len(domain_result.get("subdomains", [])),
+    )
+    issues = [*profile_issues, *domain_issues]
+    issue_summary = summarize_issues(issues)
+    narrative = build_nano_brief(
+        username=username,
+        profile_results=profile_results,
+        correlation=correlation,
+        domain=domain,
+        domain_result=domain_result,
+        issues=issues,
+        issue_summary=issue_summary,
+    )
+    run_suffix = utc_timestamp().replace("+00:00", "z").replace("-", "").replace(":", "")
+    storage_target = safe_path_component(f"quicktest_{template_id}_{run_suffix}")
+    display_target = f"{username} + {domain} [{template_id}]"
+
+    fused_intel = await FUSION_ENGINE.fuse_profile_domain(
+        {
+            "target": username,
+            "results": profile_results,
+            "correlation": correlation,
+            "issue_summary": issue_summary,
+        },
+        {
+            "target": domain,
+            "domain_result": domain_result,
+            "issue_summary": issue_summary,
+        },
+    )
+    fusion_graph = await FUSION_ENGINE.generate_graph(fused_intel)
+    intelligence_entities = build_fusion_entities(username, profile_results, domain_result)
+    intelligence_bundle = _analyze_intelligence_bundle(
+        intelligence_entities,
+        mode="quicktest",
+        target=storage_target,
+        issues=issues,
+        fused_anomalies=list(fused_intel.get("anomalies", []) or []),
+    )
+    fused_intel["intelligence_bundle"] = intelligence_bundle
+    fused_intel["risk_summary"] = intelligence_bundle.get("risk_summary", {})
+    fused_intel["confidence_distribution"] = intelligence_bundle.get("confidence_distribution", {})
+
+    print(c(f"\n{symbol('major')} Quicktest Run", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
+    print(c(f"{symbol('action')} template={template_id} selection={selected.get('selection_mode', 'random')}", Colors.CYAN))
+    print(c(f"{symbol('action')} target={display_target}", Colors.CYAN))
+    print(c(f"{symbol('bullet')} profile_rows={len(profile_results)} subdomains={len(domain_result.get('subdomains', []))}", Colors.CYAN))
+
+    display_results(
+        profile_results,
+        correlation,
+        target=display_target,
+        issues=issues,
+        issue_summary=issue_summary,
+        narrative=narrative,
+        plugin_results=[],
+        plugin_errors=[],
+        filter_results=[],
+        filter_errors=[],
+        intelligence_bundle=intelligence_bundle,
+    )
+
+    json_path = save_results(
+        storage_target,
+        profile_results,
+        correlation,
+        issues=issues,
+        issue_summary=issue_summary,
+        narrative=narrative,
+        domain_result=domain_result,
+        mode="quicktest",
+        plugin_results=[],
+        plugin_errors=[],
+        filter_results=[],
+        filter_errors=[],
+        fused_intel=fused_intel,
+        fusion_graph=fusion_graph,
+        intelligence_bundle=intelligence_bundle,
+    )
+
+    report_path = generate_html(
+        target=storage_target,
+        results=profile_results,
+        correlation=correlation,
+        issues=issues,
+        issue_summary=issue_summary,
+        narrative=narrative,
+        domain_result=domain_result,
+        mode="quicktest",
+        plugin_results=[],
+        plugin_errors=[],
+        filter_results=[],
+        filter_errors=[],
+        intelligence_bundle=intelligence_bundle,
+    )
+    csv_path = export_to_csv(storage_target) or ""
+
+    print(c(f"{symbol('ok')} Quicktest HTML report generated -> {report_path}", Colors.GREEN))
+    if csv_path:
+        print(c(f"{symbol('ok')} Quicktest CSV export generated -> {csv_path}", Colors.GREEN))
+    print(c(f"{symbol('ok')} Quicktest artifacts key -> {storage_target}", Colors.GREEN))
+
+    payload = {
+        "template": {
+            "id": template_id,
+            "label": selected.get("label"),
+            "username": username,
+            "domain": domain,
+            "selection_mode": selected.get("selection_mode", "random"),
+        },
+        "storage_target": storage_target,
+        "display_target": display_target,
+        "results": profile_results,
+        "domain_result": domain_result,
+        "correlation": correlation,
+        "issues": issues,
+        "issue_summary": issue_summary,
+        "narrative": narrative,
+        "fused_intel": fused_intel,
+        "fusion_graph": fusion_graph,
+        "intelligence_bundle": intelligence_bundle,
+        "artifacts": {
+            "json_path": json_path,
+            "html_path": report_path,
+            "csv_path": csv_path,
+        },
+    }
+
+    append_framework_log(
+        "quicktest_done",
+        (
+            f"template={template_id} selection={selected.get('selection_mode', 'random')} "
+            f"target={storage_target} json={json_path} html={report_path} csv={csv_path or '-'}"
+        ),
+    )
+
+    if args.json:
+        print(json.dumps(payload, indent=2))
     return EXIT_SUCCESS
 
 
@@ -1930,7 +2333,8 @@ async def _handle_wizard_command(
         if not ok:
             return EXIT_FAILURE
 
-    print(c("\n[ Guided Workflow Wizard ]", Colors.BLUE))
+    print(c(f"\n{symbol('major')} Guided Workflow Wizard", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
     run_profile = _prompt_yes_no("Run profile intelligence phase?", True)
     run_surface = _prompt_yes_no("Run domain surface phase?", True)
 
@@ -1939,14 +2343,14 @@ async def _handle_wizard_command(
         raw = ask("Enter usernames (comma-separated): ")
         profile_usernames = [item.strip() for item in raw.split(",") if _validate_username(item)]
         if not profile_usernames:
-            print(c("[!] No valid usernames entered; profile phase skipped.", Colors.YELLOW))
+            print(c(f"{symbol('warn')} No valid usernames entered; profile phase skipped.", Colors.YELLOW))
             run_profile = False
 
     surface_domain = ""
     if run_surface:
         surface_domain = ask("Enter target domain: ").strip()
         if not normalize_domain(surface_domain):
-            print(c("[!] Invalid domain; surface phase skipped.", Colors.YELLOW))
+            print(c(f"{symbol('warn')} Invalid domain; surface phase skipped.", Colors.YELLOW))
             run_surface = False
 
     write_html = _prompt_yes_no("Generate HTML reports?", True)
@@ -2041,14 +2445,14 @@ async def _handle_capability_pack_command() -> int:
         report_path = write_capability_report(build_pack=False)
     except Exception as exc:
         append_framework_log("capability_pack_generation_failed", str(exc), level="WARN")
-        print(c(f"[!] Capability pack generation failed: {exc}", Colors.RED))
+        print(c(f"{symbol('warn')} Capability pack generation failed: {exc}", Colors.RED))
         return EXIT_FAILURE
 
-    print(c(f"[+] Capability pack generated at {capability_path}", Colors.GREEN))
-    print(c(f"[+] Capability report generated at {report_path}", Colors.GREEN))
+    print(c(f"{symbol('ok')} Capability pack generated at {capability_path}", Colors.GREEN))
+    print(c(f"{symbol('ok')} Capability report generated at {report_path}", Colors.GREEN))
     print(
         c(
-            "[+] Module catalog refreshed at modules/index.json "
+            f"{symbol('ok')} Module catalog refreshed at modules/index.json "
             f"(modules={module_summary.get('module_count', 0)})",
             Colors.GREEN,
         )
@@ -2085,6 +2489,8 @@ async def _dispatch(args: argparse.Namespace, state: RunnerState, prompt_mode: b
         return await _handle_modules_command(args)
     if args.command in {"history", "targets", "scans"}:
         return await _handle_history_command(args)
+    if args.command in {"quicktest", "qtest", "smoke"}:
+        return await _handle_quicktest_command(args)
     if args.command == "help":
         show_flag_help()
         return EXIT_SUCCESS
@@ -2106,6 +2512,7 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
     session = PromptSessionState()
     clear_screen()
     show_banner(get_anonymity_status(state))
+    _print_runtime_loaded_inventory()
     prompt_parser = build_prompt_parser()
 
     while True:
@@ -2165,6 +2572,9 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
             continue
         if lowered.startswith("use "):
             _handle_prompt_use_command(command_text, session)
+            continue
+        if lowered.startswith("select ") or lowered.startswith("add ") or lowered.startswith("remove "):
+            _handle_prompt_control_command(command_text, session)
             continue
 
         try:
@@ -2229,6 +2639,7 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
 
         setattr(args, "_explicit_flags", explicit_flags)
         args = _apply_prompt_defaults(args, session)
+        _normalize_multi_select_args(args)
         try:
             await _dispatch(args, state=state, prompt_mode=True)
             session.history.append(command_text)
@@ -2236,13 +2647,14 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
                 session.history = session.history[-200:]
         except Exception as exc:  # pragma: no cover - prompt safety guard
             append_framework_log("prompt_dispatch_error", str(exc), level="ERROR")
-            print(c(f"[!] Command failed: {exc}", Colors.RED))
+            print(c(f"{symbol('warn')} Command failed: {exc}", Colors.RED))
 
 
 async def run(argv: Sequence[str] | None = None) -> int:
     ensure_output_tree()
     parser = build_root_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
+    _normalize_multi_select_args(args)
     rendered_argv = " ".join(str(item) for item in (argv or []))
     append_framework_log("framework_start", f"argv={rendered_argv}")
 
@@ -2275,7 +2687,7 @@ async def run(argv: Sequence[str] | None = None) -> int:
             )
             ok, error = _validate_network_settings(initial_state, prompt_user=True)
             if not ok:
-                print(c(f"[!] {error}", Colors.RED))
+                print(c(f"{symbol('warn')} {error}", Colors.RED))
                 return EXIT_FAILURE
         status = await run_prompt_mode(initial_state=initial_state)
         append_framework_log("framework_exit", f"status={status}")

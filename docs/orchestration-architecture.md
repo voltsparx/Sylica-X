@@ -1,5 +1,7 @@
 # Orchestration Architecture (Layered)
 
+Release: v9.0 (Theme: Lattice)
+
 Silica-X now includes an additive layered architecture aligned with `structure.txt`.
 
 ## Core Flow

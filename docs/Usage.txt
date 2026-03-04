@@ -1,5 +1,5 @@
-Silica-X v7.2 Usage Guide
-=========================
+Silica-X v9.0 (Theme: Lattice) Usage Guide
+==========================================
 
 1) Installation
 ---------------
@@ -22,6 +22,109 @@ python silica-x.py prompt
 Direct command mode:
 python silica-x.py <command> [flags]
 
+Prompt-mode startup shows loaded inventory:
+- plugin/filter count
+- platform count
+- module catalog/framework count
+- plugin/filter scope coverage
+
+2.1) Tabular Reference
+----------------------
+<table>
+  <thead>
+    <tr>
+      <th>Mode</th>
+      <th>Command</th>
+      <th>Aliases</th>
+      <th>Purpose</th>
+      <th>Primary Flags</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Flag/Prompt</td><td><code>profile &lt;username...&gt;</code></td><td><code>scan</code>, <code>persona</code>, <code>social</code></td><td>Profile intelligence scan</td><td><code>--preset</code>, <code>--plugin</code>, <code>--filter</code>, <code>--html</code>, <code>--csv</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>surface &lt;domain&gt;</code></td><td><code>domain</code>, <code>asset</code></td><td>Domain surface scan</td><td><code>--preset</code>, <code>--ct</code>, <code>--rdap</code>, <code>--plugin</code>, <code>--filter</code>, <code>--html</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>fusion &lt;username&gt; &lt;domain&gt;</code></td><td><code>full</code>, <code>combo</code></td><td>Combined profile + surface workflow</td><td><code>--profile-preset</code>, <code>--surface-preset</code>, <code>--plugin</code>, <code>--filter</code>, <code>--html</code>, <code>--csv</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>orchestrate &lt;mode&gt; &lt;target&gt;</code></td><td><code>orch</code></td><td>Policy-driven orchestration</td><td><code>--profile</code>, <code>--source-profile</code>, <code>--min-confidence</code>, <code>--json</code>, <code>--html</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>quicktest</code></td><td><code>qtest</code>, <code>smoke</code></td><td>Offline synthetic smoke run with reports</td><td><code>--template</code>, <code>--seed</code>, <code>--list-templates</code>, <code>--json</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>plugins</code>, <code>filters</code>, <code>modules</code>, <code>history</code></td><td>-</td><td>Inventory and catalog workflows</td><td><code>--scope</code>, <code>--kind</code>, <code>--search</code>, <code>--stats-only</code>, <code>--limit</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>anonymity</code></td><td>-</td><td>Routing diagnostics and updates</td><td><code>--tor</code>, <code>--proxy</code>, <code>--check</code>, <code>--prompt</code></td></tr>
+    <tr><td>Flag</td><td><code>live &lt;target&gt;</code></td><td>-</td><td>Open local dashboard for saved run</td><td><code>--port</code>, <code>--no-browser</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>wizard</code></td><td>-</td><td>Guided multi-phase scan launcher</td><td><code>--tor</code>, <code>--proxy</code></td></tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr>
+      <th>Prompt Control</th>
+      <th>Syntax</th>
+      <th>Result</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Module switch</td><td><code>use profile|surface|fusion</code> or <code>select module ...</code></td><td>Changes active prompt context.</td></tr>
+    <tr><td>Set plugin/filter defaults</td><td><code>set plugins ...</code>, <code>set filters ...</code></td><td>Name-aware selector resolution with compatibility checks.</td></tr>
+    <tr><td>Incremental edits</td><td><code>add/remove plugins ...</code>, <code>add/remove filters ...</code></td><td>Mutates current selections safely.</td></tr>
+    <tr><td>Preset defaults</td><td><code>set profile_preset ...</code>, <code>set surface_preset ...</code></td><td>Persists execution defaults in prompt session state.</td></tr>
+    <tr><td>Extension control</td><td><code>set extension_control auto|manual|hybrid</code></td><td>Controls automatic/manual extension planning behavior.</td></tr>
+    <tr><td>Prompt smoke</td><td><code>quicktest --seed 7</code></td><td>Runs synthetic end-to-end flow from prompt mode.</td></tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr>
+      <th>Artifact</th>
+      <th>Path</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>JSON payload</td><td><code>output/data/&lt;target&gt;/results.json</code></td><td>Primary machine-readable output bundle.</td></tr>
+    <tr><td>HTML report</td><td><code>output/html/&lt;target&gt;.html</code></td><td>Rich visual report with scoring/correlation tables.</td></tr>
+    <tr><td>CLI report</td><td><code>output/cli/&lt;target&gt;.txt</code></td><td>Text summary output.</td></tr>
+    <tr><td>CSV exports</td><td><code>output/cli/&lt;target&gt;*.csv</code></td><td>Main + companion issue/plugin/filter/intel datasets.</td></tr>
+    <tr><td>Logs</td><td><code>output/logs/*.txt</code></td><td>Run logs and framework lifecycle log.</td></tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr>
+      <th>Quicktest Template ID</th>
+      <th>Victim Label</th>
+      <th>Username</th>
+      <th>Domain</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>atlas-mercier</code></td><td>Atlas Mercier</td><td><code>atlas_mercier</code></td><td><code>atlaslab.dev</code></td></tr>
+    <tr><td><code>noor-akhtar</code></td><td>Noor Akhtar</td><td><code>noor_akhtar</code></td><td><code>nordelta-ops.net</code></td></tr>
+    <tr><td><code>juno-harbor</code></td><td>Juno Harbor</td><td><code>juno_harbor</code></td><td><code>harbor-grid.io</code></td></tr>
+    <tr><td><code>raven-ion</code></td><td>Raven Ion</td><td><code>raven_ion</code></td><td><code>ionrelay.cloud</code></td></tr>
+    <tr><td><code>maya-cipher</code></td><td>Maya Cipher</td><td><code>maya_cipher</code></td><td><code>ciphertrail.ai</code></td></tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr>
+      <th>Smoke Validation (2026-03-05)</th>
+      <th>Status</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>python -m pytest -q</code></td><td>PASS</td><td>152 tests passed.</td></tr>
+    <tr><td><code>python -m ruff check .</code></td><td>PASS</td><td>No lint failures.</td></tr>
+    <tr><td><code>python -m mypy</code></td><td>FAIL</td><td>30 errors across 13 files (existing typing debt).</td></tr>
+    <tr><td><code>python -m compileall -q core filters plugins tests silica-x.py</code></td><td>PASS</td><td>Compile smoke passed.</td></tr>
+    <tr><td>CLI command matrix + quicktest aliases + prompt scripted smoke</td><td>PASS</td><td>All tested commands returned exit code 0.</td></tr>
+    <tr><td>Profile/surface/fusion/orchestrate command-path checks via <code>--list-plugins/--list-filters</code> + <code>anonymity --check</code></td><td>PASS</td><td>All returned exit code 0 without network collection.</td></tr>
+    <tr><td><code>live</code> command</td><td>SKIPPED</td><td>Long-running server mode by design.</td></tr>
+  </tbody>
+</table>
+
 
 3) Core Commands
 ----------------
@@ -30,12 +133,12 @@ Global flags:
 - Print framework/tool description and exit.
 --explain
 - Print plain-language command/plugin/filter guide and exit.
-- Note: use these global flags alone (do not combine with another command).
+- Must be used alone (not combined with a command).
 
 profile <username...>
 - Aliases: scan, persona, social
 - Key flags:
-  --preset quick|balanced|deep
+  --preset fast|quick|balanced|deep|max
   --timeout <seconds>
   --max-concurrency <n>
   --csv
@@ -43,8 +146,11 @@ profile <username...>
   --live
   --live-port <1-65535>
   --no-browser
-  --plugin <selector> (repeatable) / --all-plugins / --list-plugins
-  --filter <selector> (repeatable) / --all-filters / --list-filters
+  --plugin <selector> (repeatable or comma-separated)
+  --all-plugins / --list-plugins
+  --filter <selector> (repeatable or comma-separated)
+  --all-filters / --list-filters
+  --extension-control auto|manual|hybrid
   --tor|--no-tor, --proxy|--no-proxy
 
 surface <domain>
@@ -56,27 +162,51 @@ surface <domain>
   --ct|--no-ct
   --rdap|--no-rdap
   --html
-  --plugin <selector> / --all-plugins / --list-plugins
-  --filter <selector> / --all-filters / --list-filters
+  --plugin <selector> (repeatable or comma-separated)
+  --all-plugins / --list-plugins
+  --filter <selector> (repeatable or comma-separated)
+  --all-filters / --list-filters
+  --extension-control auto|manual|hybrid
   --tor|--no-tor, --proxy|--no-proxy
 
 fusion <username> <domain>
 - Aliases: full, combo
 - Key flags:
-  --profile-preset quick|balanced|deep
+  --profile-preset fast|quick|balanced|deep|max
   --surface-preset quick|balanced|deep
   --csv
   --html
-  --plugin <selector> / --all-plugins / --list-plugins
-  --filter <selector> / --all-filters / --list-filters
+  --plugin <selector> (repeatable or comma-separated)
+  --all-plugins / --list-plugins
+  --filter <selector> (repeatable or comma-separated)
+  --all-filters / --list-filters
+  --extension-control auto|manual|hybrid
   --tor|--no-tor, --proxy|--no-proxy
 
+orchestrate <profile|surface|fusion> <target>
+- Key flags:
+  --secondary-target <domain> (fusion mode)
+  --profile fast|quick|balanced|deep|max
+  --timeout
+  --max-workers
+  --source-profile
+  --max-platforms
+  --max-subdomains
+  --min-confidence
+  --plugin/--all-plugins/--list-plugins
+  --filter/--all-filters/--list-filters
+  --extension-control auto|manual|hybrid
+  --json / --html
+
+Inventory and utility:
 plugins [--scope all|profile|surface|fusion]
 filters [--scope all|profile|surface|fusion]
-history [--limit N]   (aliases: targets, scans)
+modules [--scope ... --kind ... --framework ... --tag ... --search ...]
+history [--limit N]
+quicktest [--template <id>] [--seed N] [--list-templates] [--json]
 live <target> [--port PORT] [--no-browser]
 anonymity [--tor|--no-tor] [--proxy|--no-proxy] [--check] [--prompt]
-wizard [--tor|--no-tor] [--proxy|--no-proxy]
+wizard
 keywords
 about
 explain
@@ -88,138 +218,133 @@ help
 help
 config
 history [--limit N]
+quicktest [--template <id>] [--seed N] [--list-templates] [--json]
 anonymity [--check|--prompt|--tor|--no-tor|--proxy|--no-proxy]
 plugins [--scope ...]
 filters [--scope ...]
-about   (keywords: about, info, details)
-explain (keywords: explain, understand, describe)
-banner  (prompt-only: print banner)
+modules [query flags]
+about
+explain
+banner
 
 use <profile|surface|fusion>
-set plugins <none|all|selector1,selector2>   (module-compatible, id/alias/name-aware)
-set filters <none|all|selector1,selector2>   (module-compatible, id/alias/name-aware)
-set profile_preset <quick|balanced|deep>
+select module <profile|surface|fusion>
+set plugins <none|all|selector1,selector2>
+set filters <none|all|selector1,selector2>
+select plugins <selector1,selector2>
+select filters <selector1,selector2>
+add plugins <selector1,selector2>
+remove plugins <selector1,selector2>
+add filters <selector1,selector2>
+remove filters <selector1,selector2>
+set profile_preset <fast|quick|balanced|deep|max>
 set surface_preset <quick|balanced|deep>
+set extension_control <auto|manual|hybrid>
+set orchestrate_extension_control <auto|manual|hybrid>
 
 scan <username>
 profile <username...>
 surface <domain>
 fusion <username> <domain>
-clear   (clears terminal only; banner stays hidden until 'banner')
+orchestrate <mode> <target>
+clear
 exit
+
 Prompt format:
-(console <module> plugins=<set> filters=<set>)>>
+(console <module> ec=<mode> plugins=<set> filters=<set>)>>
 
 
-5) Output Paths
----------------
-output/data/<target>/results.json
-output/html/<target>.html
-output/cli/<target>.txt
-output/cli/<target>.csv
-output/logs/<target>_<timestamp>.txt
-output/logs/framework.log.txt
+5) Extension Control + Error Handling
+-------------------------------------
+- Selector resolution supports id, alias, and title matching.
+- Repeat selectors and comma-separated selectors are supported in both flag mode and prompt mode.
+- Scope mismatch is reported as incompatible selector (not generic unknown).
+- Invalid extension plans stop execution before scan starts.
+- Clear stop message and recovery hints are printed:
+  - inspect available selectors with:
+    plugins --scope <profile|surface|fusion>
+    filters --scope <profile|surface|fusion>
+  - use --extension-control manual|hybrid for explicit selector control.
+- Prompt mode `set plugins` / `set filters` is blocked when extension_control=auto.
+- Prompt mode prevents switching to extension_control=auto while manual plugin/filter config exists.
+- Incremental controls (`add/remove plugins|filters`) are name-aware and preserve compatibility checks.
+- `select module` and `select plugins|filters` provide alias-style control for faster operator workflows.
 
 
-6) Security and Network Behavior
+6) New Plugins and Filters (v9.0 Lattice Expansion)
+----------------------------------------------------
+New plugins:
+- account_recovery_exposure_probe (profile, fusion)
+- link_outbound_risk_profiler (profile, fusion)
+- username_impersonation_probe (profile, fusion)
+- rdap_lifecycle_inspector (surface, fusion)
+- surface_transport_stability_probe (surface, fusion)
+
+New filters:
+- triage_priority_filter (profile, surface, fusion)
+- contact_quality_filter (profile, fusion)
+- link_hygiene_filter (profile, fusion)
+- subdomain_attack_path_filter (surface, fusion)
+- evidence_consistency_filter (profile, surface, fusion)
+
+Current runtime extension inventory:
+- plugins: 17
+- filters: 17
+- plugin scope coverage: profile=10 surface=9 fusion=15
+- filter scope coverage: profile=14 surface=9 fusion=17
+
+
+7) Outputs (Richer Artifacts)
+-----------------------------
+Primary artifacts:
+- output/data/<target>/results.json
+- output/html/<target>.html
+- output/cli/<target>.txt
+- output/cli/<target>.csv
+- output/logs/<target>_<timestamp>.txt
+- output/logs/framework.log.txt
+
+JSON enrichment:
+- includes plugin/filter payloads, issue payloads, intelligence bundle, and artifact summary block
+- summary block includes result counts + severity breakdown for issues/plugins/filters
+
+CLI TXT enrichment:
+- includes artifact summary section
+- includes plugin/filter data snapshots and severity rollups
+- includes top intelligence scoring and explainable guidance
+
+HTML enrichment:
+- quick-jump navigation
+- extension signal overview cards
+- richer plugin/filter cards with highlights + payload drill-down
+- intelligence scoring tables (contacts/entities), correlation reasoning, and guidance
+
+CSV enrichment:
+- primary result CSV: output/cli/<target>.csv
+- companion CSVs:
+  - output/cli/<target>.issues.csv
+  - output/cli/<target>.plugins.csv
+  - output/cli/<target>.filters.csv
+  - output/cli/<target>.intel-entities.csv
+  - output/cli/<target>.intel-contacts.csv
+
+
+8) Security and Network Behavior
 --------------------------------
-- TLS verification is enabled by default in profile and surface HTTP collectors.
-- Tor routing uses socks5h://127.0.0.1:9050 so DNS stays inside Tor.
+- TLS verification is enabled by default in profile and surface collectors.
+- Tor routing uses socks5h://127.0.0.1:9050 (DNS through Tor).
 - Proxy mode accepts HTTP_PROXY or HTTPS_PROXY.
 - Proxy URL schemes validated: http, https, socks5, socks5h.
 
 
-7) Platform Manifests
----------------------
-Silica-X currently loads 50 platform manifests from /platforms:
-
-Behance
-Bitbucket
-Blogger
-BuyMeACoffee
-Codeforces
-CodePen
-Dev.to
-DeviantArt
-Discord
-DockerHub
-Dribbble
-Facebook
-Flickr
-GitHub
-GitLab
-HackerOne
-HackerRank
-Instagram
-Kaggle
-Keybase
-LeetCode
-LinkedIn
-Mastodon
-Medium
-NPM
-Pastebin
-Patreon
-Pinterest
-ProductHunt
-PyPI
-Quora
-Reddit
-Replit
-Roblox
-Snapchat
-SoundCloud
-SourceForge
-Spotify
-StackOverflow
-SteamCommunity
-Telegram
-Threads
-TikTok
-TryHackMe
-Twitch
-Twitter/X
-Unsplash
-Vimeo
-WordPress
-YouTube
-
-
-8) Verification and Quality Gates
----------------------------------
-Audit snapshot (verified on February 20, 2026):
-- File-level audit across 1,198 files (read/parse/compile checks): 0 errors
-- Unit tests: 53/53 passing
-- Ruff lint: passing
-- mypy (full repository scope): passing on 44 source files
-- compileall bytecode check: passing
-- Wiring compatibility matrix: PASS (root commands=23, prompt commands=22, keyword/flag parity verified)
-- Platform manifests: 50 loaded successfully
-- Runtime extension discovery: 10 plugins, 10 filters
-- Scope compatibility inventory:
-  plugins -> profile=5, surface=5, fusion=8
-  filters -> profile=8, surface=4, fusion=10
-
-Unit tests:
-python -m unittest discover -s tests -v
-
-Lint:
-python -m ruff check .
-
-Type checking (full repository scope):
-python -m mypy
-
-Bytecode compile check:
-python -m compileall -q core filters plugins tests silica-x.py
-
-CI pipeline:
-.github/workflows/ci.yml
-- Python 3.11, 3.12, 3.13
-- Runs tests + Ruff + mypy
-
-
-9) Example Workflows
+9) Platform Coverage
 --------------------
+- Platform manifests loaded: 70
+- Use runtime inventory or `history` / `modules` views to inspect active data and source coverage.
+
+
+10) Example Workflows
+---------------------
 Framework description:
 python silica-x.py --about
 
@@ -229,14 +354,14 @@ python silica-x.py --explain
 Tor diagnostics:
 python silica-x.py anonymity --check
 
-Profile scan:
-python silica-x.py profile alice --tor --plugin orbit_link_matrix --filter contact_canonicalizer --html --csv
+Profile scan with explicit selectors:
+python silica-x.py profile alice --plugin threat_conductor,account_recovery_exposure_probe --filter triage_priority_filter,contact_quality_filter --html --csv
 
-Surface scan:
-python silica-x.py surface example.com --plugin header_hardening_probe --filter exposure_tier_matrix --html
+Surface scan with lifecycle and transport:
+python silica-x.py surface example.com --plugin rdap_lifecycle_inspector,surface_transport_stability_probe --filter subdomain_attack_path_filter,evidence_consistency_filter --html
 
-Fusion scan:
-python silica-x.py fusion alice example.com --all-plugins --all-filters --html
+Fusion scan with rich extension stack:
+python silica-x.py fusion alice example.com --plugin signal_fusion_core,link_outbound_risk_profiler --filter triage_priority_filter,link_hygiene_filter --html --csv
 
 List plugins and filters:
 python silica-x.py plugins --scope all
@@ -245,8 +370,13 @@ python silica-x.py filters --scope all
 Recent targets:
 python silica-x.py history --limit 25
 
+Quicktest:
+python silica-x.py quicktest
+python silica-x.py quicktest --list-templates
+python silica-x.py quicktest --template atlas-mercier --json
 
-10) Docker
+
+11) Docker
 ----------
 Standard container:
 docker compose -f docker/docker-compose.yml run --rm silica-x help
@@ -256,69 +386,32 @@ Tor-enabled profile:
 docker compose -f docker/docker-compose.yml --profile tor run --rm silica-x-tor anonymity --check
 docker compose -f docker/docker-compose.yml --profile tor run --rm silica-x-tor profile alice --tor --html
 
-Notes:
-- `silica-x-tor` is built from `docker/Dockerfile.tor` and includes `tor`.
-- Tor runs with a container-safe config and stores runtime state in `/tmp/tor-data`.
-
 Runner scripts (guided setup + launch):
-- Before first use on Unix shells:
-  chmod +x docker-scripts/run-docker-linux.sh docker-scripts/run-docker-macos.sh docker-scripts/run-docker-termux.sh
 - Linux:
   ./docker-scripts/run-docker-linux.sh
-  ./docker-scripts/run-docker-linux.sh profile alice --html
-  ./docker-scripts/run-docker-linux.sh --runner-stop
-  ./docker-scripts/run-docker-linux.sh --runner-stop-docker
 - macOS:
   ./docker-scripts/run-docker-macos.sh
-  ./docker-scripts/run-docker-macos.sh profile alice --tor --html
-  ./docker-scripts/run-docker-macos.sh --runner-stop
-  ./docker-scripts/run-docker-macos.sh --runner-stop-docker
 - Termux:
   ./docker-scripts/run-docker-termux.sh
-  ./docker-scripts/run-docker-termux.sh profile alice --html
-  ./docker-scripts/run-docker-termux.sh --runner-stop
-  ./docker-scripts/run-docker-termux.sh --runner-stop-docker
 - Windows (PowerShell):
   powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1
-  powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 profile alice --html
-  powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop
-  powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop-docker
-
-Runner flag contract:
-- Script-level flags use `--runner-*` (for example: `--runner-build`, `--runner-prompt`, `--runner-stop`).
-- Non-`--runner-*` args are passed straight to Silica.
-- No passed args means prompt mode.
-- Use `--` to force pass-through of args like `--help`.
-- If forwarded args include `--tor` (without `--no-tor`), runners auto-select `silica-x-tor`.
-- `--runner-stop` tears down Silica containers.
-- `--runner-stop-docker` tears down Silica containers and then stops local Docker when supported.
-- Full runner reference: docker-scripts/README.md
 
 
-11) Host Tor Wrappers
----------------------
-Container wrapper (image-internal):
-- `docker/tor-wrapper.sh` (used by `docker/Dockerfile.tor`)
+12) Quality Gates
+-----------------
+Unit tests:
+python -m pytest -q
 
-Host wrappers:
-- Linux:
-  chmod +x docker/tor-wrapper-linux.sh
-  ./docker/tor-wrapper-linux.sh
-- macOS:
-  chmod +x docker/tor-wrapper-macos.sh
-  ./docker/tor-wrapper-macos.sh
-- Termux:
-  chmod +x docker/tor-wrapper-termux.sh
-  ./docker/tor-wrapper-termux.sh
-- Windows (PowerShell):
-  powershell -ExecutionPolicy Bypass -File .\docker\tor-wrapper-windows.ps1
+Lint:
+python -m ruff check .
 
-Wrapper options:
-- `--help`
-- `--config <path>`
-- `--data-dir <path>`
-- `--no-install`
-- Any non-wrapper args are passed directly to Tor.
+Type checking:
+python -m mypy
 
-Reference:
-- docker/README.md
+Bytecode compile check:
+python -m compileall -q core filters plugins tests silica-x.py
+
+Current verified snapshot:
+- tests: 152 passed
+- ruff: passing
+- mypy: failing (30 errors / 13 files)

@@ -1,5 +1,7 @@
 # Docker Runner Scripts
 
+Release: v9.0 (Theme: Lattice)
+
 These scripts wrap `docker/docker-compose.yml` and provide guided setup for:
 
 - Docker install checks

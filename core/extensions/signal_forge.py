@@ -70,7 +70,13 @@ def _normalize_spec(module_name: str, raw: dict[str, Any]) -> PluginSpec:
 def _discover_plugin_specs(scope: str | None = None) -> tuple[list[PluginSpec], list[str]]:
     specs: list[PluginSpec] = []
     errors: list[str] = []
-    for module_name in _iter_plugin_module_names():
+    try:
+        module_names = _iter_plugin_module_names()
+    except Exception as exc:  # pragma: no cover - defensive import safety
+        errors.append(f"Plugin package discovery failed: {exc}")
+        return [], errors
+
+    for module_name in module_names:
         try:
             module = _load_plugin_module(module_name)
         except Exception as exc:  # pragma: no cover - defensive import safety

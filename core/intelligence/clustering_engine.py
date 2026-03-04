@@ -53,7 +53,8 @@ class ClusteringEngine:
             dsu.add(link.source_entity_id)
             dsu.add(link.target_entity_id)
             dsu.union(link.source_entity_id, link.target_entity_id)
-            key = tuple(sorted((link.source_entity_id, link.target_entity_id)))
+            left_id, right_id = sorted((link.source_entity_id, link.target_entity_id))
+            key = (left_id, right_id)
             relationship_reasons[key] = link.reason
 
         groups: dict[str, list[str]] = {}
@@ -80,7 +81,8 @@ class ClusteringEngine:
                 for right in members:
                     if left >= right:
                         continue
-                    key = tuple(sorted((left, right)))
+                    left_id, right_id = sorted((left, right))
+                    key = (left_id, right_id)
                     reason = relationship_reasons.get(key)
                     if reason:
                         reason_counter[reason] += 1
@@ -97,4 +99,3 @@ class ClusteringEngine:
             cluster_index += 1
 
         return clusters
-

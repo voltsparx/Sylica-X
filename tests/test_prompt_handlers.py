@@ -3,6 +3,7 @@ import unittest
 
 from core.prompt_handlers import (
     apply_prompt_defaults,
+    handle_prompt_control_command,
     handle_prompt_set_command,
     handle_prompt_use_command,
     keyword_to_command,
@@ -76,8 +77,9 @@ class TestPromptHandlers(unittest.TestCase):
             session,
             on_message=lambda message, color: events.append((message, color)),
         )
-        self.assertTrue(session.all_plugins)
+        self.assertFalse(session.all_plugins)
         self.assertEqual(session.plugin_names, [])
+        self.assertTrue(any("Plugin selection blocked" in message for message, _ in events))
 
         handle_prompt_set_command(
             "set filters contact_canonicalizer,entity_name_resolver",
@@ -129,7 +131,7 @@ class TestPromptHandlers(unittest.TestCase):
             on_message=lambda message, color: events.append((message, color)),
         )
         self.assertEqual(session.plugin_names, [])
-        self.assertTrue(any("No compatible plugins selected" in message for message, _ in events))
+        self.assertTrue(any("Plugin selection blocked for module" in message for message, _ in events))
 
     def test_handle_prompt_set_command_supports_max_profile_preset(self):
         session = PromptSessionState(module="profile")
@@ -229,6 +231,99 @@ class TestPromptHandlers(unittest.TestCase):
             on_message=lambda _message, _color: None,
         )
         self.assertEqual(session.orchestrate_extension_control, "manual")
+
+    def test_handle_prompt_set_command_blocks_plugins_and_filters_in_auto_mode(self):
+        session = PromptSessionState(module="profile", profile_extension_control="auto")
+        events: list[tuple[str, str]] = []
+        handle_prompt_set_command(
+            "set plugins threat_conductor",
+            session,
+            on_message=lambda message, color: events.append((message, color)),
+        )
+        handle_prompt_set_command(
+            "set filters contact_canonicalizer",
+            session,
+            on_message=lambda message, color: events.append((message, color)),
+        )
+        self.assertEqual(session.plugin_names, [])
+        self.assertEqual(session.filter_names, [])
+        self.assertTrue(any("while extension_control=auto" in message for message, _ in events))
+
+    def test_handle_prompt_set_command_blocks_switch_to_auto_when_manual_config_exists(self):
+        session = PromptSessionState(
+            module="profile",
+            plugin_names=["threat_conductor"],
+            filter_names=["contact_canonicalizer"],
+            profile_extension_control="manual",
+        )
+        events: list[tuple[str, str]] = []
+        handle_prompt_set_command(
+            "set extension_control auto",
+            session,
+            on_message=lambda message, color: events.append((message, color)),
+        )
+        self.assertEqual(session.profile_extension_control, "manual")
+        self.assertTrue(any("Cannot set extension_control=auto" in message for message, _ in events))
+
+    def test_handle_prompt_control_command_select_module_and_selectors(self):
+        session = PromptSessionState(module="profile")
+        events: list[tuple[str, str]] = []
+        handled = handle_prompt_control_command(
+            "select module surface",
+            session,
+            on_message=lambda message, color: events.append((message, color)),
+        )
+        self.assertTrue(handled)
+        self.assertEqual(session.module, "surface")
+
+        handled = handle_prompt_control_command(
+            "select plugins threat_conductor",
+            session,
+            on_message=lambda message, color: events.append((message, color)),
+        )
+        self.assertTrue(handled)
+        self.assertEqual(session.plugin_names, ["threat_conductor"])
+
+    def test_handle_prompt_control_command_add_and_remove_plugins_filters(self):
+        session = PromptSessionState(module="profile")
+        handle_prompt_control_command(
+            "add plugins threat_conductor,contact_lattice",
+            session,
+            on_message=lambda _message, _color: None,
+        )
+        self.assertEqual(session.plugin_names, ["threat_conductor", "contact_lattice"])
+
+        handle_prompt_control_command(
+            "remove plugins contact_lattice",
+            session,
+            on_message=lambda _message, _color: None,
+        )
+        self.assertEqual(session.plugin_names, ["threat_conductor"])
+
+        handle_prompt_control_command(
+            "add filters contact_canonicalizer,entity_name_resolver",
+            session,
+            on_message=lambda _message, _color: None,
+        )
+        self.assertEqual(session.filter_names, ["contact_canonicalizer", "entity_name_resolver"])
+
+        handle_prompt_control_command(
+            "remove filters entity_name_resolver",
+            session,
+            on_message=lambda _message, _color: None,
+        )
+        self.assertEqual(session.filter_names, ["contact_canonicalizer"])
+
+    def test_handle_prompt_control_command_blocks_mutation_in_auto_mode(self):
+        session = PromptSessionState(module="profile", profile_extension_control="auto")
+        events: list[tuple[str, str]] = []
+        handle_prompt_control_command(
+            "add plugins threat_conductor",
+            session,
+            on_message=lambda message, color: events.append((message, color)),
+        )
+        self.assertEqual(session.plugin_names, [])
+        self.assertTrue(any("while extension_control=auto" in message for message, _ in events))
 
     def test_handle_prompt_use_command(self):
         session = PromptSessionState(

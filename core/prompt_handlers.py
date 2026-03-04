@@ -7,6 +7,7 @@ from typing import Callable
 
 from core.interface.cli_config import EXTENSION_CONTROL_MODES, PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
 from core.foundation.colors import Colors, c
+from core.extensions.control_plane import merge_scan_modes, resolve_extension_control
 from core.extensions.selector_keys import selector_keys
 from core.foundation.session_state import PromptSessionState
 from core.extensions.signal_forge import list_plugin_descriptors
@@ -88,6 +89,48 @@ def _split_csv_values(raw: str) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
+def _dedupe_names(values: list[str]) -> list[str]:
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for item in values:
+        key = str(item).strip().lower()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        deduped.append(key)
+    return deduped
+
+
+def _scan_mode_for_scope(session: PromptSessionState, scope: str) -> str:
+    normalized_scope = _normalize_module(scope)
+    if normalized_scope == "surface":
+        return session.surface_preset
+    if normalized_scope == "fusion":
+        return merge_scan_modes(session.profile_preset, session.surface_preset)
+    return session.profile_preset
+
+
+def _validate_extension_combo(
+    *,
+    scope: str,
+    session: PromptSessionState,
+    plugins: list[str],
+    filters: list[str],
+    all_plugins: bool,
+    all_filters: bool,
+) -> list[str]:
+    plan = resolve_extension_control(
+        scope=scope,
+        scan_mode=_scan_mode_for_scope(session, scope),
+        control_mode="manual",
+        requested_plugins=plugins,
+        requested_filters=filters,
+        include_all_plugins=all_plugins,
+        include_all_filters=all_filters,
+    )
+    return list(plan.errors)
+
+
 def _descriptor_lookup(descriptors: list[dict[str, object]]) -> dict[str, str]:
     lookup: dict[str, str] = {}
     for descriptor in descriptors:
@@ -146,6 +189,100 @@ def _resolve_plugins_for_scope(names: list[str], scope: str) -> tuple[list[str],
 def _resolve_filters_for_scope(names: list[str], scope: str) -> tuple[list[str], list[str]]:
     descriptors = list_filter_descriptors(scope=scope)
     return _resolve_compatible_names(names, descriptors=descriptors)
+
+
+def _mutate_selection(
+    *,
+    session: PromptSessionState,
+    scope: str,
+    kind: str,
+    action: str,
+    value: str,
+    emit: Callable[[str, str], None],
+) -> bool:
+    if session.extension_control_for_module(scope) == "auto":
+        emit(
+            f"Cannot {action} {kind} for module '{scope}' while extension_control=auto. "
+            "Use `set extension_control manual` or `set extension_control hybrid` first.",
+            Colors.RED,
+        )
+        return True
+
+    requested = _split_csv_values(value)
+    if not requested:
+        emit(f"Provide at least one {kind[:-1]} selector (id/alias/name).", Colors.YELLOW)
+        return True
+
+    if kind == "plugins":
+        selected, rejected = _resolve_plugins_for_scope(requested, scope)
+        if rejected:
+            emit(
+                f"Plugin selection blocked for module '{scope}'. "
+                f"Incompatible or unknown selectors: {', '.join(rejected)}",
+                Colors.RED,
+            )
+            emit("Use `plugins --scope ...` to inspect compatible selectors.", Colors.YELLOW)
+            return True
+        if session.all_plugins:
+            emit("Cannot mutate plugins while current selection is `all`. Use `set plugins none` first.", Colors.RED)
+            return True
+        current = _dedupe_names(session.plugin_names)
+        if action == "add":
+            updated = _dedupe_names([*current, *selected])
+        else:
+            remove_set = set(_dedupe_names(selected))
+            updated = [item for item in current if item not in remove_set]
+        errors = _validate_extension_combo(
+            scope=scope,
+            session=session,
+            plugins=updated,
+            filters=session.filter_names,
+            all_plugins=False,
+            all_filters=session.all_filters,
+        )
+        if errors:
+            for item in errors:
+                emit(f"Plugin selection blocked: {item}", Colors.RED)
+            return True
+        session.all_plugins = False
+        session.plugin_names = updated
+        emit(f"Plugins set to: {session.plugins_label()} (module={scope})", Colors.GREEN)
+        return True
+
+    selected, rejected = _resolve_filters_for_scope(requested, scope)
+    if rejected:
+        emit(
+            f"Filter selection blocked for module '{scope}'. "
+            f"Incompatible or unknown selectors: {', '.join(rejected)}",
+            Colors.RED,
+        )
+        emit("Use `filters --scope ...` to inspect compatible selectors.", Colors.YELLOW)
+        return True
+    if session.all_filters:
+        emit("Cannot mutate filters while current selection is `all`. Use `set filters none` first.", Colors.RED)
+        return True
+    current = _dedupe_names(session.filter_names)
+    if action == "add":
+        updated = _dedupe_names([*current, *selected])
+    else:
+        remove_set = set(_dedupe_names(selected))
+        updated = [item for item in current if item not in remove_set]
+    errors = _validate_extension_combo(
+        scope=scope,
+        session=session,
+        plugins=session.plugin_names,
+        filters=updated,
+        all_plugins=session.all_plugins,
+        all_filters=False,
+    )
+    if errors:
+        for item in errors:
+            emit(f"Filter selection blocked: {item}", Colors.RED)
+        return True
+    session.all_filters = False
+    session.filter_names = updated
+    emit(f"Filters set to: {session.filters_label()} (module={scope})", Colors.GREEN)
+    return True
 
 
 def apply_prompt_defaults(args: argparse.Namespace, session: PromptSessionState) -> argparse.Namespace:
@@ -231,8 +368,27 @@ def handle_prompt_set_command(
     scope = _normalize_module(session.module)
 
     if key == "plugins":
+        if session.extension_control_for_module(scope) == "auto":
+            _emit(
+                f"Cannot set plugins for module '{scope}' while extension_control=auto. "
+                "Use `set extension_control manual` or `set extension_control hybrid` first.",
+                Colors.RED,
+            )
+            return True
         lower = value.lower()
         if lower == "all":
+            errors = _validate_extension_combo(
+                scope=scope,
+                session=session,
+                plugins=[],
+                filters=session.filter_names,
+                all_plugins=True,
+                all_filters=session.all_filters,
+            )
+            if errors:
+                for item in errors:
+                    _emit(f"Plugin selection blocked: {item}", Colors.RED)
+                return True
             session.all_plugins = True
             session.plugin_names = []
             _emit(f"Plugins set to: {session.plugins_label()} (module={scope})", Colors.GREEN)
@@ -249,11 +405,26 @@ def handle_prompt_set_command(
         selected, rejected = _resolve_plugins_for_scope(requested, scope)
         if rejected:
             _emit(
-                f"Ignored incompatible/unknown plugins for module '{scope}': {', '.join(rejected)}",
-                Colors.YELLOW,
+                f"Plugin selection blocked for module '{scope}'. "
+                f"Incompatible or unknown selectors: {', '.join(rejected)}",
+                Colors.RED,
             )
+            _emit("Use `plugins --scope ...` to inspect compatible selectors.", Colors.YELLOW)
+            return True
         if not selected:
             _emit(f"No compatible plugins selected for module '{scope}'.", Colors.RED)
+            return True
+        errors = _validate_extension_combo(
+            scope=scope,
+            session=session,
+            plugins=selected,
+            filters=session.filter_names,
+            all_plugins=False,
+            all_filters=session.all_filters,
+        )
+        if errors:
+            for item in errors:
+                _emit(f"Plugin selection blocked: {item}", Colors.RED)
             return True
         session.all_plugins = False
         session.plugin_names = selected
@@ -261,8 +432,27 @@ def handle_prompt_set_command(
         return True
 
     if key == "filters":
+        if session.extension_control_for_module(scope) == "auto":
+            _emit(
+                f"Cannot set filters for module '{scope}' while extension_control=auto. "
+                "Use `set extension_control manual` or `set extension_control hybrid` first.",
+                Colors.RED,
+            )
+            return True
         lower = value.lower()
         if lower == "all":
+            errors = _validate_extension_combo(
+                scope=scope,
+                session=session,
+                plugins=session.plugin_names,
+                filters=[],
+                all_plugins=session.all_plugins,
+                all_filters=True,
+            )
+            if errors:
+                for item in errors:
+                    _emit(f"Filter selection blocked: {item}", Colors.RED)
+                return True
             session.all_filters = True
             session.filter_names = []
             _emit(f"Filters set to: {session.filters_label()} (module={scope})", Colors.GREEN)
@@ -279,11 +469,26 @@ def handle_prompt_set_command(
         selected, rejected = _resolve_filters_for_scope(requested, scope)
         if rejected:
             _emit(
-                f"Ignored incompatible/unknown filters for module '{scope}': {', '.join(rejected)}",
-                Colors.YELLOW,
+                f"Filter selection blocked for module '{scope}'. "
+                f"Incompatible or unknown selectors: {', '.join(rejected)}",
+                Colors.RED,
             )
+            _emit("Use `filters --scope ...` to inspect compatible selectors.", Colors.YELLOW)
+            return True
         if not selected:
             _emit(f"No compatible filters selected for module '{scope}'.", Colors.RED)
+            return True
+        errors = _validate_extension_combo(
+            scope=scope,
+            session=session,
+            plugins=session.plugin_names,
+            filters=selected,
+            all_plugins=session.all_plugins,
+            all_filters=False,
+        )
+        if errors:
+            for item in errors:
+                _emit(f"Filter selection blocked: {item}", Colors.RED)
             return True
         session.all_filters = False
         session.filter_names = selected
@@ -313,6 +518,18 @@ def handle_prompt_set_command(
         if normalized_value not in EXTENSION_CONTROL_MODES:
             _emit(f"Invalid extension control mode: {value}", Colors.RED)
             return True
+        if normalized_value == "auto" and (
+            session.all_plugins
+            or session.all_filters
+            or bool(session.plugin_names)
+            or bool(session.filter_names)
+        ):
+            _emit(
+                f"Cannot set extension_control=auto for module '{scope}' while plugins/filters are configured. "
+                "Reset them first with `set plugins none` and `set filters none`.",
+                Colors.RED,
+            )
+            return True
         session.set_extension_control_for_module(scope, normalized_value)
         _emit(f"Extension control set to: {normalized_value} (module={scope})", Colors.GREEN)
         return True
@@ -322,11 +539,86 @@ def handle_prompt_set_command(
         if normalized_value not in EXTENSION_CONTROL_MODES:
             _emit(f"Invalid orchestrate extension control mode: {value}", Colors.RED)
             return True
+        if normalized_value == "auto" and (
+            session.all_plugins
+            or session.all_filters
+            or bool(session.plugin_names)
+            or bool(session.filter_names)
+        ):
+            _emit(
+                "Cannot set orchestrate_extension_control=auto while plugins/filters are configured. "
+                "Reset them first with `set plugins none` and `set filters none`.",
+                Colors.RED,
+            )
+            return True
         session.orchestrate_extension_control = normalized_value
         _emit(f"Orchestrate extension control set to: {normalized_value}", Colors.GREEN)
         return True
 
     _emit(f"Unknown set key: {key}", Colors.YELLOW)
+    return True
+
+
+def handle_prompt_control_command(
+    command_text: str,
+    session: PromptSessionState,
+    *,
+    on_message: Callable[[str, str], None] | None = None,
+) -> bool:
+    """Handle prompt selection controls: select/add/remove for module/plugins/filters."""
+
+    def _emit(message: str, color: str) -> None:
+        if on_message is None:
+            print(c(message, color))
+            return
+        on_message(message, color)
+
+    tokens = command_text.strip().split(maxsplit=2)
+    if not tokens:
+        return False
+
+    verb = tokens[0].strip().lower()
+    if verb not in {"select", "add", "remove"}:
+        return False
+    if len(tokens) < 3:
+        _emit("Usage: select|add|remove <module|plugins|filters> <value>", Colors.YELLOW)
+        return True
+
+    target = tokens[1].strip().lower().replace("-", "_")
+    value = tokens[2].strip()
+    if target in {"module", "mode"}:
+        if verb != "select":
+            _emit("Only `select module <profile|surface|fusion>` is supported for module controls.", Colors.YELLOW)
+            return True
+        return handle_prompt_use_command(f"use {value}", session, on_message=on_message)
+
+    if target in {"plugins", "plugin"}:
+        if verb == "select":
+            return handle_prompt_set_command(f"set plugins {value}", session, on_message=on_message)
+        scope = _normalize_module(session.module)
+        return _mutate_selection(
+            session=session,
+            scope=scope,
+            kind="plugins",
+            action=verb,
+            value=value,
+            emit=_emit,
+        )
+
+    if target in {"filters", "filter"}:
+        if verb == "select":
+            return handle_prompt_set_command(f"set filters {value}", session, on_message=on_message)
+        scope = _normalize_module(session.module)
+        return _mutate_selection(
+            session=session,
+            scope=scope,
+            kind="filters",
+            action=verb,
+            value=value,
+            emit=_emit,
+        )
+
+    _emit(f"Unknown control target: {target}", Colors.YELLOW)
     return True
 
 
