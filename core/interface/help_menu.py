@@ -43,6 +43,7 @@ def show_flag_help() -> None:
     _item("live <target> [--port]", "Open local live dashboard.")
     _item("anonymity [flags]", "Check or change Tor/proxy routing.")
     _item("wizard", "Run guided workflow questions.")
+    _item("wizard --help", "Show full wizard flags (phases, presets, selectors, toggles).")
     _item("keywords", "Show prompt keyword shortcuts.")
     _item("about | explain | prompt | help", "Metadata, explainers, interactive mode, help.")
 
@@ -50,6 +51,7 @@ def show_flag_help() -> None:
     _item("--plugin / --all-plugins", "Enable one or all plugins (repeatable/comma-separated selectors).")
     _item("--filter / --all-filters", "Enable one or all filters (repeatable/comma-separated selectors).")
     _item("--extension-control <mode>", "auto | manual | hybrid (fail-fast conflict validation)")
+    _item("wizard preflight", "Wizard validates extension compatibility before starting scans.")
     _item("--tor / --proxy", "Enable Tor/proxy routing.")
     _item("--no-tor / --no-proxy", "Disable Tor/proxy routing.")
     _item("--check / --prompt", "Diagnostics or guided anonymity setup.")

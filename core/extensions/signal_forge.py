@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import importlib
 import pkgutil
 from typing import Any
@@ -12,6 +13,23 @@ from core.extensions.selector_keys import selector_keys
 
 PLUGIN_PACKAGE = "plugins"
 VALID_SCOPES = {"profile", "surface", "fusion"}
+_CRYPTO_MARKERS: tuple[str, ...] = (
+    "cryptography",
+    "crypto",
+    "cipher",
+    "aes",
+    "xor",
+    "rot13",
+    "rsa",
+    "pgp",
+    "gpg",
+    "fernet",
+)
+_CRYPTO_KIND_MARKERS: dict[str, tuple[str, ...]] = {
+    "aes": ("aes",),
+    "xor": ("xor",),
+    "rot13": ("rot13",),
+}
 
 
 def _normalize_data_payload(value: object) -> dict[str, Any]:
@@ -20,8 +38,118 @@ def _normalize_data_payload(value: object) -> dict[str, Any]:
     return {str(key): item for key, item in value.items()}
 
 
-def _iter_plugin_module_names() -> list[str]:
-    package = importlib.import_module(PLUGIN_PACKAGE)
+def _plugin_crypto_kind_from_fields(
+    *,
+    module_name: str,
+    plugin_id: str,
+    title: str,
+    description: str,
+    aliases: tuple[str, ...],
+) -> str | None:
+    haystack = " ".join(
+        (
+            module_name,
+            plugin_id,
+            title,
+            description,
+            " ".join(aliases),
+        )
+    ).lower()
+    for kind, markers in _CRYPTO_KIND_MARKERS.items():
+        if any(marker in haystack for marker in markers):
+            return kind
+    return None
+
+
+def _plugin_group_from_fields(
+    *,
+    module_name: str,
+    plugin_id: str,
+    title: str,
+    description: str,
+    aliases: tuple[str, ...],
+) -> str:
+    if module_name.startswith("crypto."):
+        return "cryptography"
+    haystack = " ".join(
+        (
+            module_name,
+            plugin_id,
+            title,
+            description,
+            " ".join(aliases),
+        )
+    ).lower()
+    if any(marker in haystack for marker in _CRYPTO_MARKERS):
+        return "cryptography"
+    return "core"
+
+
+def classify_plugin_group(descriptor: Mapping[str, object]) -> str:
+    """Classify plugin descriptor group for inventory display."""
+
+    aliases_raw = descriptor.get("aliases")
+    aliases: tuple[str, ...]
+    if isinstance(aliases_raw, list):
+        aliases = tuple(str(item).strip().lower() for item in aliases_raw if str(item).strip())
+    else:
+        aliases = ()
+    return _plugin_group_from_fields(
+        module_name=str(descriptor.get("module_name") or "").strip().lower(),
+        plugin_id=str(descriptor.get("id") or "").strip().lower(),
+        title=str(descriptor.get("title") or "").strip().lower(),
+        description=str(descriptor.get("description") or "").strip().lower(),
+        aliases=aliases,
+    )
+
+
+def classify_plugin_crypto_kind(descriptor: Mapping[str, object]) -> str | None:
+    """Classify cryptography plugin subtype when available."""
+
+    aliases_raw = descriptor.get("aliases")
+    aliases: tuple[str, ...]
+    if isinstance(aliases_raw, list):
+        aliases = tuple(str(item).strip().lower() for item in aliases_raw if str(item).strip())
+    else:
+        aliases = ()
+    return _plugin_crypto_kind_from_fields(
+        module_name=str(descriptor.get("module_name") or "").strip().lower(),
+        plugin_id=str(descriptor.get("id") or "").strip().lower(),
+        title=str(descriptor.get("title") or "").strip().lower(),
+        description=str(descriptor.get("description") or "").strip().lower(),
+        aliases=aliases,
+    )
+
+
+def classify_plugin_special_type(descriptor: Mapping[str, object]) -> str | None:
+    """Backward-compatibility alias returning legacy special type names."""
+
+    return "cryptography" if classify_plugin_group(descriptor) == "cryptography" else None
+
+
+def _is_private_module_name(module_name: str) -> bool:
+    return any(part.startswith("_") for part in module_name.split("."))
+
+
+def _iter_nested_module_names(root_package: str) -> list[str]:
+    package = importlib.import_module(root_package)
+    names: list[str] = []
+    prefix = f"{root_package}."
+    for module_info in pkgutil.walk_packages(package.__path__, prefix=prefix):
+        full_name = module_info.name
+        if not full_name.startswith(prefix):
+            continue
+        module_name = full_name[len(prefix) :]
+        if module_info.ispkg:
+            continue
+        if _is_private_module_name(module_name):
+            continue
+        names.append(module_name)
+    return sorted(names)
+
+
+def _iter_top_level_module_names(root_package: str) -> list[str]:
+    package = importlib.import_module(root_package)
     names: list[str] = []
     for module_info in pkgutil.iter_modules(package.__path__):
         if module_info.ispkg:
@@ -30,6 +158,20 @@ def _iter_plugin_module_names() -> list[str]:
             continue
         names.append(module_info.name)
     return sorted(names)
+
+
+def _iter_module_names_with_fallback(root_package: str) -> list[str]:
+    try:
+        nested = _iter_nested_module_names(root_package)
+    except Exception:
+        nested = []
+    if nested:
+        return nested
+    return _iter_top_level_module_names(root_package)
+
+
+def _iter_plugin_module_names() -> list[str]:
+    return _iter_module_names_with_fallback(PLUGIN_PACKAGE)
 
 
 def _load_plugin_module(module_name: str):
@@ -106,8 +248,23 @@ def list_plugin_discovery_errors(scope: str | None = None) -> list[str]:
 def list_plugin_descriptors(scope: str | None = None) -> list[dict[str, Any]]:
     descriptors: list[dict[str, Any]] = []
     for spec in list_plugin_specs(scope=scope):
+        plugin_group = _plugin_group_from_fields(
+            module_name=spec.module_name,
+            plugin_id=spec.plugin_id,
+            title=spec.title,
+            description=spec.description,
+            aliases=spec.aliases,
+        )
+        crypto_kind = _plugin_crypto_kind_from_fields(
+            module_name=spec.module_name,
+            plugin_id=spec.plugin_id,
+            title=spec.title,
+            description=spec.description,
+            aliases=spec.aliases,
+        )
         descriptors.append(
             {
+                "module_name": spec.module_name,
                 "id": spec.plugin_id,
                 "title": spec.title,
                 "description": spec.description,
@@ -115,6 +272,8 @@ def list_plugin_descriptors(scope: str | None = None) -> list[dict[str, Any]]:
                 "version": spec.version,
                 "author": spec.author,
                 "aliases": list(spec.aliases),
+                "plugin_group": plugin_group,
+                "crypto_kind": crypto_kind,
             }
         )
     return descriptors

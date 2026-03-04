@@ -265,6 +265,52 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.seed, 9)
         self.assertTrue(args.json)
 
+    def test_root_wizard_parser_parses_extended_flags(self):
+        parser = build_root_parser()
+        args = parser.parse_args(
+            [
+                "wizard",
+                "--profile-phase",
+                "--surface-phase",
+                "--fusion-phase",
+                "--usernames",
+                "alice,bob",
+                "--domain",
+                "example.com",
+                "--profile-preset",
+                "max",
+                "--surface-preset",
+                "deep",
+                "--extension-control",
+                "hybrid",
+                "--plugin",
+                "threat_conductor",
+                "--filter",
+                "triage_priority_filter",
+                "--html",
+                "--csv",
+                "--ct",
+                "--no-rdap",
+                "--sync-modules",
+            ]
+        )
+        self.assertEqual(args.command, "wizard")
+        self.assertTrue(args.run_profile)
+        self.assertTrue(args.run_surface)
+        self.assertTrue(args.run_fusion)
+        self.assertEqual(args.usernames, "alice,bob")
+        self.assertEqual(args.domain, "example.com")
+        self.assertEqual(args.profile_preset, "max")
+        self.assertEqual(args.surface_preset, "deep")
+        self.assertEqual(args.extension_control, "hybrid")
+        self.assertEqual(args.plugin, ["threat_conductor"])
+        self.assertEqual(args.filter, ["triage_priority_filter"])
+        self.assertTrue(args.html)
+        self.assertTrue(args.csv)
+        self.assertTrue(args.ct)
+        self.assertFalse(args.rdap)
+        self.assertTrue(args.sync_modules)
+
     def test_capability_pack_parser_parses_command(self):
         parser = build_root_parser()
         args = parser.parse_args(["capability-pack"])
@@ -379,6 +425,40 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.target, "alice")
         self.assertEqual(args.profile, "fast")
         self.assertEqual(args.extension_control, "auto")
+
+    def test_prompt_parser_parses_wizard_command_with_extended_flags(self):
+        parser = build_prompt_parser()
+        args = parser.parse_args(
+            [
+                "wizard",
+                "--no-profile-phase",
+                "--surface-phase",
+                "--domain",
+                "example.com",
+                "--surface-preset",
+                "quick",
+                "--extension-control",
+                "manual",
+                "--all-plugins",
+                "--all-filters",
+                "--no-html",
+                "--no-csv",
+                "--no-ct",
+                "--rdap",
+            ]
+        )
+        self.assertEqual(args.command, "wizard")
+        self.assertFalse(args.run_profile)
+        self.assertTrue(args.run_surface)
+        self.assertEqual(args.domain, "example.com")
+        self.assertEqual(args.surface_preset, "quick")
+        self.assertEqual(args.extension_control, "manual")
+        self.assertTrue(args.all_plugins)
+        self.assertTrue(args.all_filters)
+        self.assertFalse(args.html)
+        self.assertFalse(args.csv)
+        self.assertFalse(args.ct)
+        self.assertTrue(args.rdap)
 
 
 if __name__ == "__main__":

@@ -53,6 +53,37 @@ def _compact_data_snapshot(data: object, *, max_items: int = 6) -> str:
     return ", ".join(tokens) if tokens else "-"
 
 
+def _crypto_profile_html(data: object) -> str:
+    if not isinstance(data, dict):
+        return ""
+    profile = data.get("crypto_profile")
+    if not isinstance(profile, dict):
+        return ""
+    kind = str(profile.get("crypto_kind", data.get("crypto_kind", "crypto"))).strip().lower() or "crypto"
+    operation = str(profile.get("operation", data.get("operation", "encrypt"))).strip().lower() or "encrypt"
+    output_encoding = str(profile.get("output_encoding", "base64")).strip().lower() or "base64"
+    try:
+        max_items = int(profile.get("max_items", 0) or 0)
+    except (TypeError, ValueError):
+        max_items = 0
+    strict_mode = bool(profile.get("strict_mode", False))
+    source_fields = profile.get("source_fields")
+    if isinstance(source_fields, list):
+        sources = ", ".join(str(item) for item in source_fields if str(item).strip())
+    else:
+        sources = "-"
+    return (
+        "<p><strong>Crypto Config:</strong> "
+        f"kind={html.escape(kind)} | "
+        f"operation={html.escape(operation)} | "
+        f"encoding={html.escape(output_encoding)} | "
+        f"max_items={html.escape(str(max_items))} | "
+        f"strict={html.escape(str(strict_mode))} | "
+        f"sources={html.escape(sources)}"
+        "</p>"
+    )
+
+
 def _status_badge(status: str) -> str:
     color_map = {
         "FOUND": "#20d981",
@@ -305,14 +336,17 @@ def _render_plugins(plugin_results: list[dict], plugin_errors: list[str]) -> str
     for plugin in _safe_dict_rows(plugin_results):
         highlights = plugin.get("highlights", []) or []
         highlight_html = "".join(f"<li>{html.escape(str(item))}</li>" for item in highlights[:8]) or "<li>None</li>"
-        payload_preview = _compact_data_snapshot(plugin.get("data", {}))
-        payload_json = html.escape(json.dumps(plugin.get("data", {}), indent=2, default=str))
+        data_payload = plugin.get("data", {})
+        payload_preview = _compact_data_snapshot(data_payload)
+        payload_json = html.escape(json.dumps(data_payload, indent=2, default=str))
+        crypto_config_html = _crypto_profile_html(data_payload)
         severity = str(plugin.get("severity", "INFO")).upper()
         cards.append(
             "<div class='subpanel'>"
             f"<h4>{html.escape(plugin.get('title', plugin.get('id', 'Plugin')))} "
             f"<span class='badge badge-inline'>{html.escape(severity)}</span></h4>"
             f"<p>{html.escape(plugin.get('summary', ''))}</p>"
+            f"{crypto_config_html}"
             f"<p><strong>Data Snapshot:</strong> {html.escape(payload_preview)}</p>"
             "<ul>"
             f"{highlight_html}"

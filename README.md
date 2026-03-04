@@ -38,6 +38,18 @@ This tool is built by stitching together public OSINT workflows and studying how
 
 ---
 
+## 📘 Documentation Index
+
+* [Usage Guide](docs/Usage.txt)
+* [Orchestration Architecture](docs/orchestration-architecture.md)
+* [Capability Scan Report](docs/silica-capability-scan.md)
+* [OCR/Image Infrastructure Plan](docs/ocr-image-scan-infrastructure.md)
+* [Release Checklist v9.0 Lattice](docs/release-checklist-v9.0-lattice.md)
+* [Release Notes v9.0 Lattice](docs/release-notes-v9.0-lattice.md)
+* [Release Commit Plan v9.0 Lattice](docs/release-commit-plan-v9.0-lattice.md)
+
+---
+
 ## 🛠️ Engineering Upgrades Included
 
 * Parser construction split into `core/interface/cli_parsers.py`
@@ -73,7 +85,7 @@ This tool is built by stitching together public OSINT workflows and studying how
 
 * Repository-wide file audit completed across **1,198 files** (including generated output/cache artifacts)
 * File audit checks (readability + parser/compile validation) reported **0 errors**
-* Unit tests: **152/152 passing**
+* Unit tests: **160/160 passing**
 * Ruff lint: passing
 * mypy (full repository scope): passing (no issues found)
 * Bytecode compile check (`compileall`): passing
@@ -82,12 +94,12 @@ This tool is built by stitching together public OSINT workflows and studying how
   * root commands = 23
   * prompt commands = 22
   * keyword/flag parity verified
-* Platform manifests loaded: **70**
-* Runtime plugin/filter discovery: **17 plugins, 17 filters**
+* Platform manifests loaded: **71**
+* Runtime plugin/filter discovery: **20 plugins, 17 filters**
 
 ### Scope Compatibility Inventory
 
-* plugins → profile=10, surface=9, fusion=15
+* plugins → profile=13, surface=12, fusion=18
 * filters → profile=14, surface=9, fusion=17
 
 ---
@@ -105,6 +117,15 @@ pip install -r requirements.txt
 ```bash
 pip install -r requirements-dev.txt
 ```
+
+Crypto plugin runtime note:
+
+* `cryptography` is included in `requirements.txt` and required for `crypto_aes_attachment`.
+* `crypto_xor_attachment` and `crypto_rot13_attachment` run without external system binaries.
+
+OCR roadmap dependency note:
+
+* Planned OCR lane depends on `pytesseract` + `Pillow` and a host Tesseract installation.
 
 ---
 
@@ -142,7 +163,7 @@ Running without flags starts **prompt mode**.
     <tr><td>Flag/Prompt</td><td><code>history</code></td><td><code>targets</code>, <code>scans</code></td><td>Show local scan history</td><td><code>--limit</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>anonymity</code></td><td>-</td><td>Inspect/configure routing state</td><td><code>--tor</code>, <code>--proxy</code>, <code>--check</code>, <code>--prompt</code></td></tr>
     <tr><td>Flag</td><td><code>live &lt;target&gt;</code></td><td>-</td><td>Launch local dashboard for a saved target</td><td><code>--port</code>, <code>--no-browser</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>wizard</code></td><td>-</td><td>Guided interactive workflow</td><td><code>--tor</code>, <code>--proxy</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>wizard</code></td><td>-</td><td>Guided interactive workflow</td><td><code>--profile-preset</code>, <code>--surface-preset</code>, <code>--extension-control</code>, <code>--plugin</code>, <code>--filter</code>, <code>--tor</code>, <code>--proxy</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>keywords</code></td><td>-</td><td>Show keyword-to-command map</td><td>-</td></tr>
     <tr><td>Flag/Prompt</td><td><code>about</code>, <code>explain</code>, <code>help</code></td><td>-</td><td>Documentation and metadata</td><td><code>--about</code>, <code>--explain</code> (global)</td></tr>
   </tbody>
@@ -222,7 +243,7 @@ Running without flags starts **prompt mode**.
     </tr>
   </thead>
   <tbody>
-    <tr><td><code>python -m pytest -q</code></td><td>PASS</td><td>152 tests passed.</td></tr>
+    <tr><td><code>python -m pytest -q</code></td><td>PASS</td><td>160 tests passed.</td></tr>
     <tr><td><code>python -m ruff check .</code></td><td>PASS</td><td>No lint errors.</td></tr>
     <tr><td><code>python -m mypy</code></td><td>PASS</td><td>No type errors found (repository scope).</td></tr>
     <tr><td><code>python -m compileall -q core filters plugins tests silica-x.py</code></td><td>PASS</td><td>Bytecode compile smoke passed.</td></tr>
@@ -247,7 +268,7 @@ Running without flags starts **prompt mode**.
 * `history [--limit N]` (aliases: `targets`, `scans`)
 * `anonymity [--tor|--no-tor] [--proxy|--no-proxy] [--check] [--prompt]`
 * `live <target> [--port PORT] [--no-browser]`
-* `wizard`
+* `wizard [--profile-phase|--no-profile-phase] [--surface-phase|--no-surface-phase] [--fusion-phase|--no-fusion-phase] [--profile-preset ...] [--surface-preset ...] [--extension-control ...] [--plugin ...] [--filter ...] [--html|--no-html] [--csv|--no-csv] [--ct|--no-ct] [--rdap|--no-rdap] [--sync-modules]`
 * `capability-pack` (alias: `intel`)
 * `keywords`
 * `about`
@@ -283,6 +304,80 @@ Running without flags starts **prompt mode**.
 * `--plugin`, `--all-plugins`, `--list-plugins`
 * `--filter`, `--all-filters`, `--list-filters`
 * `--extension-control auto|manual|hybrid`
+* Plugin inventory lists cryptography plugins in a separate `Cryptography Plugin Set` section
+
+---
+
+## 🧙 Wizard Workflow
+
+`wizard` supports both fully guided operation and flag-seeded operation.
+
+When you provide wizard flags, those values are used directly.  
+When flags are omitted, wizard prompts for the missing decisions.
+
+Wizard supports:
+
+* Phase toggles: `--profile-phase|--no-profile-phase`, `--surface-phase|--no-surface-phase`, `--fusion-phase|--no-fusion-phase`
+* Targets: `--usernames <a,b,c>`, `--domain <domain>`
+* Runtime control: `--profile-preset`, `--surface-preset`, `--extension-control auto|manual|hybrid`
+* Extension selection: `--plugin`, `--all-plugins`, `--list-plugins`, `--filter`, `--all-filters`, `--list-filters`
+* Output toggles: `--html|--no-html`, `--csv|--no-csv`
+* Surface toggles: `--ct|--no-ct`, `--rdap|--no-rdap`
+* Catalog refresh: `--sync-modules`
+
+Wizard includes extension compatibility preflight across selected scopes.  
+If selectors conflict or are incompatible, wizard stops before scanning and prints recovery hints.
+
+Example:
+
+```bash
+python silica-x.py wizard \
+  --profile-phase --surface-phase --fusion-phase \
+  --usernames alice,bob --domain example.com \
+  --profile-preset deep --surface-preset balanced \
+  --extension-control hybrid \
+  --plugin threat_conductor --filter triage_priority_filter \
+  --html --csv --ct --rdap
+```
+
+---
+
+## 🔐 Crypto Plugin Operations
+
+Crypto plugin set:
+
+* `crypto_aes_attachment`
+* `crypto_xor_attachment`
+* `crypto_rot13_attachment`
+
+Selection:
+
+```bash
+python silica-x.py profile alice --plugin crypto_aes_attachment --html
+python silica-x.py fusion alice example.com --plugin crypto_xor_attachment --filter signal_lane_fusion --html
+```
+
+Runtime behavior:
+
+* Crypto plugins are discoverable under `plugins/crypto/` and listed in a dedicated `Cryptography Plugin Set`.
+* Crypto payload sources are scope-aware and collected from results/correlation/issues/domain/intelligence context.
+* Scan mode config drives crypto depth:
+  * `fast`: smaller payload budget
+  * `balanced`: baseline payload budget
+  * `deep` / `max`: larger payload budget + strict mode enabled
+* Reports include crypto configuration details (`crypto_profile`) and source coverage (`source_summary`) so selected behavior is transparent in CLI/HTML outputs.
+
+---
+
+## 🖼️ OCR/Image Infrastructure
+
+OCR/image intelligence is documented as an architecture track and implementation guide (currently roadmap-level, not enabled as a built-in runtime plugin set yet).  
+Planned availability target: `v9.5` or `v10.0`.
+
+Reference docs:
+
+* [OCR/Image Infrastructure Plan](docs/ocr-image-scan-infrastructure.md)
+* [Self-Structuring Note](self-structuring/ocr-n-image/ocr-n-image-scan-infrastructure.txt)
 
 ---
 
@@ -319,7 +414,8 @@ Running without flags starts **prompt mode**.
 
 ## 🌍 Platform Coverage
 
-Silica-X currently ships with **70 platform manifests** in `platforms/`:
+Silica-X currently ships with **71 platform manifests** in `platforms/`.  
+Representative set:
 
 Behance • Bitbucket • Blogger • BuyMeACoffee • Codeforces • CodePen • Dev.to • DeviantArt • Discord • DockerHub • Dribbble • Facebook • Flickr • GitHub • GitLab • HackerOne • HackerRank • Instagram • Kaggle • Keybase • LeetCode • LinkedIn • Mastodon • Medium • NPM • Pastebin • Patreon • Pinterest • ProductHunt • PyPI • Quora • Reddit • Replit • Roblox • Snapchat • SoundCloud • SourceForge • Spotify • StackOverflow • SteamCommunity • Telegram • Threads • TikTok • TryHackMe • Twitch • Twitter/X • Unsplash • Vimeo • WordPress • YouTube
 

@@ -75,6 +75,31 @@ def _add_toggle_flags(parser: argparse.ArgumentParser, name: str, label: str) ->
     )
 
 
+def _add_phase_toggle(
+    parser: argparse.ArgumentParser,
+    *,
+    flag_name: str,
+    dest: str,
+    label: str,
+) -> None:
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        f"--{flag_name}",
+        dest=dest,
+        action="store_const",
+        const=True,
+        default=None,
+        help=f"Enable {label}.",
+    )
+    group.add_argument(
+        f"--no-{flag_name}",
+        dest=dest,
+        action="store_const",
+        const=False,
+        help=f"Disable {label}.",
+    )
+
+
 def _add_plugin_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--plugin",
@@ -479,6 +504,53 @@ def _add_orchestrate_args(parser: argparse.ArgumentParser) -> None:
     _add_extension_control_args(parser, default_mode="auto")
 
 
+def _add_wizard_args(parser: argparse.ArgumentParser) -> None:
+    _add_toggle_flags(parser, "tor", "Tor routing")
+    _add_toggle_flags(parser, "proxy", "HTTP proxy routing")
+    _add_phase_toggle(parser, flag_name="profile-phase", dest="run_profile", label="profile phase")
+    _add_phase_toggle(parser, flag_name="surface-phase", dest="run_surface", label="surface phase")
+    _add_phase_toggle(parser, flag_name="fusion-phase", dest="run_fusion", label="fusion phase")
+    parser.add_argument(
+        "--usernames",
+        default="",
+        help="Comma-separated usernames for profile phase (skip username prompt).",
+    )
+    parser.add_argument(
+        "--domain",
+        default="",
+        help="Domain for surface phase (skip domain prompt).",
+    )
+    parser.add_argument(
+        "--profile-preset",
+        choices=sorted(PROFILE_PRESETS.keys()),
+        default=None,
+        help="Default profile preset inside wizard workflow.",
+    )
+    parser.add_argument(
+        "--surface-preset",
+        choices=sorted(SURFACE_PRESETS.keys()),
+        default=None,
+        help="Default surface preset inside wizard workflow.",
+    )
+    parser.add_argument(
+        "--extension-control",
+        choices=list(EXTENSION_CONTROL_MODES),
+        default=None,
+        help="Wizard extension control mode: auto, manual, or hybrid.",
+    )
+    _add_toggle_flags(parser, "html", "HTML report output")
+    _add_toggle_flags(parser, "csv", "profile/fusion CSV export")
+    _add_toggle_flags(parser, "ct", "Certificate Transparency lookup")
+    _add_toggle_flags(parser, "rdap", "RDAP ownership lookup")
+    parser.add_argument(
+        "--sync-modules",
+        action="store_true",
+        help="Refresh module catalog before wizard execution.",
+    )
+    _add_plugin_args(parser)
+    _add_filter_args(parser)
+
+
 def build_root_parser(
     *,
     project_name: str,
@@ -575,8 +647,7 @@ def build_root_parser(
         "wizard",
         help="Guided interactive multi-scan workflow.",
     )
-    _add_toggle_flags(wizard_parser, "tor", "Tor routing")
-    _add_toggle_flags(wizard_parser, "proxy", "HTTP proxy routing")
+    _add_wizard_args(wizard_parser)
 
     prompt_parser = subparsers.add_parser(
         "prompt",
@@ -644,8 +715,7 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
     subparsers.add_parser("capability-pack", aliases=["intel"], add_help=False)
 
     wizard_parser = subparsers.add_parser("wizard", add_help=False)
-    _add_toggle_flags(wizard_parser, "tor", "Tor routing")
-    _add_toggle_flags(wizard_parser, "proxy", "HTTP proxy routing")
+    _add_wizard_args(wizard_parser)
 
     return parser
 

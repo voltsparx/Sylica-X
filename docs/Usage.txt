@@ -10,6 +10,12 @@ pip install -r requirements.txt
 Optional dev tooling:
 pip install -r requirements-dev.txt
 
+Crypto runtime note:
+- cryptography is included in requirements.txt and powers AES plugin operations.
+
+OCR roadmap note:
+- planned OCR/image lane expects pytesseract + pillow and a host Tesseract binary.
+
 
 2) Launch Modes
 ---------------
@@ -49,7 +55,7 @@ Prompt-mode startup shows loaded inventory:
     <tr><td>Flag/Prompt</td><td><code>plugins</code>, <code>filters</code>, <code>modules</code>, <code>history</code></td><td>-</td><td>Inventory and catalog workflows</td><td><code>--scope</code>, <code>--kind</code>, <code>--search</code>, <code>--stats-only</code>, <code>--limit</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>anonymity</code></td><td>-</td><td>Routing diagnostics and updates</td><td><code>--tor</code>, <code>--proxy</code>, <code>--check</code>, <code>--prompt</code></td></tr>
     <tr><td>Flag</td><td><code>live &lt;target&gt;</code></td><td>-</td><td>Open local dashboard for saved run</td><td><code>--port</code>, <code>--no-browser</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>wizard</code></td><td>-</td><td>Guided multi-phase scan launcher</td><td><code>--tor</code>, <code>--proxy</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>wizard</code></td><td>-</td><td>Guided multi-phase scan launcher</td><td><code>--profile-preset</code>, <code>--surface-preset</code>, <code>--extension-control</code>, <code>--plugin</code>, <code>--filter</code>, <code>--tor</code>, <code>--proxy</code></td></tr>
   </tbody>
 </table>
 
@@ -115,7 +121,7 @@ Prompt-mode startup shows loaded inventory:
     </tr>
   </thead>
   <tbody>
-    <tr><td><code>python -m pytest -q</code></td><td>PASS</td><td>152 tests passed.</td></tr>
+    <tr><td><code>python -m pytest -q</code></td><td>PASS</td><td>160 tests passed.</td></tr>
     <tr><td><code>python -m ruff check .</code></td><td>PASS</td><td>No lint failures.</td></tr>
     <tr><td><code>python -m mypy</code></td><td>PASS</td><td>No type errors found (repository scope).</td></tr>
     <tr><td><code>python -m compileall -q core filters plugins tests silica-x.py</code></td><td>PASS</td><td>Compile smoke passed.</td></tr>
@@ -206,11 +212,43 @@ history [--limit N]
 quicktest [--template <id>] [--seed N] [--list-templates] [--json]
 live <target> [--port PORT] [--no-browser]
 anonymity [--tor|--no-tor] [--proxy|--no-proxy] [--check] [--prompt]
-wizard
+wizard [--profile-phase|--no-profile-phase] [--surface-phase|--no-surface-phase] [--fusion-phase|--no-fusion-phase] [--profile-preset ...] [--surface-preset ...] [--extension-control ...] [--plugin ...] [--filter ...] [--html|--no-html] [--csv|--no-csv] [--ct|--no-ct] [--rdap|--no-rdap] [--sync-modules]
 keywords
 about
 explain
 help
+
+3.1) Wizard Deep Mode (Guided + Seeded)
+----------------------------------------
+- Wizard can run fully guided (interactive prompts) or seeded with flags.
+- When wizard flags are provided, values are reused directly and prompt noise is reduced.
+- If selectors conflict or are scope-incompatible, wizard preflight stops before scan execution.
+
+Wizard capability flags:
+- Phase control:
+  --profile-phase / --no-profile-phase
+  --surface-phase / --no-surface-phase
+  --fusion-phase / --no-fusion-phase
+- Target seeds:
+  --usernames <u1,u2,...>
+  --domain <domain>
+- Runtime behavior:
+  --profile-preset <fast|quick|balanced|deep|max>
+  --surface-preset <quick|balanced|deep>
+  --extension-control <auto|manual|hybrid>
+- Selection:
+  --plugin / --all-plugins / --list-plugins
+  --filter / --all-filters / --list-filters
+- Output + surface toggles:
+  --html|--no-html
+  --csv|--no-csv
+  --ct|--no-ct
+  --rdap|--no-rdap
+- Catalog refresh:
+  --sync-modules
+
+Seeded wizard example:
+python silica-x.py wizard --profile-phase --surface-phase --fusion-phase --usernames alice,bob --domain example.com --profile-preset deep --surface-preset balanced --extension-control hybrid --plugin threat_conductor --filter triage_priority_filter --html --csv --ct --rdap
 
 
 4) Prompt Commands
@@ -269,6 +307,7 @@ Prompt format:
 - Prompt mode prevents switching to extension_control=auto while manual plugin/filter config exists.
 - Incremental controls (`add/remove plugins|filters`) are name-aware and preserve compatibility checks.
 - `select module` and `select plugins|filters` provide alias-style control for faster operator workflows.
+- Plugin inventory view separates crypto modules under a dedicated `Cryptography Plugin Set` section.
 
 
 6) New Plugins and Filters (v9.0 Lattice Expansion)
@@ -279,6 +318,9 @@ New plugins:
 - username_impersonation_probe (profile, fusion)
 - rdap_lifecycle_inspector (surface, fusion)
 - surface_transport_stability_probe (surface, fusion)
+- crypto_aes_attachment (profile, surface, fusion)
+- crypto_xor_attachment (profile, surface, fusion)
+- crypto_rot13_attachment (profile, surface, fusion)
 
 New filters:
 - triage_priority_filter (profile, surface, fusion)
@@ -288,10 +330,26 @@ New filters:
 - evidence_consistency_filter (profile, surface, fusion)
 
 Current runtime extension inventory:
-- plugins: 17
+- plugins: 20
 - filters: 17
-- plugin scope coverage: profile=10 surface=9 fusion=15
+- plugin scope coverage: profile=13 surface=12 fusion=18
 - filter scope coverage: profile=14 surface=9 fusion=17
+
+6.1) Cryptography Plugin Operations
+-----------------------------------
+- crypto plugin ids:
+  - crypto_aes_attachment
+  - crypto_xor_attachment
+  - crypto_rot13_attachment
+- discover/list:
+  python silica-x.py plugins --scope all
+  (crypto plugins appear under "Cryptography Plugin Set")
+- execute by name:
+  python silica-x.py profile alice --plugin crypto_aes_attachment --html
+  python silica-x.py fusion alice example.com --plugin crypto_xor_attachment --filter signal_lane_fusion --html
+- reporting behavior:
+  CLI/HTML include crypto configuration labels and payload/source summaries.
+  strict-mode behavior is tied to scan depth (deep/max = stricter handling).
 
 
 7) Outputs (Richer Artifacts)
@@ -339,7 +397,7 @@ CSV enrichment:
 
 9) Platform Coverage
 --------------------
-- Platform manifests loaded: 70
+- Platform manifests loaded: 71
 - Use runtime inventory or `history` / `modules` views to inspect active data and source coverage.
 
 
@@ -412,6 +470,16 @@ Bytecode compile check:
 python -m compileall -q core filters plugins tests silica-x.py
 
 Current verified snapshot:
-- tests: 152 passed
+- tests: 160 passed
 - ruff: passing
 - mypy: passing (no issues found)
+
+
+13) OCR and Image Infrastructure (Documentation Track)
+------------------------------------------------------
+- OCR/image pipeline is documented as an integration blueprint and roadmap.
+- Current implementation state: planned/documented, not yet a default runtime plugin lane.
+- Planned availability target: v9.5 or v10.0.
+- Main references:
+  - docs/ocr-image-scan-infrastructure.md
+  - self-structuring/ocr-n-image/ocr-n-image-scan-infrastructure.txt

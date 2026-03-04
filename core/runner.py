@@ -12,13 +12,13 @@ import threading
 import webbrowser
 from dataclasses import dataclass
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from typing import Sequence
+from typing import Any, Sequence
 
 from core.interface.banner import show_banner
 from core.collect.anonymity import TOR_HOST, TOR_SOCKS_PORT, install_tor, probe_tor_status, start_tor
 from core.interface.about import build_about_text
 from core.interface.explain import build_explain_text
-from core.interface.cli_config import PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
+from core.interface.cli_config import EXTENSION_CONTROL_MODES, PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
 from core.interface.cli_parsers import build_prompt_parser as _build_prompt_parser
 from core.interface.cli_parsers import build_root_parser as _build_root_parser
 from core.foundation.colors import Colors, c
@@ -257,6 +257,54 @@ def _prompt_yes_no(question: str, current: bool) -> bool:
         print(c("Please answer with y or n.", Colors.RED))
 
 
+def _prompt_choice(question: str, options: Sequence[str], default: str) -> str:
+    choices = [str(item).strip().lower() for item in options if str(item).strip()]
+    if not choices:
+        raise ValueError("Prompt choice options are required.")
+    default_value = str(default).strip().lower()
+    if default_value not in choices:
+        default_value = choices[0]
+    choice_label = "/".join(choices)
+    while True:
+        answer = ask(f"{question} [{default_value}] ({choice_label}): ").strip().lower()
+        if not answer:
+            return default_value
+        if answer in choices:
+            return answer
+        print(c(f"Invalid option. Choose one of: {choice_label}", Colors.RED))
+
+
+def _prompt_extension_selection(
+    *,
+    kind: str,
+    scopes: Sequence[str],
+    default_all: bool = False,
+) -> tuple[list[str], bool]:
+    default_label = "all" if default_all else "none"
+    unique_scopes = list(dict.fromkeys(str(scope).strip().lower() for scope in scopes if str(scope).strip()))
+    while True:
+        raw = ask(f"{kind} [none|all|list|selector1,selector2] [{default_label}]: ").strip()
+        lowered = raw.lower()
+        if not raw:
+            return ([], True) if default_all else ([], False)
+        if lowered in {"none", "off"}:
+            return [], False
+        if lowered == "all":
+            return [], True
+        if lowered in {"list", "ls", "?"}:
+            if kind.lower().startswith("plugin"):
+                for scope in unique_scopes or ["all"]:
+                    _print_plugin_inventory(scope=scope)
+            else:
+                for scope in unique_scopes or ["all"]:
+                    _print_filter_inventory(scope=scope)
+            continue
+        selectors = _split_csv_tokens([raw])
+        if selectors:
+            return selectors, False
+        print(c("Provide selectors separated by commas, or use none/all/list.", Colors.RED))
+
+
 def set_anonymity_interactive(state: RunnerState) -> bool:
     previous = RunnerState(use_tor=state.use_tor, use_proxy=state.use_proxy)
 
@@ -323,14 +371,37 @@ def _print_plugin_inventory(scope: str | None = None) -> None:
         print()
         return
 
-    for plugin in plugins:
-        scopes_text = ", ".join(plugin.get("scopes", []))
-        aliases = plugin.get("aliases", [])
-        alias_text = ", ".join(aliases) if aliases else "-"
-        print(c(f"{symbol('feature')} {plugin.get('id')} - {plugin.get('title')}", Colors.CYAN))
-        print(c(f"  scopes: {scopes_text}", Colors.GREY))
-        print(c(f"  aliases: {alias_text}", Colors.GREY))
-        print(c(f"  desc: {plugin.get('description')}", Colors.GREY))
+    def _print_rows(rows: list[dict[str, Any]], *, heading: str, accent: str) -> None:
+        if not rows:
+            return
+        print(c(f"{symbol('tip')} {heading}", accent))
+        for plugin in rows:
+            scopes_text = ", ".join(plugin.get("scopes", []))
+            aliases = plugin.get("aliases", [])
+            alias_text = ", ".join(aliases) if aliases else "-"
+            print(c(f"{symbol('feature')} {plugin.get('id')} - {plugin.get('title')}", Colors.CYAN))
+            crypto_kind = str(plugin.get("crypto_kind") or "").strip().lower()
+            if crypto_kind:
+                print(c(f"  crypto-kind: {crypto_kind}", Colors.MAGENTA))
+            print(c(f"  scopes: {scopes_text}", Colors.GREY))
+            print(c(f"  aliases: {alias_text}", Colors.GREY))
+            print(c(f"  desc: {plugin.get('description')}", Colors.GREY))
+
+    core_plugins = [
+        plugin for plugin in plugins if str(plugin.get("plugin_group") or "").strip().lower() != "cryptography"
+    ]
+    crypto_plugins = [
+        plugin for plugin in plugins if str(plugin.get("plugin_group") or "").strip().lower() == "cryptography"
+    ]
+    print(
+        c(
+            f"{symbol('tip')} core plugins: {len(core_plugins)} | cryptography plugins: {len(crypto_plugins)}",
+            Colors.GREY,
+        )
+    )
+    _print_rows(core_plugins, heading="Core Plugin Set", accent=Colors.CYAN)
+    _print_rows(crypto_plugins, heading="Cryptography Plugin Set", accent=Colors.MAGENTA)
+
     for error in discovery_errors:
         print(c(f"{symbol('warn')} {error}", Colors.YELLOW))
     print()
@@ -932,6 +1003,77 @@ def _resolve_extension_plan_or_fail(
     return plan.plugins, plan.filters, plan.warnings, True
 
 
+def _wizard_preflight_extension_plan(
+    *,
+    scopes: Sequence[str],
+    profile_preset: str,
+    surface_preset: str,
+    extension_control: str,
+    plugin_names: list[str],
+    filter_names: list[str],
+    include_all_plugins: bool,
+    include_all_filters: bool,
+) -> bool:
+    unique_scopes = list(dict.fromkeys(str(scope).strip().lower() for scope in scopes if str(scope).strip()))
+    if not unique_scopes:
+        return True
+
+    has_errors = False
+    for scope in unique_scopes:
+        if scope not in {"profile", "surface", "fusion"}:
+            continue
+        if scope == "surface":
+            mode = surface_preset
+        elif scope == "fusion":
+            mode = merge_scan_modes(profile_preset, surface_preset)
+        else:
+            mode = profile_preset
+
+        plan = resolve_extension_control(
+            scope=scope,
+            scan_mode=mode,
+            control_mode=extension_control,
+            requested_plugins=plugin_names,
+            requested_filters=filter_names,
+            include_all_plugins=include_all_plugins,
+            include_all_filters=include_all_filters,
+        )
+        if plan.errors:
+            has_errors = True
+            print(
+                c(
+                    f"{symbol('error')} Wizard extension preflight failed "
+                    f"(scope={scope}, mode={plan.scan_mode}, control={plan.control_mode})",
+                    Colors.RED,
+                )
+            )
+            for item in plan.errors:
+                print(c(f" {symbol('error')} {item}", Colors.RED))
+            continue
+        if plan.warnings:
+            print(
+                c(
+                    f"{symbol('warn')} Wizard extension preflight warnings "
+                    f"(scope={scope}, mode={plan.scan_mode}, control={plan.control_mode})",
+                    Colors.YELLOW,
+                )
+            )
+            for item in plan.warnings:
+                print(c(f" {symbol('warn')} {item}", Colors.YELLOW))
+
+    if has_errors:
+        print(c(f"{symbol('warn')} Stop: wizard extension configuration is invalid.", Colors.RED))
+        print(
+            c(
+                f"{symbol('tip')} Use `plugins --scope <scope>` and `filters --scope <scope>` "
+                "to inspect compatible selectors.",
+                Colors.YELLOW,
+            )
+        )
+        return False
+    return True
+
+
 def _infer_entity_anomalies(
     entities: Sequence[BaseEntity],
     *,
@@ -1061,6 +1203,51 @@ def _print_runtime_guidance_checks(
         print(c(f"{symbol('tip')} enable filters to reduce low-signal noise.", Colors.GREY))
 
 
+def _build_crypto_plugin_config(
+    *,
+    scope: str,
+    scan_mode: str,
+    timeout_seconds: int,
+    worker_budget: int,
+) -> dict[str, object]:
+    mode = merge_scan_modes(scan_mode, scan_mode)
+    max_items = 12
+    if mode == "fast":
+        max_items = 10
+    elif mode == "deep":
+        max_items = 22
+    elif mode == "max":
+        max_items = 36
+
+    source_fields: list[str]
+    if scope == "surface":
+        source_fields = ["domain_result", "issues", "intelligence_bundle", "target"]
+    elif scope == "fusion":
+        source_fields = [
+            "results",
+            "domain_result",
+            "correlation",
+            "issues",
+            "intelligence_bundle",
+            "target",
+        ]
+    else:
+        source_fields = ["results", "correlation", "issues", "intelligence_bundle", "target"]
+
+    return {
+        "operation": "encrypt",
+        "output_encoding": "base64",
+        "max_items": max_items,
+        "strict_mode": mode in {"deep", "max"},
+        "source_fields": source_fields,
+        "include_metadata": True,
+        "scan_scope": scope,
+        "scan_mode": mode,
+        "timeout_seconds": timeout_seconds,
+        "worker_budget": worker_budget,
+    }
+
+
 async def run_profile_scan(
     username: str,
     state: RunnerState,
@@ -1068,6 +1255,7 @@ async def run_profile_scan(
     max_concurrency: int,
     source_profile: str = "balanced",
     max_platforms: int | None = None,
+    scan_mode: str = "balanced",
     *,
     write_csv: bool = False,
     write_html: bool = False,
@@ -1159,6 +1347,12 @@ async def run_profile_scan(
             "issues": issues,
             "issue_summary": issue_summary,
             "intelligence_bundle": intelligence_bundle,
+            "crypto_config": _build_crypto_plugin_config(
+                scope="profile",
+                scan_mode=scan_mode,
+                timeout_seconds=timeout_seconds,
+                worker_budget=max_concurrency,
+            ),
         },
         scope="profile",
         requested_plugins=plugin_names,
@@ -1266,6 +1460,7 @@ async def run_surface_scan(
     max_subdomains: int,
     include_ct: bool,
     include_rdap: bool,
+    scan_mode: str = "balanced",
     write_html: bool = False,
     plugin_names: list[str] | None = None,
     include_all_plugins: bool = False,
@@ -1348,6 +1543,12 @@ async def run_surface_scan(
             "issues": issues,
             "issue_summary": issue_summary,
             "intelligence_bundle": intelligence_bundle,
+            "crypto_config": _build_crypto_plugin_config(
+                scope="surface",
+                scan_mode=scan_mode,
+                timeout_seconds=timeout_seconds,
+                worker_budget=max_subdomains,
+            ),
         },
         scope="surface",
         requested_plugins=plugin_names,
@@ -1588,6 +1789,7 @@ async def _handle_profile_command(
             max_concurrency=max_concurrency,
             source_profile=source_profile,
             max_platforms=max_platforms,
+            scan_mode=args.preset,
             write_csv=args.csv,
             write_html=args.html,
             live_dashboard=args.live,
@@ -1638,6 +1840,7 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
         state=effective_state,
         timeout_seconds=timeout_seconds,
         max_subdomains=max_subdomains,
+        scan_mode=args.preset,
         include_ct=include_ct,
         include_rdap=include_rdap,
         write_html=args.html,
@@ -1707,6 +1910,7 @@ async def _handle_fusion_command(
             if isinstance(profile_preset.get("max_platforms"), int) and profile_preset["max_platforms"] > 0
             else None
         ),
+        scan_mode=args.profile_preset,
         write_csv=args.csv,
         write_html=False,
         live_dashboard=False,
@@ -1720,6 +1924,7 @@ async def _handle_fusion_command(
         state=effective_state,
         timeout_seconds=surface_preset["timeout"],
         max_subdomains=surface_preset["max_subdomains"],
+        scan_mode=args.surface_preset,
         include_ct=True,
         include_rdap=True,
         write_html=False,
@@ -1775,6 +1980,12 @@ async def _handle_fusion_command(
             "fused_intel": fused_intel,
             "fusion_graph": fusion_graph,
             "intelligence_bundle": intelligence_bundle,
+            "crypto_config": _build_crypto_plugin_config(
+                scope="fusion",
+                scan_mode=fusion_mode,
+                timeout_seconds=max(profile_preset["timeout"], surface_preset["timeout"]),
+                worker_budget=max(profile_preset["max_concurrency"], surface_preset["max_subdomains"]),
+            ),
         },
         scope="fusion",
         requested_plugins=list(plugin_ids),
@@ -2004,6 +2215,9 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
 
     anomalies = payload.get("fused", {}).get("anomalies", [])
     issue_summary = {"total": len(anomalies)} if isinstance(anomalies, list) else {"total": 0}
+    crypto_worker_budget = max_subdomains if mode == "surface" else max_workers
+    if mode == "fusion":
+        crypto_worker_budget = max(max_workers, max_subdomains)
     plugin_context = {
         "target": target_label,
         "mode": mode,
@@ -2014,6 +2228,12 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         "fused_intel": payload.get("fused", {}),
         "fusion_graph": payload.get("fused", {}).get("graph", {}),
         "intelligence_bundle": payload.get("fused", {}).get("intelligence_bundle", {}),
+        "crypto_config": _build_crypto_plugin_config(
+            scope=mode,
+            scan_mode=str(args.profile),
+            timeout_seconds=timeout_seconds,
+            worker_budget=crypto_worker_budget,
+        ),
     }
     plugin_results: list[dict] = []
     plugin_errors: list[str] = []
@@ -2350,6 +2570,50 @@ async def _handle_wizard_command(
     state: RunnerState,
     prompt_mode: bool,
 ) -> int:
+    explicit_flags_raw = getattr(args, "_explicit_flags", ())
+    explicit_flags = {
+        str(flag).strip().lower()
+        for flag in explicit_flags_raw
+        if isinstance(flag, str) and str(flag).strip()
+    }
+    wizard_seed_flags = {
+        "--profile-phase",
+        "--no-profile-phase",
+        "--surface-phase",
+        "--no-surface-phase",
+        "--fusion-phase",
+        "--no-fusion-phase",
+        "--usernames",
+        "--domain",
+        "--profile-preset",
+        "--surface-preset",
+        "--extension-control",
+        "--plugin",
+        "--all-plugins",
+        "--filter",
+        "--all-filters",
+        "--html",
+        "--no-html",
+        "--csv",
+        "--no-csv",
+        "--ct",
+        "--no-ct",
+        "--rdap",
+        "--no-rdap",
+        "--sync-modules",
+    }
+    seeded_wizard = bool(explicit_flags & wizard_seed_flags)
+
+    listed_inventory = False
+    if getattr(args, "list_plugins", False):
+        _print_plugin_inventory(scope="all")
+        listed_inventory = True
+    if getattr(args, "list_filters", False):
+        _print_filter_inventory(scope="all")
+        listed_inventory = True
+    if listed_inventory:
+        return EXIT_SUCCESS
+
     if args.tor is not None or args.proxy is not None:
         ok = apply_anonymity_flags(state, args.tor, args.proxy, prompt_user=True)
         if not ok:
@@ -2357,36 +2621,231 @@ async def _handle_wizard_command(
 
     print(c(f"\n{symbol('major')} Guided Workflow Wizard", Colors.BLUE))
     print(c("-" * 36, Colors.BLUE))
-    run_profile = _prompt_yes_no("Run profile intelligence phase?", True)
-    run_surface = _prompt_yes_no("Run domain surface phase?", True)
+
+    sync_modules = bool(getattr(args, "sync_modules", False))
+    if not sync_modules and not seeded_wizard:
+        sync_modules = _prompt_yes_no("Refresh module catalog before scanning?", False)
+    if sync_modules:
+        try:
+            module_catalog = ensure_module_catalog(
+                refresh=True,
+                validate_catalog=True,
+                verify_source_fingerprint=False,
+            )
+            module_summary = summarize_module_catalog(module_catalog)
+            print(
+                c(
+                    f"{symbol('ok')} Module catalog refreshed "
+                    f"(frameworks={module_summary.get('framework_count', 0)} "
+                    f"modules={module_summary.get('module_count', 0)}).",
+                    Colors.GREEN,
+                )
+            )
+        except Exception as exc:
+            append_framework_log("wizard_module_catalog_failed", str(exc), level="WARN")
+            print(c(f"{symbol('warn')} Module catalog refresh failed: {exc}", Colors.RED))
+            return EXIT_FAILURE
+
+    run_profile_value = getattr(args, "run_profile", None)
+    run_surface_value = getattr(args, "run_surface", None)
+    if run_profile_value is not None:
+        run_profile = bool(run_profile_value)
+    elif seeded_wizard and str(getattr(args, "usernames", "")).strip():
+        run_profile = True
+    else:
+        run_profile = _prompt_yes_no("Run profile intelligence phase?", True)
+
+    if run_surface_value is not None:
+        run_surface = bool(run_surface_value)
+    elif seeded_wizard and str(getattr(args, "domain", "")).strip():
+        run_surface = True
+    else:
+        run_surface = _prompt_yes_no("Run domain surface phase?", True)
+
+    if not run_profile and not run_surface:
+        print(c(f"{symbol('warn')} Both profile and surface phases are disabled.", Colors.RED))
+        return EXIT_USAGE
 
     profile_usernames: list[str] = []
     if run_profile:
-        raw = ask("Enter usernames (comma-separated): ")
-        profile_usernames = [item.strip() for item in raw.split(",") if _validate_username(item)]
+        provided_usernames = _split_csv_tokens([str(getattr(args, "usernames", ""))])
+        valid_usernames = [item for item in provided_usernames if _validate_username(item)]
+        invalid_usernames = [item for item in provided_usernames if not _validate_username(item)]
+        for invalid in invalid_usernames:
+            print(c(f"{symbol('warn')} Ignoring invalid username selector: '{invalid}'", Colors.YELLOW))
+        profile_usernames = valid_usernames
+        if not profile_usernames:
+            raw = ask("Enter usernames (comma-separated): ")
+            profile_usernames = [item for item in _split_csv_tokens([raw]) if _validate_username(item)]
         if not profile_usernames:
             print(c(f"{symbol('warn')} No valid usernames entered; profile phase skipped.", Colors.YELLOW))
             run_profile = False
 
     surface_domain = ""
     if run_surface:
-        surface_domain = ask("Enter target domain: ").strip()
+        surface_domain = str(getattr(args, "domain", "")).strip()
+        if not surface_domain:
+            surface_domain = ask("Enter target domain: ").strip()
         if not normalize_domain(surface_domain):
             print(c(f"{symbol('warn')} Invalid domain; surface phase skipped.", Colors.YELLOW))
             run_surface = False
 
-    write_html = _prompt_yes_no("Generate HTML reports?", True)
-    write_csv = run_profile and _prompt_yes_no("Export profile CSV?", False)
-    plugin_raw = ask("Plugins [none|all|selector1,selector2] [none]: ").strip().lower()
-    plugin_all = plugin_raw == "all"
-    plugin_names = []
-    if plugin_raw and plugin_raw not in {"none", "all"}:
-        plugin_names = [item.strip() for item in plugin_raw.split(",") if item.strip()]
-    filter_raw = ask("Filters [none|all|selector1,selector2] [none]: ").strip().lower()
-    filter_all = filter_raw == "all"
-    filter_names = []
-    if filter_raw and filter_raw not in {"none", "all"}:
-        filter_names = [item.strip() for item in filter_raw.split(",") if item.strip()]
+    run_fusion_value = getattr(args, "run_fusion", None)
+    run_fusion = False
+    if run_profile and run_surface:
+        if run_fusion_value is not None:
+            run_fusion = bool(run_fusion_value)
+        elif seeded_wizard:
+            run_fusion = False
+        else:
+            run_fusion = _prompt_yes_no("Generate a fusion bundle too?", True)
+
+    profile_preset = str(getattr(args, "profile_preset", None) or "balanced").strip().lower()
+    if run_profile or run_fusion:
+        if getattr(args, "profile_preset", None) is None:
+            profile_preset = _prompt_choice(
+                "Profile preset",
+                sorted(PROFILE_PRESETS.keys()),
+                profile_preset,
+            )
+        if profile_preset not in PROFILE_PRESETS:
+            print(c(f"{symbol('warn')} Invalid profile preset: {profile_preset}", Colors.RED))
+            return EXIT_USAGE
+
+    surface_preset = str(getattr(args, "surface_preset", None) or "balanced").strip().lower()
+    if run_surface or run_fusion:
+        if getattr(args, "surface_preset", None) is None:
+            surface_preset = _prompt_choice(
+                "Surface preset",
+                sorted(SURFACE_PRESETS.keys()),
+                surface_preset,
+            )
+        if surface_preset not in SURFACE_PRESETS:
+            print(c(f"{symbol('warn')} Invalid surface preset: {surface_preset}", Colors.RED))
+            return EXIT_USAGE
+
+    extension_control = str(getattr(args, "extension_control", None) or "manual").strip().lower()
+    if getattr(args, "extension_control", None) is None:
+        extension_control = _prompt_choice(
+            "Extension control mode",
+            EXTENSION_CONTROL_MODES,
+            extension_control,
+        )
+    if extension_control not in EXTENSION_CONTROL_MODES:
+        print(c(f"{symbol('warn')} Invalid extension control mode: {extension_control}", Colors.RED))
+        return EXIT_USAGE
+
+    write_html_flag = getattr(args, "html", None)
+    if write_html_flag is not None:
+        write_html = bool(write_html_flag)
+    elif seeded_wizard:
+        write_html = False
+    else:
+        write_html = _prompt_yes_no("Generate HTML reports?", True)
+    write_csv = False
+    csv_flag = getattr(args, "csv", None)
+    if run_profile or run_fusion:
+        if csv_flag is not None:
+            write_csv = bool(csv_flag)
+        elif seeded_wizard:
+            write_csv = False
+        else:
+            write_csv = _prompt_yes_no("Export profile/fusion CSV?", False)
+
+    include_ct = True
+    include_rdap = True
+    if run_surface or run_fusion:
+        ct_flag = getattr(args, "ct", None)
+        rdap_flag = getattr(args, "rdap", None)
+        include_ct = bool(ct_flag) if ct_flag is not None else _prompt_yes_no(
+            "Include Certificate Transparency lookup?",
+            True,
+        )
+        include_rdap = bool(rdap_flag) if rdap_flag is not None else _prompt_yes_no(
+            "Include RDAP ownership lookup?",
+            True,
+        )
+
+    plugin_names = list(getattr(args, "plugin", []) or [])
+    plugin_all = bool(getattr(args, "all_plugins", False))
+    if plugin_all and plugin_names:
+        print(
+            c(
+                f"{symbol('warn')} Ignoring explicit plugin selectors because --all-plugins is enabled.",
+                Colors.YELLOW,
+            )
+        )
+        plugin_names = []
+    filter_names = list(getattr(args, "filter", []) or [])
+    filter_all = bool(getattr(args, "all_filters", False))
+    if filter_all and filter_names:
+        print(
+            c(
+                f"{symbol('warn')} Ignoring explicit filter selectors because --all-filters is enabled.",
+                Colors.YELLOW,
+            )
+        )
+        filter_names = []
+
+    selected_scopes: list[str] = []
+    if run_profile:
+        selected_scopes.append("profile")
+    if run_surface:
+        selected_scopes.append("surface")
+    if run_fusion:
+        selected_scopes.append("fusion")
+
+    if (
+        not seeded_wizard
+        and not plugin_all
+        and not plugin_names
+        and _prompt_yes_no("Configure plugin selectors now?", False)
+    ):
+        if len(selected_scopes) > 1:
+            print(
+                c(
+                    f"{symbol('tip')} Multi-phase wizard active. Plugin selectors must be compatible "
+                    f"across: {', '.join(selected_scopes)}",
+                    Colors.GREY,
+                )
+            )
+        plugin_names, plugin_all = _prompt_extension_selection(
+            kind="Plugins",
+            scopes=selected_scopes,
+            default_all=False,
+        )
+
+    if (
+        not seeded_wizard
+        and not filter_all
+        and not filter_names
+        and _prompt_yes_no("Configure filter selectors now?", False)
+    ):
+        if len(selected_scopes) > 1:
+            print(
+                c(
+                    f"{symbol('tip')} Multi-phase wizard active. Filter selectors must be compatible "
+                    f"across: {', '.join(selected_scopes)}",
+                    Colors.GREY,
+                )
+            )
+        filter_names, filter_all = _prompt_extension_selection(
+            kind="Filters",
+            scopes=selected_scopes,
+            default_all=False,
+        )
+
+    if selected_scopes and not _wizard_preflight_extension_plan(
+        scopes=selected_scopes,
+        profile_preset=profile_preset,
+        surface_preset=surface_preset,
+        extension_control=extension_control,
+        plugin_names=plugin_names,
+        filter_names=filter_names,
+        include_all_plugins=plugin_all,
+        include_all_filters=filter_all,
+    ):
+        return EXIT_USAGE
 
     failures = 0
     if run_profile:
@@ -2394,8 +2853,8 @@ async def _handle_wizard_command(
             usernames=profile_usernames,
             tor=None,
             proxy=None,
-            preset="balanced",
-            extension_control="manual",
+            preset=profile_preset,
+            extension_control=extension_control,
             timeout=None,
             max_concurrency=None,
             csv=write_csv,
@@ -2418,12 +2877,12 @@ async def _handle_wizard_command(
             domain=surface_domain,
             tor=None,
             proxy=None,
-            preset="balanced",
-            extension_control="manual",
+            preset=surface_preset,
+            extension_control=extension_control,
             timeout=None,
             max_subdomains=None,
-            ct=None,
-            rdap=None,
+            ct=include_ct,
+            rdap=include_rdap,
             html=write_html,
             plugin=plugin_names,
             all_plugins=plugin_all,
@@ -2435,15 +2894,15 @@ async def _handle_wizard_command(
         if await _handle_surface_command(surface_args, state=state) != EXIT_SUCCESS:
             failures += 1
 
-    if run_profile and run_surface and _prompt_yes_no("Generate a fusion bundle too?", True):
+    if run_fusion:
         fusion_args = argparse.Namespace(
             username=profile_usernames[0],
             domain=surface_domain,
             tor=None,
             proxy=None,
-            profile_preset="balanced",
-            surface_preset="balanced",
-            extension_control="manual",
+            profile_preset=profile_preset,
+            surface_preset=surface_preset,
+            extension_control=extension_control,
             csv=write_csv,
             html=write_html,
             plugin=plugin_names,
@@ -2675,9 +3134,11 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
 async def run(argv: Sequence[str] | None = None) -> int:
     ensure_output_tree()
     parser = build_root_parser()
-    args = parser.parse_args(list(argv) if argv is not None else None)
+    argv_tokens = list(argv) if argv is not None else sys.argv[1:]
+    args = parser.parse_args(argv_tokens)
+    setattr(args, "_explicit_flags", _extract_explicit_flags(argv_tokens))
     _normalize_multi_select_args(args)
-    rendered_argv = " ".join(str(item) for item in (argv or []))
+    rendered_argv = " ".join(str(item) for item in argv_tokens)
     append_framework_log("framework_start", f"argv={rendered_argv}")
 
     if (getattr(args, "about_flag", False) or getattr(args, "explain_flag", False)) and args.command is not None:

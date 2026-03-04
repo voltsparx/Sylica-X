@@ -30,7 +30,10 @@ COMMAND_EXPLANATIONS: dict[str, str] = {
     "history": "Shows previously scanned targets from local output/data and output/html artifacts.",
     "anonymity": "Checks or updates Tor/proxy routing for current session execution.",
     "live": "Starts the local dashboard for a saved target result bundle.",
-    "wizard": "Guided step-by-step interactive workflow that builds profile/surface/fusion runs.",
+    "wizard": (
+        "Guided interactive workflow that can run profile/surface/fusion phases with "
+        "preset + extension-control selection and compatibility preflight checks."
+    ),
     "about": "Shows framework identity, authorship, and core tool description.",
     "explain": "Shows plain-language command/plugin/filter explanations for quick onboarding.",
 }
@@ -58,9 +61,26 @@ def build_explain_text() -> str:
         lines.append(f"{symbol('bullet')} {command}: {description}")
     lines.append("")
     lines.append(f"{symbol('major')} Plugins")
-    for row in sorted(plugins, key=lambda item: str(item.get("id", ""))):
+    core_plugins = [
+        row for row in plugins if str(row.get("plugin_group") or "").strip().lower() != "cryptography"
+    ]
+    crypto_plugins = [
+        row for row in plugins if str(row.get("plugin_group") or "").strip().lower() == "cryptography"
+    ]
+    lines.append(f"{symbol('tip')} Core Plugin Set ({len(core_plugins)})")
+    for row in sorted(core_plugins, key=lambda item: str(item.get("id", ""))):
         scopes = ", ".join(row.get("scopes", []))
         lines.append(f"{symbol('feature')} {row.get('id')}: {row.get('description')} (scopes: {scopes})")
+    if crypto_plugins:
+        lines.append(f"{symbol('tip')} Cryptography Plugin Set ({len(crypto_plugins)})")
+        for row in sorted(crypto_plugins, key=lambda item: str(item.get("id", ""))):
+            scopes = ", ".join(row.get("scopes", []))
+            crypto_kind = str(row.get("crypto_kind") or "").strip().lower()
+            kind_suffix = f", crypto-kind: {crypto_kind}" if crypto_kind else ""
+            lines.append(f"{symbol('feature')} {row.get('id')}: {row.get('description')} (scopes: {scopes}{kind_suffix})")
+        lines.append(
+            f"{symbol('tip')} Crypto output includes config labels and source coverage in CLI/HTML reports."
+        )
     lines.append("")
     lines.append(f"{symbol('major')} Filters")
     for row in sorted(filters, key=lambda item: str(item.get("id", ""))):
@@ -85,5 +105,11 @@ def build_explain_text() -> str:
     lines.append(f"{symbol('bullet')} profile/surface/fusion share filter flags: --filter, --all-filters, --list-filters.")
     lines.append(f"{symbol('bullet')} extension controls: --extension-control auto|manual|hybrid with conflict validation.")
     lines.append(f"{symbol('bullet')} explain command and --explain flag produce the same explain output.")
+    lines.append(
+        f"{symbol('bullet')} wizard supports phase toggles, preset selection, extension preflight validation, and seeded/non-seeded execution."
+    )
+    lines.append(
+        f"{symbol('bullet')} OCR/image infrastructure is documented in docs/ocr-image-scan-infrastructure.md (roadmap track)."
+    )
     return "\n".join(lines)
 
