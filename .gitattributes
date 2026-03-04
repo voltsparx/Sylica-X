@@ -6,6 +6,7 @@
 *.json text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+*.sh text eol=lf
 
 *.bat text eol=crlf
 *.cmd text eol=crlf

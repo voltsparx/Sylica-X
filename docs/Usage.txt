@@ -249,13 +249,76 @@ python silica-x.py history --limit 25
 10) Docker
 ----------
 Standard container:
-docker compose run --rm silica-x help
-docker compose run --rm silica-x profile alice --html
+docker compose -f docker/docker-compose.yml run --rm silica-x help
+docker compose -f docker/docker-compose.yml run --rm silica-x profile alice --html
 
 Tor-enabled profile:
-docker compose --profile tor run --rm silica-x-tor anonymity --check
-docker compose --profile tor run --rm silica-x-tor profile alice --tor --html
+docker compose -f docker/docker-compose.yml --profile tor run --rm silica-x-tor anonymity --check
+docker compose -f docker/docker-compose.yml --profile tor run --rm silica-x-tor profile alice --tor --html
 
 Notes:
-- `silica-x-tor` is built from `Dockerfile.tor` and includes `tor`.
+- `silica-x-tor` is built from `docker/Dockerfile.tor` and includes `tor`.
 - Tor runs with a container-safe config and stores runtime state in `/tmp/tor-data`.
+
+Runner scripts (guided setup + launch):
+- Before first use on Unix shells:
+  chmod +x docker-scripts/run-docker-linux.sh docker-scripts/run-docker-macos.sh docker-scripts/run-docker-termux.sh
+- Linux:
+  ./docker-scripts/run-docker-linux.sh
+  ./docker-scripts/run-docker-linux.sh profile alice --html
+  ./docker-scripts/run-docker-linux.sh --runner-stop
+  ./docker-scripts/run-docker-linux.sh --runner-stop-docker
+- macOS:
+  ./docker-scripts/run-docker-macos.sh
+  ./docker-scripts/run-docker-macos.sh profile alice --tor --html
+  ./docker-scripts/run-docker-macos.sh --runner-stop
+  ./docker-scripts/run-docker-macos.sh --runner-stop-docker
+- Termux:
+  ./docker-scripts/run-docker-termux.sh
+  ./docker-scripts/run-docker-termux.sh profile alice --html
+  ./docker-scripts/run-docker-termux.sh --runner-stop
+  ./docker-scripts/run-docker-termux.sh --runner-stop-docker
+- Windows (PowerShell):
+  powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1
+  powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 profile alice --html
+  powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop
+  powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop-docker
+
+Runner flag contract:
+- Script-level flags use `--runner-*` (for example: `--runner-build`, `--runner-prompt`, `--runner-stop`).
+- Non-`--runner-*` args are passed straight to Silica.
+- No passed args means prompt mode.
+- Use `--` to force pass-through of args like `--help`.
+- If forwarded args include `--tor` (without `--no-tor`), runners auto-select `silica-x-tor`.
+- `--runner-stop` tears down Silica containers.
+- `--runner-stop-docker` tears down Silica containers and then stops local Docker when supported.
+- Full runner reference: docker-scripts/README.md
+
+
+11) Host Tor Wrappers
+---------------------
+Container wrapper (image-internal):
+- `docker/tor-wrapper.sh` (used by `docker/Dockerfile.tor`)
+
+Host wrappers:
+- Linux:
+  chmod +x docker/tor-wrapper-linux.sh
+  ./docker/tor-wrapper-linux.sh
+- macOS:
+  chmod +x docker/tor-wrapper-macos.sh
+  ./docker/tor-wrapper-macos.sh
+- Termux:
+  chmod +x docker/tor-wrapper-termux.sh
+  ./docker/tor-wrapper-termux.sh
+- Windows (PowerShell):
+  powershell -ExecutionPolicy Bypass -File .\docker\tor-wrapper-windows.ps1
+
+Wrapper options:
+- `--help`
+- `--config <path>`
+- `--data-dir <path>`
+- `--no-install`
+- Any non-wrapper args are passed directly to Tor.
+
+Reference:
+- docker/README.md

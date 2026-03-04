@@ -213,18 +213,63 @@ python silica-x.py history --limit 20
 ## 🐳 Docker
 
 ```bash
-docker compose run --rm silica-x help
-docker compose run --rm silica-x profile alice --html
+docker compose -f docker/docker-compose.yml run --rm silica-x help
+docker compose -f docker/docker-compose.yml run --rm silica-x profile alice --html
 ```
 
 ### Tor-enabled compose profile
 
 ```bash
-docker compose --profile tor run --rm silica-x-tor anonymity --check
-docker compose --profile tor run --rm silica-x-tor profile alice --tor --html
+docker compose -f docker/docker-compose.yml --profile tor run --rm silica-x-tor anonymity --check
+docker compose -f docker/docker-compose.yml --profile tor run --rm silica-x-tor profile alice --tor --html
 ```
 
-`silica-x-tor` is built from `Dockerfile.tor`, includes `tor`, and uses a container-safe Tor config (`/etc/tor/torrc.silica`) that writes under `/tmp`.
+`silica-x-tor` is built from `docker/Dockerfile.tor`, includes `tor`, and uses a container-safe Tor config (`/etc/tor/torrc.silica`) that writes under `/tmp`.
+Host-side Tor wrapper scripts for Linux/macOS/Termux/Windows are documented in `docker/README.md`.
+
+### Cross-platform Docker runners
+
+Use `docker-scripts/` for guided setup + launch (install checks, daemon checks, resource checks, prompt support):
+
+```bash
+chmod +x docker-scripts/run-docker-linux.sh docker-scripts/run-docker-macos.sh docker-scripts/run-docker-termux.sh
+
+# Linux
+./docker-scripts/run-docker-linux.sh
+./docker-scripts/run-docker-linux.sh profile alice --html
+./docker-scripts/run-docker-linux.sh --runner-stop
+./docker-scripts/run-docker-linux.sh --runner-stop-docker
+
+# macOS
+./docker-scripts/run-docker-macos.sh
+./docker-scripts/run-docker-macos.sh profile alice --tor --html
+./docker-scripts/run-docker-macos.sh --runner-stop
+./docker-scripts/run-docker-macos.sh --runner-stop-docker
+
+# Termux
+./docker-scripts/run-docker-termux.sh
+./docker-scripts/run-docker-termux.sh profile alice --html
+./docker-scripts/run-docker-termux.sh --runner-stop
+./docker-scripts/run-docker-termux.sh --runner-stop-docker
+
+# Windows (PowerShell)
+powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1
+powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 profile alice --html
+powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop
+powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop-docker
+```
+
+Detailed runner options are documented in `docker-scripts/README.md`.
+
+Runner behavior:
+
+* Script-only flags are namespaced as `--runner-*` to avoid collisions with Silica flags.
+* Any non-`--runner-*` args are forwarded to `silica-x.py` (flag mode).
+* No forwarded args starts Silica prompt mode automatically.
+* `--runner-stop` cleanly tears down Silica containers when finished.
+* `--runner-stop-docker` also stops the local Docker daemon/Desktop (when supported).
+* Use `--` if you want to pass args like `--help` directly to Silica.
+* If forwarded args include `--tor` (without `--no-tor`), runners auto-switch to `silica-x-tor`.
 
 ### Compose Security Profile
 
@@ -232,7 +277,7 @@ docker compose --profile tor run --rm silica-x-tor profile alice --tor --html
 * non-root runtime
 * dropped Linux capabilities
 * no-new-privileges
-* writable output volume (`./output:/app/output`)
+* writable output volume (`../output:/app/output` in `docker/docker-compose.yml`)
 
 ---
 
