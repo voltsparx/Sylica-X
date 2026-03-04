@@ -15,9 +15,13 @@ from core.plugin_manager import PluginManager
 from core.prompt_intelligence import PromptEngine
 from core.reporting import ReportGenerator
 from core.reverse_engineering import (
+    build_capability_gap_report,
     load_reverse_engineering_map,
     map_tools_to_silica_modules,
     recommend_research_focus,
+    render_capability_markdown,
+    scan_framework_capabilities,
+    write_capability_report,
 )
 from core.scheduler import Scheduler
 from core.security_manager import SecurityManager
@@ -155,6 +159,29 @@ class TestBlueprintModules(unittest.TestCase):
         self.assertFalse([err for err in errors if "missing dependencies" in err.lower()])
         self.assertTrue(any("Unknown plugin requested" in err for err in unknown_errors))
 
+    def test_plugin_manager_parallel_mode(self):
+        manager = PluginManager()
+        context = {
+            "target": "example.com",
+            "mode": "surface",
+            "domain_result": {"https": {"headers": {}}, "subdomains": []},
+            "issues": [],
+            "issue_summary": {"risk_score": 0},
+        }
+        results, errors = asyncio.run(
+            manager.run_plugins(
+                context,
+                scope="surface",
+                requested_plugins=["header_hardening_probe", "threat_conductor"],
+                chain=False,
+            )
+        )
+
+        result_ids = {row["id"] for row in results}
+        self.assertIn("header_hardening_probe", result_ids)
+        self.assertIn("threat_conductor", result_ids)
+        self.assertEqual([], [item for item in errors if "failed" in item.lower()])
+
     def test_prompt_engine_and_advisor_recommendations(self):
         prompt = PromptEngine(history=["profile alice", "surface example.com", "fusion alice example.com"])
         suggestions = prompt.suggest_next(limit=3)
@@ -177,6 +204,29 @@ class TestBlueprintModules(unittest.TestCase):
         self.assertGreater(len(recommendations), 0)
         self.assertTrue(any("Study patterns from:" in row for row in recommendations))
         self.assertAlmostEqual(normalized_confidence, 0.8, places=2)
+
+    def test_reverse_engineering_capability_scan_and_report(self):
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "reverse-engineering-temp"
+            fw_a = root / "framework-a"
+            fw_b = root / "framework-b"
+            fw_a.mkdir(parents=True, exist_ok=True)
+            fw_b.mkdir(parents=True, exist_ok=True)
+            (fw_a / "one.py").write_text(
+                "import asyncio\nimport aiohttp\n# retry backoff semaphore cache tor proxy", encoding="utf-8"
+            )
+            (fw_a / "two.md").write_text("json csv html plugin module unittest", encoding="utf-8")
+            (fw_b / "only.txt").write_text("sqlite threadpool queue pdf xlsx", encoding="utf-8")
+
+            profiles = scan_framework_capabilities(root)
+            gap = build_capability_gap_report(profiles)
+            markdown = render_capability_markdown(profiles)
+            report_path = write_capability_report(root / "report.md")
+
+        self.assertEqual(2, len(profiles))
+        self.assertEqual(2, gap["frameworks"])
+        self.assertIn("Recommendations", markdown)
+        self.assertTrue(Path(report_path).name.endswith(".md"))
 
     def test_credential_manager_roundtrip(self):
         manager = CredentialManager(key=CredentialManager.generate_key())

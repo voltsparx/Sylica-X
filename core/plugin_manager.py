@@ -9,7 +9,7 @@ from typing import Any
 
 from core.selector_keys import selector_keys
 from core.signal_forge import list_plugin_specs
-from core.thread_engine import run_blocking
+from core.thread_engine import run_blocking, run_blocking_batch
 
 
 @dataclass(frozen=True)
@@ -29,8 +29,9 @@ class PluginDescriptor:
 class PluginManager:
     """Discover, validate, and execute plugins with optional chaining."""
 
-    def __init__(self, plugin_dir: str = "plugins/") -> None:
+    def __init__(self, plugin_dir: str = "plugins/", *, max_concurrency: int = 8) -> None:
         self.plugin_dir = plugin_dir
+        self.max_concurrency = max(1, int(max_concurrency))
         self.plugins, self.discovery_errors = self.discover_plugins()
 
     def discover_plugins(self) -> tuple[list[PluginDescriptor], list[str]]:
@@ -145,9 +146,7 @@ class PluginManager:
         base_context.setdefault("mode", scope)
         base_context.setdefault("target", target_data.get("target") if isinstance(target_data, dict) else None)
 
-        results: list[dict[str, Any]] = []
-        previous_plugin_data: dict[str, Any] = {}
-
+        prepared: list[tuple[PluginDescriptor, Any]] = []
         for plugin in selected:
             try:
                 module = importlib.import_module(f"plugins.{plugin.module_name}")
@@ -155,30 +154,70 @@ class PluginManager:
                 if not callable(run_fn):
                     errors.append(f"Plugin '{plugin.plugin_id}' has no callable run(context).")
                     continue
+                prepared.append((plugin, run_fn))
+            except Exception as exc:  # pragma: no cover - plugin safety guard
+                errors.append(f"Plugin '{plugin.plugin_id}' failed: {exc}")
 
-                context = dict(base_context)
-                if chain:
-                    context["previous_plugin_data"] = dict(previous_plugin_data)
-                    context["plugins"] = list(results)
+        if not prepared:
+            return [], errors
 
-                payload = await run_blocking(run_fn, context)
+        results: list[dict[str, Any]] = []
+        previous_plugin_data: dict[str, Any] = {}
+
+        if not chain:
+            calls = [
+                (run_fn, (dict(base_context),), {})
+                for _, run_fn in prepared
+            ]
+            batch = await run_blocking_batch(
+                calls,
+                concurrency_limit=min(self.max_concurrency, len(calls)),
+            )
+            for (plugin, _), payload in zip(prepared, batch):
+                if isinstance(payload, Exception):
+                    errors.append(f"Plugin '{plugin.plugin_id}' failed: {payload}")
+                    continue
                 if not isinstance(payload, dict):
                     errors.append(f"Plugin '{plugin.plugin_id}' returned non-dict payload.")
                     continue
+                results.append(
+                    {
+                        "id": plugin.plugin_id,
+                        "title": plugin.title,
+                        "description": plugin.description,
+                        "scope": scope,
+                        "summary": str(payload.get("summary") or "No plugin summary."),
+                        "severity": str(payload.get("severity") or "INFO").upper(),
+                        "highlights": [str(item) for item in (payload.get("highlights") or [])],
+                        "data": payload.get("data") if isinstance(payload.get("data"), dict) else {},
+                    }
+                )
+            return results, errors
 
-                result = {
-                    "id": plugin.plugin_id,
-                    "title": plugin.title,
-                    "description": plugin.description,
-                    "scope": scope,
-                    "summary": str(payload.get("summary") or "No plugin summary."),
-                    "severity": str(payload.get("severity") or "INFO").upper(),
-                    "highlights": [str(item) for item in (payload.get("highlights") or [])],
-                    "data": payload.get("data") if isinstance(payload.get("data"), dict) else {},
-                }
-                results.append(result)
-                previous_plugin_data[plugin.plugin_id] = result["data"]
+        for plugin, run_fn in prepared:
+            context = dict(base_context)
+            context["previous_plugin_data"] = dict(previous_plugin_data)
+            context["plugins"] = list(results)
+            try:
+                payload = await run_blocking(run_fn, context)
             except Exception as exc:  # pragma: no cover - plugin safety guard
                 errors.append(f"Plugin '{plugin.plugin_id}' failed: {exc}")
+                continue
+            if not isinstance(payload, dict):
+                errors.append(f"Plugin '{plugin.plugin_id}' returned non-dict payload.")
+                continue
+
+            result = {
+                "id": plugin.plugin_id,
+                "title": plugin.title,
+                "description": plugin.description,
+                "scope": scope,
+                "summary": str(payload.get("summary") or "No plugin summary."),
+                "severity": str(payload.get("severity") or "INFO").upper(),
+                "highlights": [str(item) for item in (payload.get("highlights") or [])],
+                "data": payload.get("data") if isinstance(payload.get("data"), dict) else {},
+            }
+            results.append(result)
+            previous_plugin_data[plugin.plugin_id] = result["data"]
 
         return results, errors

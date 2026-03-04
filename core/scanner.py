@@ -1,7 +1,6 @@
 import asyncio
 import random
 import re
-import time
 from dataclasses import dataclass
 
 import aiohttp
@@ -13,6 +12,7 @@ from core.extractor import (
     extract_links,
     extract_username_mentions,
 )
+from core.http_resilience import RetryPolicy, request_text_with_retries
 from core.platform_schema import PlatformConfig, load_platforms
 from core.thread_engine import run_blocking_batch
 
@@ -31,6 +31,13 @@ WAF_SIGNATURES = (
     "perimeterx",
     "access denied",
     "captcha",
+)
+SCAN_RETRY_POLICY = RetryPolicy(
+    attempts=3,
+    base_delay_seconds=0.25,
+    backoff_multiplier=2.0,
+    max_delay_seconds=3.5,
+    jitter_seconds=0.15,
 )
 
 
@@ -166,70 +173,24 @@ async def _request_platform(
     allow_redirects: bool,
     request_payload: dict | None,
 ) -> FetchResult:
-    start = time.perf_counter()
-    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
-    try:
-        if request_payload is None:
-            async with session.request(
-                method=method,
-                url=url,
-                headers=headers,
-                allow_redirects=allow_redirects,
-                timeout=timeout,
-                proxy=proxy_url,
-            ) as response:
-                text = await response.text(errors="ignore")
-                elapsed_ms = int((time.perf_counter() - start) * 1000)
-                return FetchResult(
-                    status_code=response.status,
-                    body=text,
-                    response_url=str(response.url),
-                    elapsed_ms=elapsed_ms,
-                    error=None,
-                )
-
-        async with session.request(
-            method=method,
-            url=url,
-            headers=headers,
-            allow_redirects=allow_redirects,
-            timeout=timeout,
-            proxy=proxy_url,
-            json=request_payload,
-        ) as response:
-            text = await response.text(errors="ignore")
-            elapsed_ms = int((time.perf_counter() - start) * 1000)
-            return FetchResult(
-                status_code=response.status,
-                body=text,
-                response_url=str(response.url),
-                elapsed_ms=elapsed_ms,
-                error=None,
-            )
-    except asyncio.TimeoutError:
-        return FetchResult(
-            status_code=None,
-            body="",
-            response_url=url,
-            elapsed_ms=int((time.perf_counter() - start) * 1000),
-            error="Timeout",
-        )
-    except aiohttp.ClientError as exc:
-        return FetchResult(
-            status_code=None,
-            body="",
-            response_url=url,
-            elapsed_ms=int((time.perf_counter() - start) * 1000),
-            error=f"Network error: {exc}",
-        )
-    except Exception as exc:  # pragma: no cover - defensive guard
-        return FetchResult(
-            status_code=None,
-            body="",
-            response_url=url,
-            elapsed_ms=int((time.perf_counter() - start) * 1000),
-            error=f"Unexpected error: {exc}",
-        )
+    response = await request_text_with_retries(
+        session,
+        method=method,
+        url=url,
+        headers=headers,
+        timeout_seconds=timeout_seconds,
+        proxy_url=proxy_url,
+        allow_redirects=allow_redirects,
+        request_payload=request_payload,
+        retry_policy=SCAN_RETRY_POLICY,
+    )
+    return FetchResult(
+        status_code=response.status_code,
+        body=response.body,
+        response_url=response.response_url,
+        elapsed_ms=response.elapsed_ms,
+        error=response.error,
+    )
 
 
 async def scan_platform(

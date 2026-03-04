@@ -626,7 +626,7 @@ async def run_profile_scan(
         scope="profile",
         requested_plugins=plugin_names,
         include_all=include_all_plugins,
-        chain=True,
+        chain=False,
     )
     filter_results, filter_errors = execute_filters(
         scope="profile",
@@ -791,7 +791,7 @@ async def run_surface_scan(
         scope="surface",
         requested_plugins=plugin_names,
         include_all=include_all_plugins,
-        chain=True,
+        chain=False,
     )
     filter_results, filter_errors = execute_filters(
         scope="surface",

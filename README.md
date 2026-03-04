@@ -45,6 +45,7 @@ This tool is built by stitching together the digital bones of open-source intell
 * 🧠 Hybrid parallel orchestration engine (`core/parallel_engine.py`) for async + thread + CPU execution
 * 🔗 Fusion analytics engine (`core/fusion_engine.py`) with confidence scoring, anomaly flags, and graph output
 * 🧩 Async plugin manager (`core/plugin_manager.py`) with chaining support and dependency checks
+* 🌐 Shared resilient HTTP layer (`core/http_resilience.py`) with retry/backoff and `Retry-After` handling
 * 💡 Prompt intelligence + advisor modules (`core/prompt_intelligence.py`, `core/intelligence_advisor.py`)
 * 🔐 Credential + security managers (`core/credential_manager.py`, `core/security_manager.py`)
 * 📈 Reporting/scheduler/CLI helpers (`core/reporting.py`, `core/scheduler.py`, `core/cli_ui.py`)
@@ -313,6 +314,14 @@ python -m mypy
 ```bash
 python -m compileall -q core filters plugins tests silica-x.py
 ```
+
+### Reverse-engineering capability scan
+
+```bash
+python -c "from core.reverse_engineering import write_capability_report; print(write_capability_report())"
+```
+
+Writes a benchmark summary to `reverse-engineering-temp/silica-x-capability-scan.md`.
 
 ### CI workflow
 

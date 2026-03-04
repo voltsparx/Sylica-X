@@ -11,6 +11,7 @@ from typing import Any
 
 import aiohttp
 
+from core.http_resilience import RetryPolicy, request_text_with_retries
 from core.thread_engine import run_blocking
 
 
@@ -21,6 +22,15 @@ class HttpArtifact:
     headers: dict[str, str]
     body: str
     error: str | None
+
+
+DOMAIN_RETRY_POLICY = RetryPolicy(
+    attempts=3,
+    base_delay_seconds=0.3,
+    backoff_multiplier=2.0,
+    max_delay_seconds=4.0,
+    jitter_seconds=0.2,
+)
 
 
 def normalize_domain(raw_domain: str) -> str:
@@ -51,28 +61,21 @@ async def _http_probe(
     url: str,
     timeout_seconds: int,
 ) -> HttpArtifact:
-    try:
-        async with session.get(
-            url,
-            timeout=aiohttp.ClientTimeout(total=timeout_seconds),
-            allow_redirects=True,
-        ) as response:
-            body = await response.text(errors="ignore")
-            return HttpArtifact(
-                status=response.status,
-                final_url=str(response.url),
-                headers={k: v for k, v in response.headers.items()},
-                body=body,
-                error=None,
-            )
-    except Exception as exc:
-        return HttpArtifact(
-            status=None,
-            final_url=None,
-            headers={},
-            body="",
-            error=str(exc),
-        )
+    response = await request_text_with_retries(
+        session,
+        method="GET",
+        url=url,
+        timeout_seconds=timeout_seconds,
+        allow_redirects=True,
+        retry_policy=DOMAIN_RETRY_POLICY,
+    )
+    return HttpArtifact(
+        status=response.status_code,
+        final_url=response.response_url or url,
+        headers=response.headers,
+        body=response.body,
+        error=response.error,
+    )
 
 
 def _extract_subdomains_from_ct_payload(payload: list[dict[str, Any]], domain: str) -> list[str]:
