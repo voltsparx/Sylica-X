@@ -22,6 +22,11 @@
       "action": "Improve indexed storage for historical correlation replay."
     },
     {
+      "feature": "signal_fusion_lane",
+      "priority": "harden",
+      "action": "Expand connector orchestration to leverage high-value multi-source collectors safely."
+    },
+    {
       "feature": "tor_proxy_ops",
       "priority": "harden",
       "action": "Harden routing controls and privacy-aware collection profiles."
@@ -54,6 +59,16 @@
       ]
     },
     {
+      "id": "module_capability_matrix",
+      "title": "Module Capability Matrix",
+      "description": "Maps plugin-like module signals from source-intel trees into scope-aware insights.",
+      "aliases": [
+        "module_matrix",
+        "catalog_matrix",
+        "signal_matrix"
+      ]
+    },
+    {
       "id": "security_txt_analyzer",
       "title": "Security.txt Analyzer",
       "description": "Parses security.txt content for disclosure channels and policy completeness.",
@@ -61,6 +76,16 @@
         "securitytxt",
         "disclosure_policy",
         "vdp_policy"
+      ]
+    },
+    {
+      "id": "signal_fusion_core",
+      "title": "Signal Fusion Core",
+      "description": "Runs internal connector lanes and merges normalized signals into Silica workflows.",
+      "aliases": [
+        "fusion_core",
+        "signal_core",
+        "connector_core"
       ]
     },
     {

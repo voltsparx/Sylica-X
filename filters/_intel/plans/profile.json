@@ -22,6 +22,11 @@
       "action": "Strengthen module contracts and discovery validation."
     },
     {
+      "feature": "signal_fusion_lane",
+      "priority": "harden",
+      "action": "Expand connector orchestration to leverage high-value multi-source collectors safely."
+    },
+    {
       "feature": "exports_reporting",
       "priority": "harden",
       "action": "Expand analyst outputs with richer graph/report artifacts."
@@ -84,6 +89,16 @@
       ]
     },
     {
+      "id": "module_filter_router",
+      "title": "Module Filter Router",
+      "description": "Routes filter strategies using cataloged filter-like modules from source-intel trees.",
+      "aliases": [
+        "filter_router",
+        "module_router",
+        "catalog_router"
+      ]
+    },
+    {
       "id": "noise_suppression_filter",
       "title": "Noise Suppression Filter",
       "description": "Marks low-signal rows and placeholder artifacts to improve scan readability.",
@@ -111,6 +126,16 @@
         "sensitive_keyword_filter",
         "sensitive",
         "privacy"
+      ]
+    },
+    {
+      "id": "signal_lane_fusion",
+      "title": "Signal Lane Fusion",
+      "description": "Deduplicates and prioritizes connector-derived signals into actionable intelligence lanes.",
+      "aliases": [
+        "lane_fusion",
+        "signal_router",
+        "fusion_router"
       ]
     }
   ]

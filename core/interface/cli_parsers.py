@@ -7,6 +7,20 @@ from typing import NoReturn
 
 from core.interface.cli_config import PROFILE_PRESETS, SURFACE_PRESETS
 
+MODULE_SORT_FIELDS = [
+    "framework",
+    "file",
+    "kind",
+    "power_score",
+    "confidence_score",
+    "plugin_score",
+    "filter_score",
+    "profile_score",
+    "surface_score",
+    "fusion_score",
+    "capability_count",
+]
+
 
 class InteractiveArgumentParser(argparse.ArgumentParser):
     """Arg parser variant that raises ValueError instead of exiting."""
@@ -22,6 +36,16 @@ def positive_int(value: str) -> int:
         raise argparse.ArgumentTypeError("Value must be an integer.") from exc
     if parsed <= 0:
         raise argparse.ArgumentTypeError("Value must be greater than zero.")
+    return parsed
+
+
+def non_negative_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Value must be an integer.") from exc
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("Value must be zero or greater.")
     return parsed
 
 
@@ -104,6 +128,87 @@ def _add_filters_args(parser: argparse.ArgumentParser) -> None:
         choices=["all", "profile", "surface", "fusion"],
         default="all",
         help="Filter inventory by workflow scope.",
+    )
+
+
+def _add_modules_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--scope",
+        choices=["all", "profile", "surface", "fusion"],
+        default="all",
+        help="Filter module catalog by workflow scope.",
+    )
+    parser.add_argument(
+        "--kind",
+        choices=["all", "plugin", "filter"],
+        default="all",
+        help="Select catalog kind to display.",
+    )
+    parser.add_argument(
+        "--framework",
+        action="append",
+        default=[],
+        help="Filter by framework name (repeatable).",
+    )
+    parser.add_argument(
+        "--search",
+        default="",
+        help="Full-text search across module id/path/capabilities.",
+    )
+    parser.add_argument(
+        "--tag",
+        action="append",
+        default=[],
+        help="Capability tag filter (repeatable, example: --tag identity --tag correlation).",
+    )
+    parser.add_argument(
+        "--min-score",
+        type=non_negative_int,
+        default=0,
+        help="Minimum power score threshold (0-100).",
+    )
+    parser.add_argument(
+        "--sort-by",
+        choices=MODULE_SORT_FIELDS,
+        default="framework",
+        help="Sort field for module listing.",
+    )
+    parser.add_argument(
+        "--descending",
+        action="store_true",
+        help="Sort in descending order.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=positive_int,
+        default=50,
+        help="Maximum number of module entries to show.",
+    )
+    parser.add_argument(
+        "--offset",
+        type=non_negative_int,
+        default=0,
+        help="Entry offset for paginated module browsing.",
+    )
+    parser.add_argument(
+        "--sync",
+        action="store_true",
+        help="Rebuild module catalog from intel-sources before listing.",
+    )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate catalog integrity and source drift before listing.",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print modules view as JSON payload.",
+    )
+    parser.add_argument(
+        "--stats-only",
+        action="store_true",
+        help="Print summary stats only without listing entries.",
     )
 
 
@@ -321,6 +426,11 @@ def build_root_parser(
     _add_plugins_args(plugins_parser)
     filters_parser = subparsers.add_parser("filters", help="List discovered filters from filters/ directory.")
     _add_filters_args(filters_parser)
+    modules_parser = subparsers.add_parser(
+        "modules",
+        help="List/sync source-intel module catalog discovered from intel-sources.",
+    )
+    _add_modules_args(modules_parser)
     history_parser = subparsers.add_parser(
         "history",
         aliases=["targets", "scans"],
@@ -390,6 +500,8 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
     _add_plugins_args(plugins_parser)
     filters_parser = subparsers.add_parser("filters", add_help=False)
     _add_filters_args(filters_parser)
+    modules_parser = subparsers.add_parser("modules", add_help=False)
+    _add_modules_args(modules_parser)
     history_parser = subparsers.add_parser("history", aliases=["targets", "scans"], add_help=False)
     _add_history_args(history_parser)
     subparsers.add_parser("help", add_help=False)

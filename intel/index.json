@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-03-04T10:58:58Z",
+  "generated_at_utc": "2026-03-04T12:06:09Z",
   "source_root": "intel-sources",
   "source_count": 8,
   "files_scanned": 1613,
@@ -129,6 +129,20 @@
       "priority": "harden",
       "action": "Harden routing controls and privacy-aware collection profiles."
     },
+    "signal_fusion_lane": {
+      "feature": "signal_fusion_lane",
+      "description": "Unified connector lanes for integrating multi-source intelligence into Silica workflows.",
+      "target_modules": [
+        "core/collect/source_fusion.py",
+        "plugins/signal_fusion_core.py",
+        "filters/signal_lane_fusion.py"
+      ],
+      "signal_total": 331,
+      "coverage_ratio": 1.0,
+      "strength": "core",
+      "priority": "harden",
+      "action": "Expand connector orchestration to leverage high-value multi-source collectors safely."
+    },
     "test_coverage": {
       "feature": "test_coverage",
       "description": "Automated tests and confidence gates for regressions.",
@@ -150,6 +164,7 @@
         "retry_backoff",
         "rate_limit",
         "plugin_module_system",
+        "signal_fusion_lane",
         "exports_reporting",
         "test_coverage"
       ],
@@ -175,6 +190,11 @@
           "action": "Strengthen module contracts and discovery validation."
         },
         {
+          "feature": "signal_fusion_lane",
+          "priority": "harden",
+          "action": "Expand connector orchestration to leverage high-value multi-source collectors safely."
+        },
+        {
           "feature": "exports_reporting",
           "priority": "harden",
           "action": "Expand analyst outputs with richer graph/report artifacts."
@@ -195,6 +215,9 @@
         "core/extensions/plugin_manager.py",
         "core/extensions/signal_forge.py",
         "core/extensions/signal_sieve.py",
+        "core/collect/source_fusion.py",
+        "plugins/signal_fusion_core.py",
+        "filters/signal_lane_fusion.py",
         "core/artifacts/reporting.py",
         "core/artifacts/output.py",
         "core/artifacts/html_report.py",
@@ -208,6 +231,7 @@
         "retry_backoff",
         "rate_limit",
         "workspace_db",
+        "signal_fusion_lane",
         "tor_proxy_ops",
         "exports_reporting"
       ],
@@ -233,6 +257,11 @@
           "action": "Improve indexed storage for historical correlation replay."
         },
         {
+          "feature": "signal_fusion_lane",
+          "priority": "harden",
+          "action": "Expand connector orchestration to leverage high-value multi-source collectors safely."
+        },
+        {
           "feature": "tor_proxy_ops",
           "priority": "harden",
           "action": "Harden routing controls and privacy-aware collection profiles."
@@ -253,6 +282,9 @@
         "core/artifacts/storage.py",
         "core/artifacts/output.py",
         "core/analyze/correlator.py",
+        "core/collect/source_fusion.py",
+        "plugins/signal_fusion_core.py",
+        "filters/signal_lane_fusion.py",
         "core/collect/network.py",
         "core/foundation/security_manager.py",
         "core/collect/anonymity.py",
@@ -265,6 +297,7 @@
       "features": [
         "parallel_workers",
         "plugin_module_system",
+        "signal_fusion_lane",
         "workspace_db",
         "caching",
         "exports_reporting",
@@ -280,6 +313,11 @@
           "feature": "plugin_module_system",
           "priority": "harden",
           "action": "Strengthen module contracts and discovery validation."
+        },
+        {
+          "feature": "signal_fusion_lane",
+          "priority": "harden",
+          "action": "Expand connector orchestration to leverage high-value multi-source collectors safely."
         },
         {
           "feature": "workspace_db",
@@ -308,6 +346,9 @@
         "core/extensions/plugin_manager.py",
         "core/extensions/signal_forge.py",
         "core/extensions/signal_sieve.py",
+        "core/collect/source_fusion.py",
+        "plugins/signal_fusion_core.py",
+        "filters/signal_lane_fusion.py",
         "core/artifacts/storage.py",
         "core/artifacts/output.py",
         "core/analyze/correlator.py",

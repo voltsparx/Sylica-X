@@ -32,6 +32,7 @@ class TestPromptHandlers(unittest.TestCase):
         self.assertEqual(keyword_to_command("info"), "about")
         self.assertEqual(keyword_to_command("explain"), "explain")
         self.assertEqual(keyword_to_command("banner"), "banner")
+        self.assertEqual(keyword_to_command("modules"), "modules")
         self.assertIsNone(keyword_to_command("unknown"))
 
     def test_rewrite_tokens_with_keywords(self):
@@ -124,6 +125,15 @@ class TestPromptHandlers(unittest.TestCase):
         )
         self.assertEqual(session.plugin_names, [])
         self.assertTrue(any("No compatible plugins selected" in message for message, _ in events))
+
+    def test_handle_prompt_set_command_supports_max_profile_preset(self):
+        session = PromptSessionState(module="profile")
+        handle_prompt_set_command(
+            "set profile_preset max",
+            session,
+            on_message=lambda _message, _color: None,
+        )
+        self.assertEqual(session.profile_preset, "max")
 
     def test_apply_prompt_defaults_filters_incompatible_selection_by_scope(self):
         session = PromptSessionState(

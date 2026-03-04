@@ -1,4 +1,3 @@
-import asyncio
 import random
 import re
 from dataclasses import dataclass
@@ -25,6 +24,19 @@ HEADERS_POOL = [
 
 DEFAULT_TIMEOUT_SECONDS = 20
 DEFAULT_MAX_CONCURRENCY = 20
+SOURCE_PROFILE_ALIASES = {
+    "quick": "fast",
+    "fast": "fast",
+    "balanced": "balanced",
+    "deep": "deep",
+    "max": "max",
+}
+SOURCE_PROFILE_PLATFORM_LIMITS = {
+    "fast": 25,
+    "balanced": 45,
+    "deep": 60,
+    "max": 0,  # 0 means "all loaded platforms"
+}
 WAF_SIGNATURES = (
     "challenge-error-text",
     "cloudflare",
@@ -48,6 +60,70 @@ class FetchResult:
     response_url: str
     elapsed_ms: int | None
     error: str | None
+
+
+def normalize_source_profile(value: str | None) -> str:
+    lowered = str(value or "").strip().lower()
+    return SOURCE_PROFILE_ALIASES.get(lowered, "balanced")
+
+
+def _platform_priority(platform: PlatformConfig, profile: str) -> int:
+    profile_key = normalize_source_profile(profile)
+    score = int(float(platform.confidence_weight) * 100)
+
+    methods = set(platform.detection_methods)
+    if profile_key == "fast":
+        score += 20 if "status_code" in methods else 0
+        score += 7 if "response_url" in methods else 0
+        score += 2 if "message" in methods else 0
+    elif profile_key == "balanced":
+        score += 12 if "status_code" in methods else 0
+        score += 8 if "response_url" in methods else 0
+        score += 6 if "message" in methods else 0
+    elif profile_key == "deep":
+        score += 8 if "status_code" in methods else 0
+        score += 10 if "response_url" in methods else 0
+        score += 14 if "message" in methods else 0
+    else:  # max
+        score += 10 if "status_code" in methods else 0
+        score += 10 if "response_url" in methods else 0
+        score += 10 if "message" in methods else 0
+
+    if platform.regex_check:
+        score += 4
+    if platform.request_method in {"GET", "HEAD"}:
+        score += 2
+    if profile_key == "fast" and platform.request_method in {"POST", "PUT"}:
+        score -= 20
+    return score
+
+
+def select_platforms_for_profile(
+    platforms: list[PlatformConfig],
+    *,
+    source_profile: str = "balanced",
+    max_platforms: int | None = None,
+) -> list[PlatformConfig]:
+    profile_key = normalize_source_profile(source_profile)
+    if not platforms:
+        return []
+
+    limit_from_profile = SOURCE_PROFILE_PLATFORM_LIMITS.get(profile_key, SOURCE_PROFILE_PLATFORM_LIMITS["balanced"])
+    effective_limit: int | None
+    if isinstance(max_platforms, int) and max_platforms > 0:
+        effective_limit = max_platforms
+    elif limit_from_profile > 0:
+        effective_limit = limit_from_profile
+    else:
+        effective_limit = None
+
+    ranked = sorted(
+        platforms,
+        key=lambda platform: (-_platform_priority(platform, profile_key), platform.name.lower()),
+    )
+    if effective_limit is not None:
+        ranked = ranked[: max(1, int(effective_limit))]
+    return sorted(ranked, key=lambda platform: platform.name.lower())
 
 
 def _format_template(template: str, username: str) -> str:
@@ -328,9 +404,18 @@ async def scan_username(
     proxy_url: str | None = None,
     timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
     max_concurrency: int = DEFAULT_MAX_CONCURRENCY,
+    source_profile: str = "balanced",
+    max_platforms: int | None = None,
 ) -> list[dict]:
-    platforms = load_platforms()
-    effective_concurrency = max(1, int(max_concurrency))
+    platforms = select_platforms_for_profile(
+        load_platforms(),
+        source_profile=source_profile,
+        max_platforms=max_platforms,
+    )
+    if not platforms:
+        return []
+
+    effective_concurrency = max(1, min(int(max_concurrency), len(platforms)))
 
     # Keep TLS verification enabled by default for trustworthy scan results.
     connector = aiohttp.TCPConnector(

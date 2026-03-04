@@ -34,6 +34,7 @@ from core.intel.advisor import IntelligenceAdvisor
 from core.foundation.metadata import PROJECT_NAME, VERSION, framework_signature
 from core.analyze.narrative import build_nano_brief
 from core.collect.network import get_network_settings
+from modules.catalog import ensure_module_catalog, query_module_catalog, summarize_module_catalog
 from core.artifacts.output import (
     append_framework_log,
     display_domain_results,
@@ -323,6 +324,170 @@ def _print_filter_inventory(scope: str | None = None) -> None:
     print()
 
 
+def _print_modules_inventory(
+    *,
+    scope: str = "all",
+    kind: str = "all",
+    frameworks: list[str] | None = None,
+    search: str = "",
+    tags: list[str] | None = None,
+    min_score: int = 0,
+    sort_by: str = "framework",
+    descending: bool = False,
+    limit: int = 50,
+    offset: int = 0,
+    sync: bool = False,
+    validate_catalog: bool = False,
+    as_json: bool = False,
+    stats_only: bool = False,
+) -> None:
+    framework_values = [item.strip() for item in (frameworks or []) if item and item.strip()]
+    tag_values = [item.strip() for item in (tags or []) if item and item.strip()]
+    catalog = ensure_module_catalog(
+        refresh=sync,
+        validate_catalog=True,
+        verify_source_fingerprint=validate_catalog,
+    )
+    payload = query_module_catalog(
+        catalog,
+        kind=kind,
+        scope=scope,
+        frameworks=framework_values,
+        search=search,
+        tags=tag_values,
+        min_score=min_score,
+        sort_by=sort_by,
+        descending=descending,
+        limit=max(1, int(limit)),
+        offset=max(0, int(offset)),
+    )
+    if stats_only:
+        payload["entries"] = []
+
+    payload["query"]["sync"] = bool(sync)
+    payload["query"]["validated"] = bool(validate_catalog)
+    payload["query"]["stats_only"] = bool(stats_only)
+    if as_json:
+        print(json.dumps(payload, indent=2))
+        return
+
+    summary = payload.get("summary", {})
+    rows = payload.get("entries", [])
+    query = payload.get("query", {})
+    matched_total = int(payload.get("matched_total", len(rows)))
+    returned_count = int(payload.get("returned_count", len(rows)))
+    has_more = bool(payload.get("has_more", False))
+
+    print(c(f"\n[ Modules ] (scope={scope}, kind={kind})", Colors.BLUE))
+    print(c("------------------------------------", Colors.BLUE))
+    print(c(f"frameworks: {summary.get('framework_count', 0)}", Colors.CYAN))
+    print(c(f"module_count: {summary.get('module_count', 0)}", Colors.CYAN))
+    print(c(f"matched_total: {matched_total}", Colors.CYAN))
+    print(c(f"returned_count: {returned_count}", Colors.CYAN))
+    kind_counts = summary.get("kind_counts", {})
+    scope_counts = summary.get("scope_counts", {})
+    score_bands = summary.get("score_bands", {})
+    language_counts = summary.get("language_counts", {})
+    capability_counts = summary.get("capability_counts", {})
+    print(
+        c(
+            "kind_counts: "
+            f"plugin={kind_counts.get('plugin', 0)} filter={kind_counts.get('filter', 0)}",
+            Colors.CYAN,
+        )
+    )
+    print(
+        c(
+            "scope_counts: "
+            f"profile={scope_counts.get('profile', 0)} "
+            f"surface={scope_counts.get('surface', 0)} fusion={scope_counts.get('fusion', 0)}",
+            Colors.CYAN,
+        )
+    )
+    print(c(f"power_score_avg: {summary.get('power_score_avg', 0)}", Colors.CYAN))
+    print(
+        c(
+            "score_bands: "
+            f"high={score_bands.get('high', 0)} "
+            f"medium={score_bands.get('medium', 0)} "
+            f"low={score_bands.get('low', 0)}",
+            Colors.CYAN,
+        )
+    )
+
+    if isinstance(language_counts, dict) and language_counts:
+        top_languages = sorted(
+            ((str(name), int(count)) for name, count in language_counts.items()),
+            key=lambda item: (-item[1], item[0]),
+        )[:6]
+        print(c(f"top_languages: {', '.join(f'{name}:{count}' for name, count in top_languages)}", Colors.CYAN))
+    if isinstance(capability_counts, dict) and capability_counts:
+        top_capabilities = sorted(
+            ((str(name), int(count)) for name, count in capability_counts.items()),
+            key=lambda item: (-item[1], item[0]),
+        )[:6]
+        print(c(f"top_capabilities: {', '.join(f'{name}:{count}' for name, count in top_capabilities)}", Colors.CYAN))
+    if framework_values:
+        print(c(f"framework_filter: {', '.join(framework_values)}", Colors.CYAN))
+    if query.get("search"):
+        print(c(f"search: {query.get('search')}", Colors.CYAN))
+    if tag_values:
+        print(c(f"tags: {', '.join(tag_values)}", Colors.CYAN))
+    print(
+        c(
+            "query_controls: "
+            f"min_score={query.get('min_score', 0)} "
+            f"sort_by={query.get('sort_by', 'framework')} "
+            f"descending={query.get('descending', False)} "
+            f"limit={query.get('limit', 0)} "
+            f"offset={query.get('offset', 0)} "
+            f"validated={query.get('validated', False)}",
+            Colors.CYAN,
+        )
+    )
+
+    if has_more:
+        print(c("more_results=true (increase --offset or --limit to continue).", Colors.YELLOW))
+
+    if stats_only:
+        print(c("stats_only=true (entry listing skipped).", Colors.YELLOW))
+        print()
+        return
+
+    if not rows:
+        print(c("No module entries matched this query.", Colors.YELLOW))
+        print(c("Run `modules --sync` if catalog is empty or stale.", Colors.YELLOW))
+        print()
+        return
+
+    for row in rows:
+        print(c(f"{row.get('framework')} :: {row.get('file')}", Colors.CYAN))
+        print(
+            c(
+                f"  kind: {row.get('kind')} | scopes: {', '.join(row.get('scopes', []))} "
+                f"| capabilities: {', '.join(row.get('capabilities', [])[:5]) or '-'}",
+                Colors.GREY,
+            )
+        )
+        signals = row.get("signals", {})
+        metrics = row.get("metrics", {})
+        print(
+            c(
+                "  scores: "
+                f"power={metrics.get('power_score', 0)} "
+                f"confidence={metrics.get('confidence_score', 0)} "
+                f"plugin={signals.get('plugin_score', 0)} "
+                f"filter={signals.get('filter_score', 0)} "
+                f"profile={signals.get('profile_score', 0)} "
+                f"surface={signals.get('surface_score', 0)} "
+                f"fusion={signals.get('fusion_score', 0)} "
+                f"size={metrics.get('file_size_bytes', 0)}B",
+                Colors.GREY,
+            )
+        )
+    print()
+
+
 def _print_scan_history(limit: int = 25) -> None:
     rows = list_scanned_targets(limit=limit)
     print(c("\n[ Scan History ]", Colors.BLUE))
@@ -533,7 +698,7 @@ def launch_live_dashboard(
         run_server()
 
 
-def _resolve_profile_runtime(args: argparse.Namespace) -> tuple[int, int]:
+def _resolve_profile_runtime(args: argparse.Namespace) -> tuple[int, int, str, int | None]:
     preset = PROFILE_PRESETS[args.preset]
     timeout_seconds = args.timeout if args.timeout is not None else preset["timeout"]
     max_concurrency = (
@@ -541,7 +706,10 @@ def _resolve_profile_runtime(args: argparse.Namespace) -> tuple[int, int]:
         if args.max_concurrency is not None
         else preset["max_concurrency"]
     )
-    return timeout_seconds, max_concurrency
+    source_profile = str(preset.get("source_profile", "balanced"))
+    max_platforms = preset.get("max_platforms")
+    max_platform_limit = int(max_platforms) if isinstance(max_platforms, int) and max_platforms > 0 else None
+    return timeout_seconds, max_concurrency, source_profile, max_platform_limit
 
 
 def _resolve_surface_runtime(args: argparse.Namespace) -> tuple[int, int]:
@@ -560,6 +728,8 @@ async def run_profile_scan(
     state: RunnerState,
     timeout_seconds: int,
     max_concurrency: int,
+    source_profile: str = "balanced",
+    max_platforms: int | None = None,
     *,
     write_csv: bool = False,
     write_html: bool = False,
@@ -589,12 +759,21 @@ async def run_profile_scan(
         return EXIT_FAILURE, None
 
     print(c(f"\nProfile scan target: {username}\n", Colors.CYAN))
+    print(
+        c(
+            "Source profile: "
+            f"{source_profile} | platform budget: {max_platforms if max_platforms is not None else 'all'}",
+            Colors.CYAN,
+        )
+    )
     try:
         results = await scan_username(
             username=username,
             proxy_url=proxy_url,
             timeout_seconds=timeout_seconds,
             max_concurrency=max_concurrency,
+            source_profile=source_profile,
+            max_platforms=max_platforms,
         )
     except PlatformValidationError as exc:
         print(c(f"[!] Platform manifest validation failed: {exc}", Colors.RED))
@@ -950,7 +1129,7 @@ async def _handle_profile_command(
         print(c(f"[!] {error}", Colors.RED))
         return EXIT_FAILURE
 
-    timeout_seconds, max_concurrency = _resolve_profile_runtime(args)
+    timeout_seconds, max_concurrency, source_profile, max_platforms = _resolve_profile_runtime(args)
     failures = 0
     for username in args.usernames:
         clean_username = username.strip()
@@ -963,6 +1142,8 @@ async def _handle_profile_command(
             state=effective_state,
             timeout_seconds=timeout_seconds,
             max_concurrency=max_concurrency,
+            source_profile=source_profile,
+            max_platforms=max_platforms,
             write_csv=args.csv,
             write_html=args.html,
             live_dashboard=args.live,
@@ -1042,6 +1223,12 @@ async def _handle_fusion_command(
         state=effective_state,
         timeout_seconds=profile_preset["timeout"],
         max_concurrency=profile_preset["max_concurrency"],
+        source_profile=str(profile_preset.get("source_profile", "balanced")),
+        max_platforms=(
+            int(profile_preset["max_platforms"])
+            if isinstance(profile_preset.get("max_platforms"), int) and int(profile_preset["max_platforms"]) > 0
+            else None
+        ),
         write_csv=args.csv,
         write_html=False,
         live_dashboard=False,
@@ -1226,6 +1413,26 @@ async def _handle_filters_command(args: argparse.Namespace) -> int:
     return EXIT_SUCCESS
 
 
+async def _handle_modules_command(args: argparse.Namespace) -> int:
+    _print_modules_inventory(
+        scope=args.scope,
+        kind=args.kind,
+        frameworks=args.framework,
+        search=args.search,
+        tags=args.tag,
+        min_score=args.min_score,
+        sort_by=args.sort_by,
+        descending=args.descending,
+        limit=args.limit,
+        offset=args.offset,
+        sync=args.sync,
+        validate_catalog=args.validate,
+        as_json=args.json,
+        stats_only=args.stats_only,
+    )
+    return EXIT_SUCCESS
+
+
 async def _handle_history_command(args: argparse.Namespace) -> int:
     _print_scan_history(limit=args.limit)
     return EXIT_SUCCESS
@@ -1343,6 +1550,8 @@ async def _handle_wizard_command(
 
 async def _handle_capability_pack_command() -> int:
     try:
+        module_catalog = ensure_module_catalog(refresh=True)
+        module_summary = summarize_module_catalog(module_catalog)
         capability_path = build_capability_pack()
         report_path = write_capability_report(build_pack=False)
     except Exception as exc:
@@ -1352,9 +1561,17 @@ async def _handle_capability_pack_command() -> int:
 
     print(c(f"[+] Capability pack generated at {capability_path}", Colors.GREEN))
     print(c(f"[+] Capability report generated at {report_path}", Colors.GREEN))
+    print(
+        c(
+            "[+] Module catalog refreshed at modules/index.json "
+            f"(modules={module_summary.get('module_count', 0)})",
+            Colors.GREEN,
+        )
+    )
     append_framework_log(
         "capability_pack_generated",
-        f"capability_pack={capability_path} report={report_path}",
+        f"capability_pack={capability_path} report={report_path} "
+        f"module_catalog_count={module_summary.get('module_count', 0)}",
     )
     return EXIT_SUCCESS
 
@@ -1377,6 +1594,8 @@ async def _dispatch(args: argparse.Namespace, state: RunnerState, prompt_mode: b
         return await _handle_plugins_command(args)
     if args.command == "filters":
         return await _handle_filters_command(args)
+    if args.command == "modules":
+        return await _handle_modules_command(args)
     if args.command in {"history", "targets", "scans"}:
         return await _handle_history_command(args)
     if args.command == "help":
@@ -1444,6 +1663,9 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
             continue
         if keyword_match == "filters":
             _print_filter_inventory(scope="all")
+            continue
+        if keyword_match == "modules":
+            _print_modules_inventory(scope="all", kind="all", frameworks=[], limit=25, sync=False, as_json=False)
             continue
         if keyword_match == "history":
             _print_scan_history(limit=25)

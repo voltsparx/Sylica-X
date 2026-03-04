@@ -19,6 +19,8 @@ class TestExtensionsRegistry(unittest.TestCase):
             "email_pattern_inference",
             "security_txt_analyzer",
             "cross_platform_activity_timeline",
+            "module_capability_matrix",
+            "signal_fusion_core",
         }
         self.assertTrue(expected.issubset(plugin_ids))
 
@@ -36,6 +38,8 @@ class TestExtensionsRegistry(unittest.TestCase):
             "anomaly_detection_filter",
             "disclosure_readiness_filter",
             "noise_suppression_filter",
+            "module_filter_router",
+            "signal_lane_fusion",
         }
         self.assertTrue(expected.issubset(filter_ids))
 

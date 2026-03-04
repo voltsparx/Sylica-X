@@ -7,7 +7,7 @@ Core modules are grouped by responsibility so runtime wiring and ownership are e
   - Files: `about.py`, `banner.py`, `cli_config.py`, `cli_parsers.py`, `cli_ui.py`, `explain.py`, `help_menu.py`, `live_server.py`
 - `core/collect/`
   - Collection, scanning, and network access modules.
-  - Files: `anonymity.py`, `domain_intel.py`, `extractor.py`, `http_resilience.py`, `network.py`, `platform_schema.py`, `scanner.py`
+  - Files: `anonymity.py`, `domain_intel.py`, `source_fusion.py`, `extractor.py`, `http_resilience.py`, `network.py`, `platform_schema.py`, `scanner.py`
 - `core/analyze/`
   - Correlation, exposure, confidence, and summarization modules.
   - Files: `confidence.py`, `correlator.py`, `exposure.py`, `narrative.py`, `profile_summary.py`

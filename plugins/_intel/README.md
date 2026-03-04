@@ -2,5 +2,5 @@
 
 Silica-native plugin recommendations by workflow.
 
-- Plugin inventory: 10
+- Plugin inventory: 12
 - Workflow profiles: 3

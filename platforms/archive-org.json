@@ -1,0 +1,12 @@
+{
+  "name": "Archive.org",
+  "url": "https://archive.org/details/@{username}",
+  "errorType": "message",
+  "urlProbe": "https://archive.org/details/@{username}?noscript=true",
+  "errorMsg": [
+    "could not fetch an account with user item identifier",
+    "The resource could not be found",
+    "Internet Archive services are temporarily offline"
+  ],
+  "confidence_weight": 0.8
+}

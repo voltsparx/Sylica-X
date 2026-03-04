@@ -26,6 +26,8 @@ This tool is built by stitching together public OSINT workflows and studying how
 * 🔗 Fusion workflow (`fusion`, `full`, `combo`)
 * 🧩 Pluggable intelligence system (`core/extensions/signal_forge.py` + `plugins/`)
 * 🧹 Pluggable filtering system (`core/extensions/signal_sieve.py` + `filters/`)
+* 🧱 External module catalog system (`modules/catalog.py` + `modules/*.json`)
+* 🌌 Signal fusion connector layer (`core/collect/source_fusion.py` + `signal_*` plugin/filter pair)
 * 🖥️ Prompt mode with keyword shortcuts, metasploit-style context prompt, and session defaults
 * 📖 Explain system (`--explain`, `explain`) for command/plugin/filter onboarding
 * 📊 HTML, JSON, CLI, CSV, and run-log outputs
@@ -53,6 +55,7 @@ This tool is built by stitching together public OSINT workflows and studying how
 * 🗺️ Capability-source map integration (`core/intel/capability_matrix.py`)
 * 🧬 Silica capability intel generated under `intel/` (`baseline/`, `features/`, `plans/`, `wiring/`)
 * 🧩 Plugin/filter intel views generated in `plugins/_intel/` and `filters/_intel/`
+* 🌌 Signal fusion connector layer with normalized signal extraction (`core/collect/source_fusion.py`)
 * 🔒 TLS verification enabled by default in scan collectors
 * 🧅 Tor routing uses `socks5h://127.0.0.1:9050` (DNS over Tor)
 * 🌍 Proxy validation supports `HTTP_PROXY` and `HTTPS_PROXY` with scheme checks
@@ -77,12 +80,12 @@ This tool is built by stitching together public OSINT workflows and studying how
   * prompt commands = 22
   * keyword/flag parity verified
 * Platform manifests loaded: **50**
-* Runtime plugin/filter discovery: **10 plugins, 10 filters**
+* Runtime plugin/filter discovery: **12 plugins, 12 filters**
 
 ### Scope Compatibility Inventory
 
-* plugins → profile=5, surface=5, fusion=8
-* filters → profile=8, surface=4, fusion=10
+* plugins → profile=7, surface=7, fusion=10
+* filters → profile=10, surface=6, fusion=12
 
 ---
 
@@ -119,6 +122,7 @@ Running without flags starts **prompt mode**.
 * `fusion <username> <domain> [flags]`
 * `plugins [--scope all|profile|surface|fusion]`
 * `filters [--scope all|profile|surface|fusion]`
+* `modules [--sync] [--kind all|plugin|filter] [--scope all|profile|surface|fusion]`
 * `history [--limit N]` (aliases: `targets`, `scans`)
 * `anonymity [--tor|--no-tor] [--proxy|--no-proxy] [--check] [--prompt]`
 * `live <target> [--port PORT] [--no-browser]`
@@ -165,7 +169,7 @@ Running without flags starts **prompt mode**.
 * `profile <username...>`
 * `surface <domain>`
 * `fusion <username> <domain>`
-* `plugins`, `filters`, `history`
+* `plugins`, `filters`, `modules`, `history`
 * `anonymity`, `config`
 * `about` (keywords: `about`, `info`, `details`)
 * `explain` (keywords: `explain`, `understand`, `describe`)
@@ -173,7 +177,7 @@ Running without flags starts **prompt mode**.
 * `use <profile|surface|fusion>`
 * `set plugins <none|all|selector1,selector2>` (module-compatible, id/alias/name-aware)
 * `set filters <none|all|selector1,selector2>` (module-compatible, id/alias/name-aware)
-* `set profile_preset <quick|balanced|deep>`
+* `set profile_preset <fast|quick|balanced|deep|max>`
 * `set surface_preset <quick|balanced|deep>`
 * `help`, `clear`, `exit`
 
@@ -214,9 +218,11 @@ python silica-x.py --explain
 python silica-x.py anonymity --check
 python silica-x.py plugins --scope all
 python silica-x.py filters --scope all
+python silica-x.py modules --sync --kind plugin --scope profile --limit 30
 python silica-x.py profile alice --tor --plugin orbit_link_matrix --filter contact_canonicalizer --html
 python silica-x.py surface example.com --plugin header_hardening_probe --filter exposure_tier_matrix --html
 python silica-x.py fusion alice example.com --all-plugins --all-filters --html
+python silica-x.py fusion alice example.com --plugin signal_fusion_core --filter signal_lane_fusion --html
 python silica-x.py history --limit 20
 ```
 
@@ -316,7 +322,7 @@ python -m mypy
 ### Repository compile pass
 
 ```bash
-python -m compileall -q core filters plugins tests silica-x.py
+python -m compileall -q core filters modules plugins tests silica-x.py
 ```
 
 ### Capability source scan
@@ -342,6 +348,9 @@ Generates/refreshes:
 - `plugins/_intel/plans/*.json`
 - `filters/_intel/index.json`
 - `filters/_intel/plans/*.json`
+- `modules/index.json`
+- `modules/plugin-modules.json`
+- `modules/filter-modules.json`
 
 ### CI workflow
 

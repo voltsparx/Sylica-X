@@ -1,0 +1,8 @@
+{
+  "name": "Credly",
+  "url": "https://www.credly.com/users/{username}",
+  "errorType": "status_code",
+  "request_method": "HEAD",
+  "exists_status": 200,
+  "confidence_weight": 0.83
+}

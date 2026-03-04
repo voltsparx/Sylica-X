@@ -1,0 +1,9 @@
+{
+  "name": "CyberDefenders",
+  "url": "https://cyberdefenders.org/p/{username}",
+  "errorType": "status_code",
+  "regexCheck": "^[^\\/:*?\"<>|@]{3,50}$",
+  "request_method": "GET",
+  "exists_status": 200,
+  "confidence_weight": 0.86
+}

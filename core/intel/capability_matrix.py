@@ -57,6 +57,7 @@ _FEATURE_PATTERNS: dict[str, tuple[str, ...]] = {
     "parallel_workers": ("threadpool", "executor", "multiprocessing", "concurrent.futures", "queue"),
     "exports_reporting": ("json", "csv", "html", "xlsx", "pdf", "gexf", "graphml"),
     "tor_proxy_ops": ("tor", "proxy", "socks5"),
+    "signal_fusion_lane": ("osint", "recon", "collector", "intel", "subdomain", "username"),
     "test_coverage": ("pytest", "unittest"),
 }
 _FEATURE_DESCRIPTIONS: dict[str, str] = {
@@ -69,6 +70,7 @@ _FEATURE_DESCRIPTIONS: dict[str, str] = {
     "parallel_workers": "Thread/process/queue worker models for throughput scaling.",
     "exports_reporting": "Analyst exports and multi-format report outputs.",
     "tor_proxy_ops": "Proxy/Tor routing and anonymized collection channels.",
+    "signal_fusion_lane": "Unified connector lanes for integrating multi-source intelligence into Silica workflows.",
     "test_coverage": "Automated tests and confidence gates for regressions.",
 }
 _FEATURE_TARGET_MODULES: dict[str, tuple[str, ...]] = {
@@ -85,6 +87,11 @@ _FEATURE_TARGET_MODULES: dict[str, tuple[str, ...]] = {
     "parallel_workers": ("core/engines/parallel_engine.py", "core/engines/thread_engine.py"),
     "exports_reporting": ("core/artifacts/reporting.py", "core/artifacts/output.py", "core/artifacts/html_report.py"),
     "tor_proxy_ops": ("core/collect/network.py", "core/foundation/security_manager.py", "core/collect/anonymity.py"),
+    "signal_fusion_lane": (
+        "core/collect/source_fusion.py",
+        "plugins/signal_fusion_core.py",
+        "filters/signal_lane_fusion.py",
+    ),
     "test_coverage": ("tests/",),
 }
 _WORKFLOW_FEATURES: dict[str, tuple[str, ...]] = {
@@ -93,6 +100,7 @@ _WORKFLOW_FEATURES: dict[str, tuple[str, ...]] = {
         "retry_backoff",
         "rate_limit",
         "plugin_module_system",
+        "signal_fusion_lane",
         "exports_reporting",
         "test_coverage",
     ),
@@ -101,12 +109,14 @@ _WORKFLOW_FEATURES: dict[str, tuple[str, ...]] = {
         "retry_backoff",
         "rate_limit",
         "workspace_db",
+        "signal_fusion_lane",
         "tor_proxy_ops",
         "exports_reporting",
     ),
     "fusion": (
         "parallel_workers",
         "plugin_module_system",
+        "signal_fusion_lane",
         "workspace_db",
         "caching",
         "exports_reporting",
@@ -224,7 +234,7 @@ def load_source_map(path: str | Path = DEFAULT_SOURCE_MAP_PATH) -> CapabilitySou
 def map_sources_to_core_modules(
     mapping: CapabilitySourceMap,
 ) -> dict[str, list[str]]:
-    """Map external framework strengths to Silica-X module focus areas."""
+    """Map source-study strengths to Silica-X module focus areas."""
 
     module_map: dict[str, list[str]] = {
         "core/collect/scanner.py": [],
@@ -237,13 +247,13 @@ def map_sources_to_core_modules(
 
     for tool in mapping.tools:
         lowered = " ".join((tool.name, *tool.bullets)).lower()
-        if any(token in lowered for token in ("username", "profile", "account", "sherlock", "maigret")):
+        if any(token in lowered for token in ("username", "profile", "account", "identity", "social")):
             module_map["core/collect/scanner.py"].append(tool.name)
-        if any(token in lowered for token in ("domain", "subdomain", "network", "amass", "harvester")):
+        if any(token in lowered for token in ("domain", "subdomain", "network", "dns", "surface")):
             module_map["core/collect/domain_intel.py"].append(tool.name)
-        if any(token in lowered for token in ("modular", "module", "plugin", "recon-ng", "spiderfoot")):
+        if any(token in lowered for token in ("modular", "module", "plugin", "workflow", "collector")):
             module_map["core/extensions/signal_forge.py"].append(tool.name)
-        if any(token in lowered for token in ("correlation", "workspace", "normalization", "datasploit")):
+        if any(token in lowered for token in ("correlation", "workspace", "normalization", "pipeline")):
             module_map["core/extensions/signal_sieve.py"].append(tool.name)
         if any(token in lowered for token in ("output", "json", "html", "report", "cli")):
             module_map["core/artifacts/output.py"].append(tool.name)
@@ -462,6 +472,7 @@ def _feature_action(feature: str) -> str:
         "parallel_workers": "Balance async/thread/process lanes by workload shape.",
         "exports_reporting": "Expand analyst outputs with richer graph/report artifacts.",
         "tor_proxy_ops": "Harden routing controls and privacy-aware collection profiles.",
+        "signal_fusion_lane": "Expand connector orchestration to leverage high-value multi-source collectors safely.",
         "test_coverage": "Close regression gaps around failure paths and adapters.",
     }
     return actions.get(feature, "Advance this capability in the core pipeline.")

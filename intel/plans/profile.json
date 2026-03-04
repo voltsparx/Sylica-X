@@ -5,6 +5,7 @@
     "retry_backoff",
     "rate_limit",
     "plugin_module_system",
+    "signal_fusion_lane",
     "exports_reporting",
     "test_coverage"
   ],
@@ -30,6 +31,11 @@
       "action": "Strengthen module contracts and discovery validation."
     },
     {
+      "feature": "signal_fusion_lane",
+      "priority": "harden",
+      "action": "Expand connector orchestration to leverage high-value multi-source collectors safely."
+    },
+    {
       "feature": "exports_reporting",
       "priority": "harden",
       "action": "Expand analyst outputs with richer graph/report artifacts."
@@ -50,6 +56,9 @@
     "core/extensions/plugin_manager.py",
     "core/extensions/signal_forge.py",
     "core/extensions/signal_sieve.py",
+    "core/collect/source_fusion.py",
+    "plugins/signal_fusion_core.py",
+    "filters/signal_lane_fusion.py",
     "core/artifacts/reporting.py",
     "core/artifacts/output.py",
     "core/artifacts/html_report.py",

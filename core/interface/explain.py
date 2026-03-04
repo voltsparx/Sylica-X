@@ -14,6 +14,10 @@ COMMAND_EXPLANATIONS: dict[str, str] = {
     "keywords": "Lists prompt keyword aliases that map casual words to core commands.",
     "plugins": "Lists available internal plugins and their compatible workflow scopes.",
     "filters": "Lists available internal filters and their compatible workflow scopes.",
+    "modules": (
+        "Builds/lists the source-intel module catalog from intel-sources with "
+        "scope/kind/search/tag/score controls, plus pagination and integrity validation."
+    ),
     "history": "Shows previously scanned targets from local output/data and output/html artifacts.",
     "anonymity": "Checks or updates Tor/proxy routing for current session execution.",
     "live": "Starts the local dashboard for a saved target result bundle.",

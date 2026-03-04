@@ -4,6 +4,7 @@
     "retry_backoff",
     "rate_limit",
     "plugin_module_system",
+    "signal_fusion_lane",
     "exports_reporting",
     "test_coverage"
   ],
@@ -12,12 +13,14 @@
     "retry_backoff",
     "rate_limit",
     "workspace_db",
+    "signal_fusion_lane",
     "tor_proxy_ops",
     "exports_reporting"
   ],
   "fusion": [
     "parallel_workers",
     "plugin_module_system",
+    "signal_fusion_lane",
     "workspace_db",
     "caching",
     "exports_reporting",

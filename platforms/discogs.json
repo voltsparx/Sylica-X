@@ -1,0 +1,8 @@
+{
+  "name": "Discogs",
+  "url": "https://www.discogs.com/user/{username}",
+  "errorType": "status_code",
+  "request_method": "HEAD",
+  "exists_status": 200,
+  "confidence_weight": 0.83
+}

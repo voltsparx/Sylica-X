@@ -1,0 +1,8 @@
+{
+  "name": "BugCrowd",
+  "url": "https://bugcrowd.com/{username}",
+  "errorType": "status_code",
+  "request_method": "HEAD",
+  "exists_status": 200,
+  "confidence_weight": 0.83
+}

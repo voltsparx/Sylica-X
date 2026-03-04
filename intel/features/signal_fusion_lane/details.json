@@ -1,0 +1,14 @@
+{
+  "feature": "signal_fusion_lane",
+  "description": "Unified connector lanes for integrating multi-source intelligence into Silica workflows.",
+  "target_modules": [
+    "core/collect/source_fusion.py",
+    "plugins/signal_fusion_core.py",
+    "filters/signal_lane_fusion.py"
+  ],
+  "signal_total": 331,
+  "coverage_ratio": 1.0,
+  "strength": "core",
+  "priority": "harden",
+  "action": "Expand connector orchestration to leverage high-value multi-source collectors safely."
+}

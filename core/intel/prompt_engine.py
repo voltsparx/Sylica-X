@@ -54,4 +54,4 @@ class PromptEngine:
         return unique[: max(1, limit)]
 
     def workflow_templates(self) -> list[str]:
-        return ["quick", "balanced", "deep", "fusion-full"]
+        return ["fast", "quick", "balanced", "deep", "max", "fusion-full"]

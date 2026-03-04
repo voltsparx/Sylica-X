@@ -1,0 +1,9 @@
+{
+  "name": "Academia.edu",
+  "url": "https://independent.academia.edu/{username}",
+  "errorType": "status_code",
+  "regexCheck": "^[^.]*$",
+  "request_method": "HEAD",
+  "exists_status": 200,
+  "confidence_weight": 0.86
+}

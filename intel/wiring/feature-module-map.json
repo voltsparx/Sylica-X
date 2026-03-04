@@ -43,6 +43,11 @@
     "core/foundation/security_manager.py",
     "core/collect/anonymity.py"
   ],
+  "signal_fusion_lane": [
+    "core/collect/source_fusion.py",
+    "plugins/signal_fusion_core.py",
+    "filters/signal_lane_fusion.py"
+  ],
   "test_coverage": [
     "tests/"
   ]

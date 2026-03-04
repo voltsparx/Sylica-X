@@ -194,8 +194,14 @@ def display_results(
     summary_line = " ".join(summary_parts)
     print(c(summary_line or "No results", Colors.CYAN))
     print(c(f"VISIBLE_ROWS={len(focus_rows)}", Colors.CYAN))
+    print(c(f"TOTAL_RESULTS={snapshot['total_results']}", Colors.CYAN))
     print(c(f"FOUND_PROFILES={snapshot['found_count']}", Colors.GREEN))
     print(c(f"ERRORED_WEBSITES={snapshot['error_count']}", Colors.RED))
+    print(c(f"COVERAGE_RATIO={snapshot['coverage_ratio']}", Colors.CYAN))
+    print(c(f"AVG_FOUND_CONFIDENCE={snapshot['avg_found_confidence']}", Colors.CYAN))
+    print(c(f"AVG_FOUND_RTT_MS={snapshot['avg_found_response_time_ms']}", Colors.CYAN))
+    print(c(f"AVG_ERROR_RTT_MS={snapshot['avg_error_response_time_ms']}", Colors.CYAN))
+    print(c(f"STATUS_BREAKDOWN={snapshot['status_breakdown']}", Colors.CYAN))
 
     if snapshot["profile_links"]:
         print(c("\n[ Confirmed Profile Links ]", Colors.GREEN))
@@ -206,9 +212,11 @@ def display_results(
     print(c("------------------------------------", Colors.BLUE))
     print(c(f"Found platforms: {_preview(snapshot['found_platforms'])}", Colors.GREY))
     print(c(f"Emails: {_preview(snapshot['emails'])}", Colors.GREY))
+    print(c(f"Email domains: {_preview(snapshot['email_domains'])}", Colors.GREY))
     print(c(f"Phones: {_preview(snapshot['phones'])}", Colors.GREY))
     print(c(f"Mentions: {_preview(snapshot['mentions'])}", Colors.GREY))
     print(c(f"External links: {_preview(snapshot['external_links'])}", Colors.GREY))
+    print(c(f"Link domains: {_preview(snapshot['external_link_domains'])}", Colors.GREY))
     if snapshot["bios"]:
         print(c(f"Bio snippets captured: {len(snapshot['bios'])}", Colors.GREY))
 
@@ -333,12 +341,20 @@ def _render_cli_report(payload: dict) -> str:
     lines.append("")
 
     lines.append("[Target Intelligence Snapshot]")
+    lines.append(f"- total_results: {snapshot['total_results']}")
+    lines.append(f"- coverage_ratio: {snapshot['coverage_ratio']}")
+    lines.append(f"- avg_found_confidence: {snapshot['avg_found_confidence']}")
+    lines.append(f"- avg_found_response_time_ms: {snapshot['avg_found_response_time_ms']}")
+    lines.append(f"- avg_error_response_time_ms: {snapshot['avg_error_response_time_ms']}")
+    lines.append(f"- status_breakdown: {snapshot['status_breakdown']}")
     lines.append(f"- found_platforms: {', '.join(snapshot['found_platforms']) or 'none'}")
     lines.append(f"- profile_links: {', '.join(snapshot['profile_links']) or 'none'}")
     lines.append(f"- emails: {', '.join(snapshot['emails']) or 'none'}")
+    lines.append(f"- email_domains: {', '.join(snapshot['email_domains']) or 'none'}")
     lines.append(f"- phones: {', '.join(snapshot['phones']) or 'none'}")
     lines.append(f"- mentions: {', '.join(snapshot['mentions']) or 'none'}")
     lines.append(f"- external_links: {', '.join(snapshot['external_links']) or 'none'}")
+    lines.append(f"- external_link_domains: {', '.join(snapshot['external_link_domains']) or 'none'}")
     lines.append("")
 
     domain_result = payload.get("domain_result")

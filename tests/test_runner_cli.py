@@ -31,6 +31,8 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(_keyword_to_command("addonS"), "plugins")
         self.assertEqual(_keyword_to_command("filters"), "filters")
         self.assertEqual(_keyword_to_command("pii"), "filters")
+        self.assertEqual(_keyword_to_command("modules"), "modules")
+        self.assertEqual(_keyword_to_command("catalog"), "modules")
         self.assertEqual(_keyword_to_command("tor"), "anonymity")
         self.assertEqual(_keyword_to_command("history"), "history")
         self.assertEqual(_keyword_to_command("targets"), "history")
@@ -74,6 +76,12 @@ class TestRunnerCli(unittest.TestCase):
         self.assertTrue(args.html)
         self.assertEqual(args.plugin, ["orbit_link_matrix", "contact_lattice"])
         self.assertEqual(args.filter, ["contact_canonicalizer", "entity_name_resolver"])
+
+    def test_root_profile_parser_accepts_max_preset(self):
+        parser = build_root_parser()
+        args = parser.parse_args(["profile", "alice", "--preset", "max"])
+        self.assertEqual(args.command, "profile")
+        self.assertEqual(args.preset, "max")
 
     def test_root_surface_parser_parses_flags(self):
         parser = build_root_parser()
@@ -138,6 +146,48 @@ class TestRunnerCli(unittest.TestCase):
         args = parser.parse_args(["filters", "--scope", "profile"])
         self.assertEqual(args.command, "filters")
         self.assertEqual(args.scope, "profile")
+
+    def test_modules_parser_parses_scope_kind_and_limit(self):
+        parser = build_root_parser()
+        args = parser.parse_args(
+            [
+                "modules",
+                "--scope",
+                "fusion",
+                "--kind",
+                "filter",
+                "--framework",
+                "spiderfoot",
+                "--search",
+                "dns identity",
+                "--tag",
+                "identity",
+                "--min-score",
+                "25",
+                "--sort-by",
+                "power_score",
+                "--descending",
+                "--offset",
+                "20",
+                "--validate",
+                "--stats-only",
+                "--limit",
+                "7",
+            ]
+        )
+        self.assertEqual(args.command, "modules")
+        self.assertEqual(args.scope, "fusion")
+        self.assertEqual(args.kind, "filter")
+        self.assertEqual(args.framework, ["spiderfoot"])
+        self.assertEqual(args.search, "dns identity")
+        self.assertEqual(args.tag, ["identity"])
+        self.assertEqual(args.min_score, 25)
+        self.assertEqual(args.sort_by, "power_score")
+        self.assertTrue(args.descending)
+        self.assertEqual(args.offset, 20)
+        self.assertTrue(args.validate)
+        self.assertTrue(args.stats_only)
+        self.assertEqual(args.limit, 7)
 
     def test_history_parser_parses_limit(self):
         parser = build_root_parser()
@@ -213,6 +263,12 @@ class TestRunnerCli(unittest.TestCase):
         parser = build_prompt_parser()
         args = parser.parse_args(["intel"])
         self.assertEqual(args.command, "intel")
+
+    def test_prompt_parser_parses_modules_command(self):
+        parser = build_prompt_parser()
+        args = parser.parse_args(["modules", "--kind", "plugin"])
+        self.assertEqual(args.command, "modules")
+        self.assertEqual(args.kind, "plugin")
 
 
 if __name__ == "__main__":

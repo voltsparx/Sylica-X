@@ -1,0 +1,8 @@
+{
+  "name": "EyeEm",
+  "url": "https://www.eyeem.com/u/{username}",
+  "errorType": "status_code",
+  "request_method": "HEAD",
+  "exists_status": 200,
+  "confidence_weight": 0.83
+}

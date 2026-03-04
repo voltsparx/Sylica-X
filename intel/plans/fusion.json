@@ -3,6 +3,7 @@
   "features": [
     "parallel_workers",
     "plugin_module_system",
+    "signal_fusion_lane",
     "workspace_db",
     "caching",
     "exports_reporting",
@@ -18,6 +19,11 @@
       "feature": "plugin_module_system",
       "priority": "harden",
       "action": "Strengthen module contracts and discovery validation."
+    },
+    {
+      "feature": "signal_fusion_lane",
+      "priority": "harden",
+      "action": "Expand connector orchestration to leverage high-value multi-source collectors safely."
     },
     {
       "feature": "workspace_db",
@@ -46,6 +52,9 @@
     "core/extensions/plugin_manager.py",
     "core/extensions/signal_forge.py",
     "core/extensions/signal_sieve.py",
+    "core/collect/source_fusion.py",
+    "plugins/signal_fusion_core.py",
+    "filters/signal_lane_fusion.py",
     "core/artifacts/storage.py",
     "core/artifacts/output.py",
     "core/analyze/correlator.py",

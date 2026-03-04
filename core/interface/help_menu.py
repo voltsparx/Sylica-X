@@ -20,6 +20,11 @@ def show_flag_help() -> None:
     print("• fusion <username> <domain> - Run profile and surface workflows together.")
     print("• plugins [--scope ...] - List available plugins.")
     print("• filters [--scope ...] - List available filters.")
+    print(
+        "• modules [--sync --validate --kind ... --scope ... --search ... --tag ... --min-score ... "
+        "--sort-by ... --offset ...] - "
+        "List/sync/query source-intel module catalog."
+    )
     print("• history [--limit N] - List previously scanned targets.")
     print("• live <target> [--port PORT] - Open the local live dashboard.")
     print("• anonymity [flags] - Check or change Tor and proxy routing.")
@@ -46,12 +51,17 @@ def show_prompt_help() -> None:
     print("• fusion <username> <domain> - Run fusion workflow.")
     print("• plugins [--scope ...] - List plugins.")
     print("• filters [--scope ...] - List filters.")
+    print(
+        "• modules [--sync --validate --kind ... --scope ... --search ... --tag ... --min-score ... "
+        "--sort-by ... --offset ...] - "
+        "List/sync/query source-intel module catalog."
+    )
     print("• history [--limit N] - List scanned targets.")
     print("• config - Show current prompt settings.")
     print("• use <profile|surface|fusion> - Switch active module.")
     print("• set plugins <none|all|selector1,selector2> - Set module-compatible plugins.")
     print("• set filters <none|all|selector1,selector2> - Set module-compatible filters.")
-    print("• set profile_preset <quick|balanced|deep> - Set default profile preset.")
+    print("• set profile_preset <fast|quick|balanced|deep|max> - Set default profile preset.")
     print("• set surface_preset <quick|balanced|deep> - Set default surface preset.")
     print("• anonymity [flags] - Check or change Tor and proxy routing.")
     print("• wizard - Run guided workflow.")

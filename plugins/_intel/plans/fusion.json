@@ -12,6 +12,11 @@
       "action": "Strengthen module contracts and discovery validation."
     },
     {
+      "feature": "signal_fusion_lane",
+      "priority": "harden",
+      "action": "Expand connector orchestration to leverage high-value multi-source collectors safely."
+    },
+    {
       "feature": "workspace_db",
       "priority": "harden",
       "action": "Improve indexed storage for historical correlation replay."
@@ -84,6 +89,16 @@
       ]
     },
     {
+      "id": "module_capability_matrix",
+      "title": "Module Capability Matrix",
+      "description": "Maps plugin-like module signals from source-intel trees into scope-aware insights.",
+      "aliases": [
+        "module_matrix",
+        "catalog_matrix",
+        "signal_matrix"
+      ]
+    },
+    {
       "id": "orbit_link_matrix",
       "title": "Orbit Link Matrix",
       "description": "Builds platform-to-domain linkage and shared outbound domain signals.",
@@ -91,6 +106,16 @@
         "account_link_graph",
         "linkgraph",
         "domainlinks"
+      ]
+    },
+    {
+      "id": "signal_fusion_core",
+      "title": "Signal Fusion Core",
+      "description": "Runs internal connector lanes and merges normalized signals into Silica workflows.",
+      "aliases": [
+        "fusion_core",
+        "signal_core",
+        "connector_core"
       ]
     },
     {

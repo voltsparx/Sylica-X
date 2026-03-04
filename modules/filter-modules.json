@@ -1,0 +1,825 @@
+{
+  "generated_at_utc": "2026-03-04T12:23:50Z",
+  "kind": "filter",
+  "source_root": "intel-sources",
+  "module_count": 20,
+  "framework_counts": {
+    "amass": 14,
+    "datasploit": 3,
+    "maigret": 2,
+    "recon-ng": 1
+  },
+  "scope_counts": {
+    "profile": 18,
+    "surface": 19,
+    "fusion": 12
+  },
+  "power_score_avg": 53.6,
+  "top_capabilities": [
+    "enrichment:20",
+    "infrastructure:18",
+    "identity:17",
+    "reporting:13",
+    "web:12",
+    "correlation:11",
+    "risk:1",
+    "automation:1"
+  ],
+  "modules": [
+    {
+      "id": "amass-cmd-oam-i2y-ini",
+      "framework": "amass",
+      "path": "amass/cmd/oam_i2y/ini.go",
+      "file": "cmd/oam_i2y/ini.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "infrastructure",
+        "enrichment",
+        "identity",
+        "correlation",
+        "web"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 3,
+        "surface_score": 4,
+        "fusion_score": 1,
+        "capability_scores": {
+          "identity": 2,
+          "infrastructure": 4,
+          "web": 1,
+          "enrichment": 2,
+          "correlation": 1
+        }
+      },
+      "metrics": {
+        "power_score": 61,
+        "confidence_score": 48,
+        "file_size_bytes": 9325,
+        "line_estimate": 396,
+        "sampled_bytes": 9325
+      }
+    },
+    {
+      "id": "amass-config-active-test",
+      "framework": "amass",
+      "path": "amass/config/active_test.go",
+      "file": "config/active_test.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "enrichment",
+        "reporting"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 0,
+        "surface_score": 0,
+        "fusion_score": 0,
+        "capability_scores": {
+          "enrichment": 2,
+          "reporting": 1
+        }
+      },
+      "metrics": {
+        "power_score": 29,
+        "confidence_score": 48,
+        "file_size_bytes": 2506,
+        "line_estimate": 98,
+        "sampled_bytes": 2506
+      }
+    },
+    {
+      "id": "amass-config-config",
+      "framework": "amass",
+      "path": "amass/config/config.go",
+      "file": "config/config.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "infrastructure",
+        "enrichment",
+        "reporting",
+        "risk",
+        "correlation",
+        "identity",
+        "web"
+      ],
+      "signals": {
+        "plugin_score": 3,
+        "filter_score": 5,
+        "profile_score": 2,
+        "surface_score": 5,
+        "fusion_score": 1,
+        "capability_scores": {
+          "identity": 1,
+          "infrastructure": 4,
+          "web": 1,
+          "enrichment": 2,
+          "correlation": 1,
+          "reporting": 2,
+          "risk": 2
+        }
+      },
+      "metrics": {
+        "power_score": 76,
+        "confidence_score": 61,
+        "file_size_bytes": 13781,
+        "line_estimate": 455,
+        "sampled_bytes": 13781
+      }
+    },
+    {
+      "id": "amass-config-config-test",
+      "framework": "amass",
+      "path": "amass/config/config_test.go",
+      "file": "config/config_test.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface"
+      ],
+      "capabilities": [
+        "enrichment",
+        "infrastructure",
+        "identity",
+        "reporting",
+        "web"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 3,
+        "profile_score": 3,
+        "surface_score": 3,
+        "fusion_score": 0,
+        "capability_scores": {
+          "identity": 2,
+          "infrastructure": 3,
+          "web": 1,
+          "enrichment": 3,
+          "reporting": 2
+        }
+      },
+      "metrics": {
+        "power_score": 59,
+        "confidence_score": 49,
+        "file_size_bytes": 5394,
+        "line_estimate": 207,
+        "sampled_bytes": 5394
+      }
+    },
+    {
+      "id": "amass-config-resolvers",
+      "framework": "amass",
+      "path": "amass/config/resolvers.go",
+      "file": "config/resolvers.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface"
+      ],
+      "capabilities": [
+        "infrastructure",
+        "web",
+        "enrichment",
+        "identity",
+        "reporting"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 3,
+        "profile_score": 1,
+        "surface_score": 6,
+        "fusion_score": 0,
+        "capability_scores": {
+          "identity": 1,
+          "infrastructure": 4,
+          "web": 3,
+          "enrichment": 2,
+          "reporting": 1
+        }
+      },
+      "metrics": {
+        "power_score": 63,
+        "confidence_score": 49,
+        "file_size_bytes": 6955,
+        "line_estimate": 250,
+        "sampled_bytes": 6955
+      }
+    },
+    {
+      "id": "amass-config-scope",
+      "framework": "amass",
+      "path": "amass/config/scope.go",
+      "file": "config/scope.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface"
+      ],
+      "capabilities": [
+        "infrastructure",
+        "enrichment",
+        "identity"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 1,
+        "surface_score": 6,
+        "fusion_score": 0,
+        "capability_scores": {
+          "identity": 1,
+          "infrastructure": 6,
+          "enrichment": 2
+        }
+      },
+      "metrics": {
+        "power_score": 60,
+        "confidence_score": 42,
+        "file_size_bytes": 8913,
+        "line_estimate": 400,
+        "sampled_bytes": 8913
+      }
+    },
+    {
+      "id": "amass-config-scope-test",
+      "framework": "amass",
+      "path": "amass/config/scope_test.go",
+      "file": "config/scope_test.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface"
+      ],
+      "capabilities": [
+        "infrastructure",
+        "enrichment",
+        "identity"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 2,
+        "surface_score": 3,
+        "fusion_score": 0,
+        "capability_scores": {
+          "identity": 1,
+          "infrastructure": 3,
+          "enrichment": 2
+        }
+      },
+      "metrics": {
+        "power_score": 47,
+        "confidence_score": 42,
+        "file_size_bytes": 7661,
+        "line_estimate": 367,
+        "sampled_bytes": 7661
+      }
+    },
+    {
+      "id": "amass-engine-api-graphql-server-generated",
+      "framework": "amass",
+      "path": "amass/engine/api/graphql/server/generated.go",
+      "file": "engine/api/graphql/server/generated.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "enrichment",
+        "correlation",
+        "identity",
+        "infrastructure",
+        "reporting"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 1,
+        "surface_score": 1,
+        "fusion_score": 1,
+        "capability_scores": {
+          "identity": 1,
+          "infrastructure": 1,
+          "enrichment": 3,
+          "correlation": 1,
+          "reporting": 1
+        }
+      },
+      "metrics": {
+        "power_score": 52,
+        "confidence_score": 48,
+        "file_size_bytes": 135583,
+        "line_estimate": 796,
+        "sampled_bytes": 24000
+      }
+    },
+    {
+      "id": "amass-engine-api-graphql-server-model-models-gen",
+      "framework": "amass",
+      "path": "amass/engine/api/graphql/server/model/models_gen.go",
+      "file": "engine/api/graphql/server/model/models_gen.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "infrastructure",
+        "correlation",
+        "enrichment",
+        "identity",
+        "reporting"
+      ],
+      "signals": {
+        "plugin_score": 0,
+        "filter_score": 2,
+        "profile_score": 1,
+        "surface_score": 2,
+        "fusion_score": 1,
+        "capability_scores": {
+          "identity": 1,
+          "infrastructure": 2,
+          "enrichment": 1,
+          "correlation": 1,
+          "reporting": 1
+        }
+      },
+      "metrics": {
+        "power_score": 47,
+        "confidence_score": 52,
+        "file_size_bytes": 1346,
+        "line_estimate": 45,
+        "sampled_bytes": 1346
+      }
+    },
+    {
+      "id": "amass-engine-api-graphql-server-resolver",
+      "framework": "amass",
+      "path": "amass/engine/api/graphql/server/resolver.go",
+      "file": "engine/api/graphql/server/resolver.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "fusion"
+      ],
+      "capabilities": [
+        "correlation",
+        "enrichment"
+      ],
+      "signals": {
+        "plugin_score": 0,
+        "filter_score": 1,
+        "profile_score": 0,
+        "surface_score": 0,
+        "fusion_score": 1,
+        "capability_scores": {
+          "enrichment": 1,
+          "correlation": 1
+        }
+      },
+      "metrics": {
+        "power_score": 23,
+        "confidence_score": 33,
+        "file_size_bytes": 344,
+        "line_estimate": 18,
+        "sampled_bytes": 344
+      }
+    },
+    {
+      "id": "amass-engine-api-graphql-server-schema-resolvers",
+      "framework": "amass",
+      "path": "amass/engine/api/graphql/server/schema.resolvers.go",
+      "file": "engine/api/graphql/server/schema.resolvers.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "infrastructure",
+        "enrichment",
+        "identity",
+        "correlation",
+        "reporting",
+        "web"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 2,
+        "surface_score": 4,
+        "fusion_score": 1,
+        "capability_scores": {
+          "identity": 2,
+          "infrastructure": 4,
+          "web": 1,
+          "enrichment": 2,
+          "correlation": 1,
+          "reporting": 1
+        }
+      },
+      "metrics": {
+        "power_score": 59,
+        "confidence_score": 48,
+        "file_size_bytes": 7263,
+        "line_estimate": 234,
+        "sampled_bytes": 7263
+      }
+    },
+    {
+      "id": "amass-engine-api-graphql-server-server",
+      "framework": "amass",
+      "path": "amass/engine/api/graphql/server/server.go",
+      "file": "engine/api/graphql/server/server.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "enrichment",
+        "correlation",
+        "infrastructure",
+        "web"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 0,
+        "surface_score": 2,
+        "fusion_score": 1,
+        "capability_scores": {
+          "infrastructure": 1,
+          "web": 1,
+          "enrichment": 3,
+          "correlation": 1
+        }
+      },
+      "metrics": {
+        "power_score": 45,
+        "confidence_score": 42,
+        "file_size_bytes": 2178,
+        "line_estimate": 93,
+        "sampled_bytes": 2178
+      }
+    },
+    {
+      "id": "amass-engine-plugins-support-filter",
+      "framework": "amass",
+      "path": "amass/engine/plugins/support/filter.go",
+      "file": "engine/plugins/support/filter.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface"
+      ],
+      "capabilities": [
+        "enrichment",
+        "identity",
+        "infrastructure"
+      ],
+      "signals": {
+        "plugin_score": 3,
+        "filter_score": 1,
+        "profile_score": 1,
+        "surface_score": 1,
+        "fusion_score": 0,
+        "capability_scores": {
+          "identity": 1,
+          "infrastructure": 1,
+          "enrichment": 1
+        }
+      },
+      "metrics": {
+        "power_score": 39,
+        "confidence_score": 61,
+        "file_size_bytes": 1616,
+        "line_estimate": 86,
+        "sampled_bytes": 1616
+      }
+    },
+    {
+      "id": "amass-internal-net-http-http",
+      "framework": "amass",
+      "path": "amass/internal/net/http/http.go",
+      "file": "internal/net/http/http.go",
+      "language": "go",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "infrastructure",
+        "web",
+        "enrichment",
+        "identity",
+        "reporting",
+        "correlation"
+      ],
+      "signals": {
+        "plugin_score": 2,
+        "filter_score": 3,
+        "profile_score": 3,
+        "surface_score": 7,
+        "fusion_score": 1,
+        "capability_scores": {
+          "identity": 2,
+          "infrastructure": 5,
+          "web": 5,
+          "enrichment": 2,
+          "correlation": 1,
+          "reporting": 2
+        }
+      },
+      "metrics": {
+        "power_score": 73,
+        "confidence_score": 51,
+        "file_size_bytes": 10077,
+        "line_estimate": 380,
+        "sampled_bytes": 10077
+      }
+    },
+    {
+      "id": "datasploit-core-input-classifier",
+      "framework": "datasploit",
+      "path": "datasploit/core/input_classifier.py",
+      "file": "core/input_classifier.py",
+      "language": "py",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface"
+      ],
+      "capabilities": [
+        "identity",
+        "infrastructure",
+        "enrichment"
+      ],
+      "signals": {
+        "plugin_score": 0,
+        "filter_score": 1,
+        "profile_score": 4,
+        "surface_score": 2,
+        "fusion_score": 0,
+        "capability_scores": {
+          "identity": 3,
+          "infrastructure": 2,
+          "enrichment": 1
+        }
+      },
+      "metrics": {
+        "power_score": 43,
+        "confidence_score": 39,
+        "file_size_bytes": 1531,
+        "line_estimate": 62,
+        "sampled_bytes": 1531
+      }
+    },
+    {
+      "id": "datasploit-domain-domain-googletracking",
+      "framework": "datasploit",
+      "path": "datasploit/domain/domain_googletracking.py",
+      "file": "domain/domain_googletracking.py",
+      "language": "py",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface"
+      ],
+      "capabilities": [
+        "web",
+        "infrastructure",
+        "enrichment",
+        "identity",
+        "reporting"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 1,
+        "surface_score": 4,
+        "fusion_score": 0,
+        "capability_scores": {
+          "identity": 1,
+          "infrastructure": 2,
+          "web": 3,
+          "enrichment": 1,
+          "reporting": 1
+        }
+      },
+      "metrics": {
+        "power_score": 51,
+        "confidence_score": 42,
+        "file_size_bytes": 4910,
+        "line_estimate": 144,
+        "sampled_bytes": 4910
+      }
+    },
+    {
+      "id": "datasploit-domain-domain-subdomains",
+      "framework": "datasploit",
+      "path": "datasploit/domain/domain_subdomains.py",
+      "file": "domain/domain_subdomains.py",
+      "language": "py",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "infrastructure",
+        "web",
+        "reporting",
+        "enrichment",
+        "correlation",
+        "identity"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 2,
+        "surface_score": 8,
+        "fusion_score": 1,
+        "capability_scores": {
+          "identity": 1,
+          "infrastructure": 5,
+          "web": 4,
+          "enrichment": 2,
+          "correlation": 1,
+          "reporting": 3
+        }
+      },
+      "metrics": {
+        "power_score": 69,
+        "confidence_score": 48,
+        "file_size_bytes": 11198,
+        "line_estimate": 263,
+        "sampled_bytes": 11198
+      }
+    },
+    {
+      "id": "maigret-maigret-report",
+      "framework": "maigret",
+      "path": "maigret/maigret/report.py",
+      "file": "maigret/report.py",
+      "language": "py",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "enrichment",
+        "reporting",
+        "identity",
+        "correlation",
+        "infrastructure",
+        "web"
+      ],
+      "signals": {
+        "plugin_score": 2,
+        "filter_score": 3,
+        "profile_score": 4,
+        "surface_score": 3,
+        "fusion_score": 2,
+        "capability_scores": {
+          "identity": 3,
+          "infrastructure": 2,
+          "web": 2,
+          "enrichment": 4,
+          "correlation": 2,
+          "reporting": 4
+        }
+      },
+      "metrics": {
+        "power_score": 70,
+        "confidence_score": 51,
+        "file_size_bytes": 20198,
+        "line_estimate": 571,
+        "sampled_bytes": 20198
+      }
+    },
+    {
+      "id": "maigret-maigret-web-app",
+      "framework": "maigret",
+      "path": "maigret/maigret/web/app.py",
+      "file": "maigret/web/app.py",
+      "language": "py",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "capabilities": [
+        "reporting",
+        "identity",
+        "infrastructure",
+        "automation",
+        "enrichment",
+        "correlation",
+        "web"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 4,
+        "surface_score": 3,
+        "fusion_score": 1,
+        "capability_scores": {
+          "identity": 3,
+          "infrastructure": 3,
+          "web": 1,
+          "enrichment": 2,
+          "correlation": 1,
+          "automation": 2,
+          "reporting": 4
+        }
+      },
+      "metrics": {
+        "power_score": 61,
+        "confidence_score": 48,
+        "file_size_bytes": 12564,
+        "line_estimate": 349,
+        "sampled_bytes": 12564
+      }
+    },
+    {
+      "id": "recon-ng-recon-utils-parsers",
+      "framework": "recon-ng",
+      "path": "recon-ng/recon/utils/parsers.py",
+      "file": "recon/utils/parsers.py",
+      "language": "py",
+      "kind": "filter",
+      "scopes": [
+        "profile",
+        "surface"
+      ],
+      "capabilities": [
+        "identity",
+        "infrastructure",
+        "enrichment",
+        "reporting",
+        "web"
+      ],
+      "signals": {
+        "plugin_score": 1,
+        "filter_score": 2,
+        "profile_score": 2,
+        "surface_score": 2,
+        "fusion_score": 0,
+        "capability_scores": {
+          "identity": 2,
+          "infrastructure": 2,
+          "web": 1,
+          "enrichment": 1,
+          "reporting": 1
+        }
+      },
+      "metrics": {
+        "power_score": 45,
+        "confidence_score": 42,
+        "file_size_bytes": 1186,
+        "line_estimate": 36,
+        "sampled_bytes": 1186
+      }
+    }
+  ]
+}
