@@ -1,0 +1,87 @@
+{
+  "workflow": "surface",
+  "capability_plan": [
+    {
+      "feature": "async_engine",
+      "priority": "harden",
+      "action": "Increase non-blocking collectors and connector reuse."
+    },
+    {
+      "feature": "retry_backoff",
+      "priority": "harden",
+      "action": "Tune retry windows, jitter, and transient-error handling."
+    },
+    {
+      "feature": "rate_limit",
+      "priority": "harden",
+      "action": "Calibrate concurrency with adaptive workload backpressure."
+    },
+    {
+      "feature": "workspace_db",
+      "priority": "harden",
+      "action": "Improve indexed storage for historical correlation replay."
+    },
+    {
+      "feature": "tor_proxy_ops",
+      "priority": "harden",
+      "action": "Harden routing controls and privacy-aware collection profiles."
+    },
+    {
+      "feature": "exports_reporting",
+      "priority": "harden",
+      "action": "Expand analyst outputs with richer graph/report artifacts."
+    }
+  ],
+  "recommended_plugins": [
+    {
+      "id": "domain_takeover_risk_probe",
+      "title": "Domain Takeover Risk Probe",
+      "description": "Flags subdomains that look deprovisioned or dangling based on passive DNS resolution signals.",
+      "aliases": [
+        "takeover_probe",
+        "dangling_dns",
+        "subtakeover"
+      ]
+    },
+    {
+      "id": "header_hardening_probe",
+      "title": "Header Hardening Probe",
+      "description": "Performs deep security-header assessment on target HTTPS response headers.",
+      "aliases": [
+        "surface_header_audit",
+        "headers",
+        "tlsaudit"
+      ]
+    },
+    {
+      "id": "security_txt_analyzer",
+      "title": "Security.txt Analyzer",
+      "description": "Parses security.txt content for disclosure channels and policy completeness.",
+      "aliases": [
+        "securitytxt",
+        "disclosure_policy",
+        "vdp_policy"
+      ]
+    },
+    {
+      "id": "subdomain_risk_atlas",
+      "title": "Subdomain Risk Atlas",
+      "description": "Classifies discovered subdomains by environment and high-risk naming patterns.",
+      "aliases": [
+        "subdomain_exposure_map",
+        "subdomainmap",
+        "subrisk"
+      ]
+    },
+    {
+      "id": "threat_conductor",
+      "title": "Threat Conductor",
+      "description": "Combines correlation, issue distribution, and scan quality into an executive risk signal.",
+      "aliases": [
+        "risk_orchestrator",
+        "risk",
+        "orchestrator"
+      ]
+    }
+  ]
+}

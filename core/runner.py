@@ -44,6 +44,7 @@ from core.output import (
 from core.plugin_manager import PluginManager
 from core.prompt_intelligence import PromptEngine
 from core.reporting import ReportGenerator
+from core.reverse_engineering import build_capability_pack, write_capability_report
 from core.signal_forge import list_plugin_descriptors, list_plugin_discovery_errors
 from core.platform_schema import PlatformValidationError
 from core.profile_summary import error_profile_rows, found_profile_rows, summarize_target_intel
@@ -907,7 +908,7 @@ def _print_prompt_config(session: PromptSessionState, state: RunnerState) -> Non
         )
     )
     prompt_engine = PromptEngine(history=session.history)
-    advisor = IntelligenceAdvisor(history=session.history)
+    advisor = IntelligenceAdvisor(history=session.history, auto_build_capability_pack=True)
     prompt_suggestions = prompt_engine.suggest_next(limit=3)
     advisor_suggestions = advisor.recommend_next()[:2]
     print(c(f"prompt suggestions: {', '.join(prompt_suggestions)}", Colors.CYAN))
@@ -1075,7 +1076,10 @@ async def _handle_fusion_command(
     )
     fused_intel = await FUSION_ENGINE.fuse_profile_domain(profile_data, surface_data)
     fusion_graph = await FUSION_ENGINE.generate_graph(fused_intel)
-    advisor = IntelligenceAdvisor(history=[{"mode": "profile"}, {"mode": "surface"}, {"mode": "fusion"}])
+    advisor = IntelligenceAdvisor(
+        history=[{"mode": "profile"}, {"mode": "surface"}, {"mode": "fusion"}],
+        auto_build_capability_pack=True,
+    )
     fused_intel["advisor_confidence"] = advisor.estimate_confidence(fused_intel)
     fused_intel["advisor_recommendations"] = advisor.recommend_next()
 
@@ -1337,6 +1341,24 @@ async def _handle_wizard_command(
     return EXIT_FAILURE if failures else EXIT_SUCCESS
 
 
+async def _handle_capability_pack_command() -> int:
+    try:
+        capability_path = build_capability_pack()
+        report_path = write_capability_report(build_pack=False)
+    except Exception as exc:
+        append_framework_log("capability_pack_generation_failed", str(exc), level="WARN")
+        print(c(f"[!] Capability pack generation failed: {exc}", Colors.RED))
+        return EXIT_FAILURE
+
+    print(c(f"[+] Capability pack generated at {capability_path}", Colors.GREEN))
+    print(c(f"[+] Capability report generated at {report_path}", Colors.GREEN))
+    append_framework_log(
+        "capability_pack_generated",
+        f"capability_pack={capability_path} report={report_path}",
+    )
+    return EXIT_SUCCESS
+
+
 async def _dispatch(args: argparse.Namespace, state: RunnerState, prompt_mode: bool) -> int:
     if args.command in {"profile", "scan", "persona", "social"}:
         return await _handle_profile_command(args, state=state, prompt_mode=prompt_mode)
@@ -1368,6 +1390,8 @@ async def _dispatch(args: argparse.Namespace, state: RunnerState, prompt_mode: b
         return EXIT_SUCCESS
     if args.command == "wizard":
         return await _handle_wizard_command(args, state=state, prompt_mode=prompt_mode)
+    if args.command in {"capability-pack", "intel"}:
+        return await _handle_capability_pack_command()
     return EXIT_USAGE
 
 

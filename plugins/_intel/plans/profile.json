@@ -1,0 +1,87 @@
+{
+  "workflow": "profile",
+  "capability_plan": [
+    {
+      "feature": "async_engine",
+      "priority": "harden",
+      "action": "Increase non-blocking collectors and connector reuse."
+    },
+    {
+      "feature": "retry_backoff",
+      "priority": "harden",
+      "action": "Tune retry windows, jitter, and transient-error handling."
+    },
+    {
+      "feature": "rate_limit",
+      "priority": "harden",
+      "action": "Calibrate concurrency with adaptive workload backpressure."
+    },
+    {
+      "feature": "plugin_module_system",
+      "priority": "harden",
+      "action": "Strengthen module contracts and discovery validation."
+    },
+    {
+      "feature": "exports_reporting",
+      "priority": "harden",
+      "action": "Expand analyst outputs with richer graph/report artifacts."
+    },
+    {
+      "feature": "test_coverage",
+      "priority": "harden",
+      "action": "Close regression gaps around failure paths and adapters."
+    }
+  ],
+  "recommended_plugins": [
+    {
+      "id": "contact_lattice",
+      "title": "Contact Lattice Analyzer",
+      "description": "Correlates exposed emails/phones across platforms and calculates contact mesh density.",
+      "aliases": [
+        "contact_mesh",
+        "contacts",
+        "mesh"
+      ]
+    },
+    {
+      "id": "cross_platform_activity_timeline",
+      "title": "Cross-Platform Activity Timeline",
+      "description": "Extracts public date hints across profiles to build a lightweight activity timeline.",
+      "aliases": [
+        "activity_timeline",
+        "timeline",
+        "public_activity"
+      ]
+    },
+    {
+      "id": "identity_fusion_core",
+      "title": "Identity Fusion Core",
+      "description": "Aggregates confidence, mention density, and identity overlaps into a fusion index.",
+      "aliases": [
+        "persona_signal_fusion",
+        "persona",
+        "fusionindex"
+      ]
+    },
+    {
+      "id": "orbit_link_matrix",
+      "title": "Orbit Link Matrix",
+      "description": "Builds platform-to-domain linkage and shared outbound domain signals.",
+      "aliases": [
+        "account_link_graph",
+        "linkgraph",
+        "domainlinks"
+      ]
+    },
+    {
+      "id": "threat_conductor",
+      "title": "Threat Conductor",
+      "description": "Combines correlation, issue distribution, and scan quality into an executive risk signal.",
+      "aliases": [
+        "risk_orchestrator",
+        "risk",
+        "orchestrator"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "feature": "tor_proxy_ops",
+  "description": "Proxy/Tor routing and anonymized collection channels.",
+  "target_modules": [
+    "core/network.py",
+    "core/security_manager.py",
+    "core/anonymity.py"
+  ],
+  "signal_total": 738,
+  "coverage_ratio": 1.0,
+  "strength": "core",
+  "priority": "harden",
+  "action": "Harden routing controls and privacy-aware collection profiles."
+}

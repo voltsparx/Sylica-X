@@ -1,0 +1,26 @@
+{
+  "profile": [
+    "async_engine",
+    "retry_backoff",
+    "rate_limit",
+    "plugin_module_system",
+    "exports_reporting",
+    "test_coverage"
+  ],
+  "surface": [
+    "async_engine",
+    "retry_backoff",
+    "rate_limit",
+    "workspace_db",
+    "tor_proxy_ops",
+    "exports_reporting"
+  ],
+  "fusion": [
+    "parallel_workers",
+    "plugin_module_system",
+    "workspace_db",
+    "caching",
+    "exports_reporting",
+    "test_coverage"
+  ]
+}

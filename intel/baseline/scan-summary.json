@@ -1,0 +1,29 @@
+{
+  "generated_at_utc": "2026-03-04T10:02:49Z",
+  "source_count": 8,
+  "files_scanned": 1738,
+  "feature_totals": {
+    "async_engine": 85,
+    "retry_backoff": 30,
+    "rate_limit": 64,
+    "caching": 289,
+    "workspace_db": 27,
+    "plugin_module_system": 1000,
+    "parallel_workers": 47,
+    "exports_reporting": 515,
+    "tor_proxy_ops": 738,
+    "test_coverage": 518
+  },
+  "feature_presence": {
+    "async_engine": 5,
+    "retry_backoff": 8,
+    "rate_limit": 7,
+    "caching": 8,
+    "workspace_db": 6,
+    "plugin_module_system": 8,
+    "parallel_workers": 7,
+    "exports_reporting": 8,
+    "tor_proxy_ops": 8,
+    "test_coverage": 5
+  }
+}

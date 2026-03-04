@@ -1,0 +1,117 @@
+{
+  "workflow": "fusion",
+  "capability_plan": [
+    {
+      "feature": "parallel_workers",
+      "priority": "harden",
+      "action": "Balance async/thread/process lanes by workload shape."
+    },
+    {
+      "feature": "plugin_module_system",
+      "priority": "harden",
+      "action": "Strengthen module contracts and discovery validation."
+    },
+    {
+      "feature": "workspace_db",
+      "priority": "harden",
+      "action": "Improve indexed storage for historical correlation replay."
+    },
+    {
+      "feature": "caching",
+      "priority": "harden",
+      "action": "Extend TTL-aware cache layers for expensive enrichment calls."
+    },
+    {
+      "feature": "exports_reporting",
+      "priority": "harden",
+      "action": "Expand analyst outputs with richer graph/report artifacts."
+    },
+    {
+      "feature": "test_coverage",
+      "priority": "harden",
+      "action": "Close regression gaps around failure paths and adapters."
+    }
+  ],
+  "recommended_plugins": [
+    {
+      "id": "contact_lattice",
+      "title": "Contact Lattice Analyzer",
+      "description": "Correlates exposed emails/phones across platforms and calculates contact mesh density.",
+      "aliases": [
+        "contact_mesh",
+        "contacts",
+        "mesh"
+      ]
+    },
+    {
+      "id": "cross_platform_activity_timeline",
+      "title": "Cross-Platform Activity Timeline",
+      "description": "Extracts public date hints across profiles to build a lightweight activity timeline.",
+      "aliases": [
+        "activity_timeline",
+        "timeline",
+        "public_activity"
+      ]
+    },
+    {
+      "id": "email_pattern_inference",
+      "title": "Email Pattern Inference",
+      "description": "Infers possible corporate mailbox formats from usernames and target domain artifacts.",
+      "aliases": [
+        "email_pattern",
+        "mail_pattern",
+        "address_pattern"
+      ]
+    },
+    {
+      "id": "header_hardening_probe",
+      "title": "Header Hardening Probe",
+      "description": "Performs deep security-header assessment on target HTTPS response headers.",
+      "aliases": [
+        "surface_header_audit",
+        "headers",
+        "tlsaudit"
+      ]
+    },
+    {
+      "id": "identity_fusion_core",
+      "title": "Identity Fusion Core",
+      "description": "Aggregates confidence, mention density, and identity overlaps into a fusion index.",
+      "aliases": [
+        "persona_signal_fusion",
+        "persona",
+        "fusionindex"
+      ]
+    },
+    {
+      "id": "orbit_link_matrix",
+      "title": "Orbit Link Matrix",
+      "description": "Builds platform-to-domain linkage and shared outbound domain signals.",
+      "aliases": [
+        "account_link_graph",
+        "linkgraph",
+        "domainlinks"
+      ]
+    },
+    {
+      "id": "subdomain_risk_atlas",
+      "title": "Subdomain Risk Atlas",
+      "description": "Classifies discovered subdomains by environment and high-risk naming patterns.",
+      "aliases": [
+        "subdomain_exposure_map",
+        "subdomainmap",
+        "subrisk"
+      ]
+    },
+    {
+      "id": "threat_conductor",
+      "title": "Threat Conductor",
+      "description": "Combines correlation, issue distribution, and scan quality into an executive risk signal.",
+      "aliases": [
+        "risk_orchestrator",
+        "risk",
+        "orchestrator"
+      ]
+    }
+  ]
+}

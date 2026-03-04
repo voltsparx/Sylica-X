@@ -1,0 +1,59 @@
+{
+  "workflow": "surface",
+  "features": [
+    "async_engine",
+    "retry_backoff",
+    "rate_limit",
+    "workspace_db",
+    "tor_proxy_ops",
+    "exports_reporting"
+  ],
+  "capability_plan": [
+    {
+      "feature": "async_engine",
+      "priority": "harden",
+      "action": "Increase non-blocking collectors and connector reuse."
+    },
+    {
+      "feature": "retry_backoff",
+      "priority": "harden",
+      "action": "Tune retry windows, jitter, and transient-error handling."
+    },
+    {
+      "feature": "rate_limit",
+      "priority": "harden",
+      "action": "Calibrate concurrency with adaptive workload backpressure."
+    },
+    {
+      "feature": "workspace_db",
+      "priority": "harden",
+      "action": "Improve indexed storage for historical correlation replay."
+    },
+    {
+      "feature": "tor_proxy_ops",
+      "priority": "harden",
+      "action": "Harden routing controls and privacy-aware collection profiles."
+    },
+    {
+      "feature": "exports_reporting",
+      "priority": "harden",
+      "action": "Expand analyst outputs with richer graph/report artifacts."
+    }
+  ],
+  "target_modules": [
+    "core/async_engine.py",
+    "core/scanner.py",
+    "core/domain_intel.py",
+    "core/http_resilience.py",
+    "core/thread_engine.py",
+    "core/parallel_engine.py",
+    "core/storage.py",
+    "core/output.py",
+    "core/correlator.py",
+    "core/network.py",
+    "core/security_manager.py",
+    "core/anonymity.py",
+    "core/reporting.py",
+    "core/html_report.py"
+  ]
+}

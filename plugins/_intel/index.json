@@ -1,0 +1,165 @@
+{
+  "generated_at_utc": "2026-03-04T10:02:49Z",
+  "kind": "plugins",
+  "inventory_count": 10,
+  "inventory": [
+    {
+      "id": "contact_lattice",
+      "title": "Contact Lattice Analyzer",
+      "description": "Correlates exposed emails/phones across platforms and calculates contact mesh density.",
+      "scopes": [
+        "profile",
+        "fusion"
+      ],
+      "version": "1.1",
+      "author": "Silica-X",
+      "aliases": [
+        "contact_mesh",
+        "contacts",
+        "mesh"
+      ]
+    },
+    {
+      "id": "cross_platform_activity_timeline",
+      "title": "Cross-Platform Activity Timeline",
+      "description": "Extracts public date hints across profiles to build a lightweight activity timeline.",
+      "scopes": [
+        "profile",
+        "fusion"
+      ],
+      "version": "1.0",
+      "author": "Silica-X",
+      "aliases": [
+        "activity_timeline",
+        "timeline",
+        "public_activity"
+      ]
+    },
+    {
+      "id": "domain_takeover_risk_probe",
+      "title": "Domain Takeover Risk Probe",
+      "description": "Flags subdomains that look deprovisioned or dangling based on passive DNS resolution signals.",
+      "scopes": [
+        "surface"
+      ],
+      "version": "1.0",
+      "author": "Silica-X",
+      "aliases": [
+        "takeover_probe",
+        "dangling_dns",
+        "subtakeover"
+      ]
+    },
+    {
+      "id": "email_pattern_inference",
+      "title": "Email Pattern Inference",
+      "description": "Infers possible corporate mailbox formats from usernames and target domain artifacts.",
+      "scopes": [
+        "fusion"
+      ],
+      "version": "1.0",
+      "author": "Silica-X",
+      "aliases": [
+        "email_pattern",
+        "mail_pattern",
+        "address_pattern"
+      ]
+    },
+    {
+      "id": "header_hardening_probe",
+      "title": "Header Hardening Probe",
+      "description": "Performs deep security-header assessment on target HTTPS response headers.",
+      "scopes": [
+        "surface",
+        "fusion"
+      ],
+      "version": "1.1",
+      "author": "Silica-X",
+      "aliases": [
+        "surface_header_audit",
+        "headers",
+        "tlsaudit"
+      ]
+    },
+    {
+      "id": "identity_fusion_core",
+      "title": "Identity Fusion Core",
+      "description": "Aggregates confidence, mention density, and identity overlaps into a fusion index.",
+      "scopes": [
+        "profile",
+        "fusion"
+      ],
+      "version": "1.1",
+      "author": "Silica-X",
+      "aliases": [
+        "persona_signal_fusion",
+        "persona",
+        "fusionindex"
+      ]
+    },
+    {
+      "id": "orbit_link_matrix",
+      "title": "Orbit Link Matrix",
+      "description": "Builds platform-to-domain linkage and shared outbound domain signals.",
+      "scopes": [
+        "profile",
+        "fusion"
+      ],
+      "version": "1.1",
+      "author": "Silica-X",
+      "aliases": [
+        "account_link_graph",
+        "linkgraph",
+        "domainlinks"
+      ]
+    },
+    {
+      "id": "security_txt_analyzer",
+      "title": "Security.txt Analyzer",
+      "description": "Parses security.txt content for disclosure channels and policy completeness.",
+      "scopes": [
+        "surface"
+      ],
+      "version": "1.0",
+      "author": "Silica-X",
+      "aliases": [
+        "securitytxt",
+        "disclosure_policy",
+        "vdp_policy"
+      ]
+    },
+    {
+      "id": "subdomain_risk_atlas",
+      "title": "Subdomain Risk Atlas",
+      "description": "Classifies discovered subdomains by environment and high-risk naming patterns.",
+      "scopes": [
+        "surface",
+        "fusion"
+      ],
+      "version": "1.1",
+      "author": "Silica-X",
+      "aliases": [
+        "subdomain_exposure_map",
+        "subdomainmap",
+        "subrisk"
+      ]
+    },
+    {
+      "id": "threat_conductor",
+      "title": "Threat Conductor",
+      "description": "Combines correlation, issue distribution, and scan quality into an executive risk signal.",
+      "scopes": [
+        "profile",
+        "surface",
+        "fusion"
+      ],
+      "version": "1.1",
+      "author": "Silica-X",
+      "aliases": [
+        "risk_orchestrator",
+        "risk",
+        "orchestrator"
+      ]
+    }
+  ]
+}

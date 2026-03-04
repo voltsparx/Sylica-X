@@ -1,0 +1,14 @@
+{
+  "feature": "exports_reporting",
+  "description": "Analyst exports and multi-format report outputs.",
+  "target_modules": [
+    "core/reporting.py",
+    "core/output.py",
+    "core/html_report.py"
+  ],
+  "signal_total": 515,
+  "coverage_ratio": 1.0,
+  "strength": "core",
+  "priority": "harden",
+  "action": "Expand analyst outputs with richer graph/report artifacts."
+}

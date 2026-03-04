@@ -15,9 +15,12 @@ from core.plugin_manager import PluginManager
 from core.prompt_intelligence import PromptEngine
 from core.reporting import ReportGenerator
 from core.reverse_engineering import (
+    build_capability_pack,
     build_capability_gap_report,
+    load_capability_index,
     load_reverse_engineering_map,
     map_tools_to_silica_modules,
+    recommend_capability_priorities,
     recommend_research_focus,
     render_capability_markdown,
     scan_framework_capabilities,
@@ -221,12 +224,52 @@ class TestBlueprintModules(unittest.TestCase):
             profiles = scan_framework_capabilities(root)
             gap = build_capability_gap_report(profiles)
             markdown = render_capability_markdown(profiles)
-            report_path = write_capability_report(root / "report.md")
+            report_path = write_capability_report(root / "report.md", build_pack=False)
 
         self.assertEqual(2, len(profiles))
         self.assertEqual(2, gap["frameworks"])
         self.assertIn("Recommendations", markdown)
         self.assertTrue(Path(report_path).name.endswith(".md"))
+
+    def test_reverse_engineering_capability_pack_generation(self):
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "reverse-engineering-temp"
+            fw_a = root / "framework-a"
+            fw_b = root / "framework-b"
+            fw_a.mkdir(parents=True, exist_ok=True)
+            fw_b.mkdir(parents=True, exist_ok=True)
+            (fw_a / "one.py").write_text(
+                "import asyncio\nretry semaphore cache plugin module json tor pytest", encoding="utf-8"
+            )
+            (fw_b / "two.py").write_text(
+                "sqlite threadpool queue csv html", encoding="utf-8"
+            )
+            output_root = Path(temp_dir) / "intel"
+            plugin_root = Path(temp_dir) / "plugins-intel"
+            filter_root = Path(temp_dir) / "filters-intel"
+
+            pack_path = build_capability_pack(
+                root,
+                output_root=output_root,
+                plugin_output_root=plugin_root,
+                filter_output_root=filter_root,
+            )
+            index = load_capability_index(pack_path / "index.json")
+            priorities = recommend_capability_priorities(
+                "profile",
+                capability_index_path=pack_path / "index.json",
+            )
+
+            self.assertTrue((pack_path / "baseline").exists())
+            self.assertTrue((pack_path / "features").exists())
+            self.assertTrue((pack_path / "plans").exists())
+            self.assertTrue((pack_path / "wiring").exists())
+            self.assertIn("features", index)
+            self.assertGreater(len(priorities), 0)
+            self.assertTrue((plugin_root / "index.json").exists())
+            self.assertTrue((plugin_root / "plans" / "profile.json").exists())
+            self.assertTrue((filter_root / "index.json").exists())
+            self.assertTrue((filter_root / "plans" / "profile.json").exists())
 
     def test_credential_manager_roundtrip(self):
         manager = CredentialManager(key=CredentialManager.generate_key())

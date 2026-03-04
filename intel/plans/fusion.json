@@ -1,0 +1,58 @@
+{
+  "workflow": "fusion",
+  "features": [
+    "parallel_workers",
+    "plugin_module_system",
+    "workspace_db",
+    "caching",
+    "exports_reporting",
+    "test_coverage"
+  ],
+  "capability_plan": [
+    {
+      "feature": "parallel_workers",
+      "priority": "harden",
+      "action": "Balance async/thread/process lanes by workload shape."
+    },
+    {
+      "feature": "plugin_module_system",
+      "priority": "harden",
+      "action": "Strengthen module contracts and discovery validation."
+    },
+    {
+      "feature": "workspace_db",
+      "priority": "harden",
+      "action": "Improve indexed storage for historical correlation replay."
+    },
+    {
+      "feature": "caching",
+      "priority": "harden",
+      "action": "Extend TTL-aware cache layers for expensive enrichment calls."
+    },
+    {
+      "feature": "exports_reporting",
+      "priority": "harden",
+      "action": "Expand analyst outputs with richer graph/report artifacts."
+    },
+    {
+      "feature": "test_coverage",
+      "priority": "harden",
+      "action": "Close regression gaps around failure paths and adapters."
+    }
+  ],
+  "target_modules": [
+    "core/parallel_engine.py",
+    "core/thread_engine.py",
+    "core/plugin_manager.py",
+    "core/signal_forge.py",
+    "core/signal_sieve.py",
+    "core/storage.py",
+    "core/output.py",
+    "core/correlator.py",
+    "core/fusion_engine.py",
+    "core/reverse_engineering.py",
+    "core/reporting.py",
+    "core/html_report.py",
+    "tests/"
+  ]
+}

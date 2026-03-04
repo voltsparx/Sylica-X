@@ -1,0 +1,58 @@
+{
+  "workflow": "profile",
+  "features": [
+    "async_engine",
+    "retry_backoff",
+    "rate_limit",
+    "plugin_module_system",
+    "exports_reporting",
+    "test_coverage"
+  ],
+  "capability_plan": [
+    {
+      "feature": "async_engine",
+      "priority": "harden",
+      "action": "Increase non-blocking collectors and connector reuse."
+    },
+    {
+      "feature": "retry_backoff",
+      "priority": "harden",
+      "action": "Tune retry windows, jitter, and transient-error handling."
+    },
+    {
+      "feature": "rate_limit",
+      "priority": "harden",
+      "action": "Calibrate concurrency with adaptive workload backpressure."
+    },
+    {
+      "feature": "plugin_module_system",
+      "priority": "harden",
+      "action": "Strengthen module contracts and discovery validation."
+    },
+    {
+      "feature": "exports_reporting",
+      "priority": "harden",
+      "action": "Expand analyst outputs with richer graph/report artifacts."
+    },
+    {
+      "feature": "test_coverage",
+      "priority": "harden",
+      "action": "Close regression gaps around failure paths and adapters."
+    }
+  ],
+  "target_modules": [
+    "core/async_engine.py",
+    "core/scanner.py",
+    "core/domain_intel.py",
+    "core/http_resilience.py",
+    "core/thread_engine.py",
+    "core/parallel_engine.py",
+    "core/plugin_manager.py",
+    "core/signal_forge.py",
+    "core/signal_sieve.py",
+    "core/reporting.py",
+    "core/output.py",
+    "core/html_report.py",
+    "tests/"
+  ]
+}

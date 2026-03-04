@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 from collections import Counter
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any
 
 from core.prompt_intelligence import PromptEngine
-from core.reverse_engineering import DEFAULT_MAP_PATH, load_reverse_engineering_map, recommend_research_focus
+from core.reverse_engineering import (
+    DEFAULT_CAPABILITY_PACK_ROOT,
+    DEFAULT_MAP_PATH,
+    build_capability_pack,
+    load_reverse_engineering_map,
+    recommend_capability_priorities,
+    recommend_research_focus,
+)
 
 
 def _safe_float(value: object, default: float = 0.0) -> float:
@@ -23,6 +31,8 @@ class IntelligenceAdvisor:
 
     history: list[dict[str, Any] | str] = field(default_factory=list)
     reverse_map_path: str = str(DEFAULT_MAP_PATH)
+    capability_index_path: str = str(DEFAULT_CAPABILITY_PACK_ROOT / "index.json")
+    auto_build_capability_pack: bool = False
 
     def _history_commands(self) -> list[str]:
         commands: list[str] = []
@@ -63,8 +73,19 @@ class IntelligenceAdvisor:
 
         reverse_map = load_reverse_engineering_map(self.reverse_map_path)
         research = recommend_research_focus(dominant_scope, reverse_map)
+        capability_hints = recommend_capability_priorities(
+            dominant_scope,
+            capability_index_path=self.capability_index_path,
+        )
+        if not capability_hints and self.auto_build_capability_pack:
+            with suppress(Exception):
+                build_capability_pack()
+            capability_hints = recommend_capability_priorities(
+                dominant_scope,
+                capability_index_path=self.capability_index_path,
+            )
 
-        merged = [*suggestions, *research]
+        merged = [*suggestions, *research, *capability_hints]
         unique: list[str] = []
         seen: set[str] = set()
         for item in merged:

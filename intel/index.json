@@ -1,0 +1,322 @@
+{
+  "generated_at_utc": "2026-03-04T10:02:49Z",
+  "source_root": "reverse-engineering-temp",
+  "source_count": 8,
+  "files_scanned": 1738,
+  "features": {
+    "async_engine": {
+      "feature": "async_engine",
+      "description": "Asynchronous request orchestration and non-blocking collectors.",
+      "target_modules": [
+        "core/async_engine.py",
+        "core/scanner.py",
+        "core/domain_intel.py"
+      ],
+      "signal_total": 85,
+      "coverage_ratio": 0.625,
+      "strength": "established",
+      "priority": "harden",
+      "action": "Increase non-blocking collectors and connector reuse."
+    },
+    "retry_backoff": {
+      "feature": "retry_backoff",
+      "description": "Resilient retries, transient-failure handling, and backoff behavior.",
+      "target_modules": [
+        "core/http_resilience.py",
+        "core/scanner.py",
+        "core/domain_intel.py"
+      ],
+      "signal_total": 30,
+      "coverage_ratio": 1.0,
+      "strength": "core",
+      "priority": "harden",
+      "action": "Tune retry windows, jitter, and transient-error handling."
+    },
+    "rate_limit": {
+      "feature": "rate_limit",
+      "description": "Concurrency/rate controls to reduce bans and unstable collection.",
+      "target_modules": [
+        "core/async_engine.py",
+        "core/thread_engine.py",
+        "core/parallel_engine.py"
+      ],
+      "signal_total": 64,
+      "coverage_ratio": 0.875,
+      "strength": "core",
+      "priority": "harden",
+      "action": "Calibrate concurrency with adaptive workload backpressure."
+    },
+    "caching": {
+      "feature": "caching",
+      "description": "Result caching and TTL reuse to reduce duplicate calls and latency.",
+      "target_modules": [
+        "core/fusion_engine.py",
+        "core/reverse_engineering.py",
+        "core/storage.py"
+      ],
+      "signal_total": 289,
+      "coverage_ratio": 1.0,
+      "strength": "core",
+      "priority": "harden",
+      "action": "Extend TTL-aware cache layers for expensive enrichment calls."
+    },
+    "workspace_db": {
+      "feature": "workspace_db",
+      "description": "Queryable persistent storage for historical OSINT artifacts.",
+      "target_modules": [
+        "core/storage.py",
+        "core/output.py",
+        "core/correlator.py"
+      ],
+      "signal_total": 27,
+      "coverage_ratio": 0.75,
+      "strength": "core",
+      "priority": "harden",
+      "action": "Improve indexed storage for historical correlation replay."
+    },
+    "plugin_module_system": {
+      "feature": "plugin_module_system",
+      "description": "Dynamic module/plugin discovery and orchestration.",
+      "target_modules": [
+        "core/plugin_manager.py",
+        "core/signal_forge.py",
+        "core/signal_sieve.py"
+      ],
+      "signal_total": 1000,
+      "coverage_ratio": 1.0,
+      "strength": "core",
+      "priority": "harden",
+      "action": "Strengthen module contracts and discovery validation."
+    },
+    "parallel_workers": {
+      "feature": "parallel_workers",
+      "description": "Thread/process/queue worker models for throughput scaling.",
+      "target_modules": [
+        "core/parallel_engine.py",
+        "core/thread_engine.py"
+      ],
+      "signal_total": 47,
+      "coverage_ratio": 0.875,
+      "strength": "core",
+      "priority": "harden",
+      "action": "Balance async/thread/process lanes by workload shape."
+    },
+    "exports_reporting": {
+      "feature": "exports_reporting",
+      "description": "Analyst exports and multi-format report outputs.",
+      "target_modules": [
+        "core/reporting.py",
+        "core/output.py",
+        "core/html_report.py"
+      ],
+      "signal_total": 515,
+      "coverage_ratio": 1.0,
+      "strength": "core",
+      "priority": "harden",
+      "action": "Expand analyst outputs with richer graph/report artifacts."
+    },
+    "tor_proxy_ops": {
+      "feature": "tor_proxy_ops",
+      "description": "Proxy/Tor routing and anonymized collection channels.",
+      "target_modules": [
+        "core/network.py",
+        "core/security_manager.py",
+        "core/anonymity.py"
+      ],
+      "signal_total": 738,
+      "coverage_ratio": 1.0,
+      "strength": "core",
+      "priority": "harden",
+      "action": "Harden routing controls and privacy-aware collection profiles."
+    },
+    "test_coverage": {
+      "feature": "test_coverage",
+      "description": "Automated tests and confidence gates for regressions.",
+      "target_modules": [
+        "tests/"
+      ],
+      "signal_total": 518,
+      "coverage_ratio": 0.625,
+      "strength": "established",
+      "priority": "harden",
+      "action": "Close regression gaps around failure paths and adapters."
+    }
+  },
+  "workflows": {
+    "profile": {
+      "workflow": "profile",
+      "features": [
+        "async_engine",
+        "retry_backoff",
+        "rate_limit",
+        "plugin_module_system",
+        "exports_reporting",
+        "test_coverage"
+      ],
+      "capability_plan": [
+        {
+          "feature": "async_engine",
+          "priority": "harden",
+          "action": "Increase non-blocking collectors and connector reuse."
+        },
+        {
+          "feature": "retry_backoff",
+          "priority": "harden",
+          "action": "Tune retry windows, jitter, and transient-error handling."
+        },
+        {
+          "feature": "rate_limit",
+          "priority": "harden",
+          "action": "Calibrate concurrency with adaptive workload backpressure."
+        },
+        {
+          "feature": "plugin_module_system",
+          "priority": "harden",
+          "action": "Strengthen module contracts and discovery validation."
+        },
+        {
+          "feature": "exports_reporting",
+          "priority": "harden",
+          "action": "Expand analyst outputs with richer graph/report artifacts."
+        },
+        {
+          "feature": "test_coverage",
+          "priority": "harden",
+          "action": "Close regression gaps around failure paths and adapters."
+        }
+      ],
+      "target_modules": [
+        "core/async_engine.py",
+        "core/scanner.py",
+        "core/domain_intel.py",
+        "core/http_resilience.py",
+        "core/thread_engine.py",
+        "core/parallel_engine.py",
+        "core/plugin_manager.py",
+        "core/signal_forge.py",
+        "core/signal_sieve.py",
+        "core/reporting.py",
+        "core/output.py",
+        "core/html_report.py",
+        "tests/"
+      ]
+    },
+    "surface": {
+      "workflow": "surface",
+      "features": [
+        "async_engine",
+        "retry_backoff",
+        "rate_limit",
+        "workspace_db",
+        "tor_proxy_ops",
+        "exports_reporting"
+      ],
+      "capability_plan": [
+        {
+          "feature": "async_engine",
+          "priority": "harden",
+          "action": "Increase non-blocking collectors and connector reuse."
+        },
+        {
+          "feature": "retry_backoff",
+          "priority": "harden",
+          "action": "Tune retry windows, jitter, and transient-error handling."
+        },
+        {
+          "feature": "rate_limit",
+          "priority": "harden",
+          "action": "Calibrate concurrency with adaptive workload backpressure."
+        },
+        {
+          "feature": "workspace_db",
+          "priority": "harden",
+          "action": "Improve indexed storage for historical correlation replay."
+        },
+        {
+          "feature": "tor_proxy_ops",
+          "priority": "harden",
+          "action": "Harden routing controls and privacy-aware collection profiles."
+        },
+        {
+          "feature": "exports_reporting",
+          "priority": "harden",
+          "action": "Expand analyst outputs with richer graph/report artifacts."
+        }
+      ],
+      "target_modules": [
+        "core/async_engine.py",
+        "core/scanner.py",
+        "core/domain_intel.py",
+        "core/http_resilience.py",
+        "core/thread_engine.py",
+        "core/parallel_engine.py",
+        "core/storage.py",
+        "core/output.py",
+        "core/correlator.py",
+        "core/network.py",
+        "core/security_manager.py",
+        "core/anonymity.py",
+        "core/reporting.py",
+        "core/html_report.py"
+      ]
+    },
+    "fusion": {
+      "workflow": "fusion",
+      "features": [
+        "parallel_workers",
+        "plugin_module_system",
+        "workspace_db",
+        "caching",
+        "exports_reporting",
+        "test_coverage"
+      ],
+      "capability_plan": [
+        {
+          "feature": "parallel_workers",
+          "priority": "harden",
+          "action": "Balance async/thread/process lanes by workload shape."
+        },
+        {
+          "feature": "plugin_module_system",
+          "priority": "harden",
+          "action": "Strengthen module contracts and discovery validation."
+        },
+        {
+          "feature": "workspace_db",
+          "priority": "harden",
+          "action": "Improve indexed storage for historical correlation replay."
+        },
+        {
+          "feature": "caching",
+          "priority": "harden",
+          "action": "Extend TTL-aware cache layers for expensive enrichment calls."
+        },
+        {
+          "feature": "exports_reporting",
+          "priority": "harden",
+          "action": "Expand analyst outputs with richer graph/report artifacts."
+        },
+        {
+          "feature": "test_coverage",
+          "priority": "harden",
+          "action": "Close regression gaps around failure paths and adapters."
+        }
+      ],
+      "target_modules": [
+        "core/parallel_engine.py",
+        "core/thread_engine.py",
+        "core/plugin_manager.py",
+        "core/signal_forge.py",
+        "core/signal_sieve.py",
+        "core/storage.py",
+        "core/output.py",
+        "core/correlator.py",
+        "core/fusion_engine.py",
+        "core/reverse_engineering.py",
+        "core/reporting.py",
+        "core/html_report.py",
+        "tests/"
+      ]
+    }
+  }
+}

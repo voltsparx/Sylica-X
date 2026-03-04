@@ -1,0 +1,14 @@
+{
+  "feature": "retry_backoff",
+  "description": "Resilient retries, transient-failure handling, and backoff behavior.",
+  "target_modules": [
+    "core/http_resilience.py",
+    "core/scanner.py",
+    "core/domain_intel.py"
+  ],
+  "signal_total": 30,
+  "coverage_ratio": 1.0,
+  "strength": "core",
+  "priority": "harden",
+  "action": "Tune retry windows, jitter, and transient-error handling."
+}

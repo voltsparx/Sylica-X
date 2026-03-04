@@ -1,0 +1,12 @@
+{
+  "feature": "test_coverage",
+  "description": "Automated tests and confidence gates for regressions.",
+  "target_modules": [
+    "tests/"
+  ],
+  "signal_total": 518,
+  "coverage_ratio": 0.625,
+  "strength": "established",
+  "priority": "harden",
+  "action": "Close regression gaps around failure paths and adapters."
+}

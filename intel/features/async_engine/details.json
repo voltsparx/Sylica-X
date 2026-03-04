@@ -1,0 +1,14 @@
+{
+  "feature": "async_engine",
+  "description": "Asynchronous request orchestration and non-blocking collectors.",
+  "target_modules": [
+    "core/async_engine.py",
+    "core/scanner.py",
+    "core/domain_intel.py"
+  ],
+  "signal_total": 85,
+  "coverage_ratio": 0.625,
+  "strength": "established",
+  "priority": "harden",
+  "action": "Increase non-blocking collectors and connector reuse."
+}

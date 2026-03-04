@@ -1,0 +1,14 @@
+{
+  "feature": "rate_limit",
+  "description": "Concurrency/rate controls to reduce bans and unstable collection.",
+  "target_modules": [
+    "core/async_engine.py",
+    "core/thread_engine.py",
+    "core/parallel_engine.py"
+  ],
+  "signal_total": 64,
+  "coverage_ratio": 0.875,
+  "strength": "core",
+  "priority": "harden",
+  "action": "Calibrate concurrency with adaptive workload backpressure."
+}

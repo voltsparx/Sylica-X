@@ -50,6 +50,8 @@ This tool is built by stitching together the digital bones of open-source intell
 * 🔐 Credential + security managers (`core/credential_manager.py`, `core/security_manager.py`)
 * 📈 Reporting/scheduler/CLI helpers (`core/reporting.py`, `core/scheduler.py`, `core/cli_ui.py`)
 * 🗺️ Reverse-engineering map integration (`core/reverse_engineering.py`)
+* 🧬 Silica capability intel generated under `intel/` (`baseline/`, `features/`, `plans/`, `wiring/`)
+* 🧩 Plugin/filter intel views generated in `plugins/_intel/` and `filters/_intel/`
 * 🔒 TLS verification enabled by default in scan collectors
 * 🧅 Tor routing uses `socks5h://127.0.0.1:9050` (DNS over Tor)
 * 🌍 Proxy validation supports `HTTP_PROXY` and `HTTPS_PROXY` with scheme checks
@@ -120,6 +122,7 @@ Running without flags starts **prompt mode**.
 * `anonymity [--tor|--no-tor] [--proxy|--no-proxy] [--check] [--prompt]`
 * `live <target> [--port PORT] [--no-browser]`
 * `wizard`
+* `capability-pack` (alias: `intel`)
 * `keywords`
 * `about`
 * `explain`
@@ -321,7 +324,23 @@ python -m compileall -q core filters plugins tests silica-x.py
 python -c "from core.reverse_engineering import write_capability_report; print(write_capability_report())"
 ```
 
-Writes a benchmark summary to `reverse-engineering-temp/silica-x-capability-scan.md`.
+Writes a capability summary to `docs/silica-capability-scan.md`.
+
+```bash
+python silica-x.py capability-pack
+# same as: python silica-x.py intel
+```
+
+Generates/refreshes:
+- `intel/baseline/`
+- `intel/features/`
+- `intel/plans/`
+- `intel/wiring/`
+- `intel/index.json`
+- `plugins/_intel/index.json`
+- `plugins/_intel/plans/*.json`
+- `filters/_intel/index.json`
+- `filters/_intel/plans/*.json`
 
 ### CI workflow
 

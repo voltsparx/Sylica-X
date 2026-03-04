@@ -330,6 +330,11 @@ def build_root_parser(
     subparsers.add_parser("help", help="Show command-line usage help.")
     subparsers.add_parser("about", help="Display framework metadata and contact details.")
     subparsers.add_parser("explain", help="Display plain-language workflow, plugin, and filter explanations.")
+    subparsers.add_parser(
+        "capability-pack",
+        aliases=["intel"],
+        help="Generate Silica-X capability-pack folders and report artifacts.",
+    )
 
     wizard_parser = subparsers.add_parser(
         "wizard",
@@ -390,6 +395,7 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
     subparsers.add_parser("help", add_help=False)
     subparsers.add_parser("about", add_help=False)
     subparsers.add_parser("explain", add_help=False)
+    subparsers.add_parser("capability-pack", aliases=["intel"], add_help=False)
 
     wizard_parser = subparsers.add_parser("wizard", add_help=False)
     _add_toggle_flags(wizard_parser, "tor", "Tor routing")

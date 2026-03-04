@@ -145,6 +145,16 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.command, "history")
         self.assertEqual(args.limit, 10)
 
+    def test_capability_pack_parser_parses_command(self):
+        parser = build_root_parser()
+        args = parser.parse_args(["capability-pack"])
+        self.assertEqual(args.command, "capability-pack")
+
+    def test_intel_alias_parser_parses_command(self):
+        parser = build_root_parser()
+        args = parser.parse_args(["intel"])
+        self.assertEqual(args.command, "intel")
+
     def test_anonymity_parser_parses_check(self):
         parser = build_root_parser()
         args = parser.parse_args(["anonymity", "--check"])
@@ -193,6 +203,16 @@ class TestRunnerCli(unittest.TestCase):
         parser = build_prompt_parser()
         args = parser.parse_args(["explain"])
         self.assertEqual(args.command, "explain")
+
+    def test_prompt_parser_parses_capability_pack_command(self):
+        parser = build_prompt_parser()
+        args = parser.parse_args(["capability-pack"])
+        self.assertEqual(args.command, "capability-pack")
+
+    def test_prompt_parser_parses_intel_alias_command(self):
+        parser = build_prompt_parser()
+        args = parser.parse_args(["intel"])
+        self.assertEqual(args.command, "intel")
 
 
 if __name__ == "__main__":

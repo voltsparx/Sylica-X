@@ -1,0 +1,14 @@
+{
+  "feature": "plugin_module_system",
+  "description": "Dynamic module/plugin discovery and orchestration.",
+  "target_modules": [
+    "core/plugin_manager.py",
+    "core/signal_forge.py",
+    "core/signal_sieve.py"
+  ],
+  "signal_total": 1000,
+  "coverage_ratio": 1.0,
+  "strength": "core",
+  "priority": "harden",
+  "action": "Strengthen module contracts and discovery validation."
+}
