@@ -3,7 +3,6 @@ blueprint.txt
 *tree.txt
 reverse-engineering-temp/
 
-
 # Python cache and virtual environments
 __pycache__/
 *.py[cod]
