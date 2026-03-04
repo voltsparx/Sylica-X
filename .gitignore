@@ -3,6 +3,7 @@ blueprint.txt
 *tree.txt
 intel-sources/
 *.zip
+structure.txt
 
 # Python cache and virtual environments
 __pycache__/

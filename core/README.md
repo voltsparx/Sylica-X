@@ -1,31 +1,41 @@
 # Core Module Layout
 
-Core modules are grouped by responsibility so runtime wiring and ownership are easier to follow.
+Core modules are grouped by responsibility to keep runtime wiring and ownership clear.
 
-- `core/interface/`
-  - CLI and operator-facing modules.
-  - Files: `about.py`, `banner.py`, `cli_config.py`, `cli_parsers.py`, `cli_ui.py`, `explain.py`, `help_menu.py`, `live_server.py`
-- `core/collect/`
-  - Collection, scanning, and network access modules.
-  - Files: `anonymity.py`, `domain_intel.py`, `source_fusion.py`, `extractor.py`, `http_resilience.py`, `network.py`, `platform_schema.py`, `scanner.py`
-- `core/analyze/`
-  - Correlation, exposure, confidence, and summarization modules.
-  - Files: `confidence.py`, `correlator.py`, `exposure.py`, `narrative.py`, `profile_summary.py`
-- `core/extensions/`
-  - Plugin/filter execution and schema modules.
-  - Files: `plugin_manager.py`, `signal_forge.py`, `signal_sieve.py`, `forge_schema.py`, `sieve_schema.py`, `selector_keys.py`
-- `core/artifacts/`
-  - Output, storage, and report-generation modules.
-  - Files: `csv_export.py`, `html_report.py`, `output.py`, `reporting.py`, `storage.py`
-- `core/foundation/`
-  - Shared primitives and state/security support.
-  - Files: `colors.py`, `credential_manager.py`, `metadata.py`, `security_manager.py`, `session_state.py`, `utils.py`
-- `core/engines/`
-  - Async, thread, parallel, fusion, and scheduler execution engines.
-  - Files: `async_engine.py`, `thread_engine.py`, `parallel_engine.py`, `fusion_engine.py`, `scheduler.py`
-- `core/intel/`
-  - Prompt recommendations, advisor scoring, and capability/source mapping.
-  - Files: `prompt_engine.py`, `advisor.py`, `capability_matrix.py`
-- `core/` (root)
-  - Runtime orchestration and prompt glue.
-  - Files: `runner.py`, `prompt_handlers.py`
+## Runtime + Interface
+
+- `core/interface/` -> CLI and operator-facing modules.
+- `core/runner.py` -> existing CLI runtime orchestration.
+- `core/prompt_handlers.py` -> prompt command defaults and command rewriting.
+
+## Collection + Analysis
+
+- `core/collect/` -> scanners, network calls, and raw signal collection.
+- `core/analyze/` -> correlation, confidence, exposure, and narrative synthesis.
+
+## Extensions + Artifacts
+
+- `core/extensions/` -> plugin/filter discovery and execution wiring.
+- `core/artifacts/` -> storage, csv/html/json output, and report generation.
+
+## Engines + Foundation
+
+- `core/engines/` -> async/thread/parallel execution helpers.
+- `core/foundation/` -> low-level shared state, metadata, colors, and credentials.
+- `core/intel/` -> prompt recommendations and capability mapping.
+
+## Blueprint-Oriented Orchestration Layer
+
+- `core/execution_policy.py` -> central scan profile definitions.
+- `core/engine_manager.py` -> policy-driven engine selection.
+- `core/lifecycle.py` -> scan lifecycle event tracking.
+- `core/orchestrator.py` -> policy -> capabilities -> filters -> fusion -> report flow.
+- `core/domain/` -> immutable entity contracts.
+- `core/capabilities/` -> tool-agnostic capability interfaces and implementations.
+- `core/adapters/` -> scanner/domain adapters that normalize into entities.
+- `core/filters/` -> stateless entity filter pipeline.
+- `core/fusion/` -> relationship and confidence fusion engine.
+- `core/intelligence/` -> strategic next-step advisor.
+- `core/reporting/` -> presentation-only payload renderers.
+- `core/security/` -> proxy and credential vault wrappers.
+- `core/utils/` -> centralized orchestration logger.
