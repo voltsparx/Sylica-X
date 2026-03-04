@@ -1,10 +1,11 @@
-# Ignore self-assessment and source intel text/markdown files
-intel-sources/*.txt
-intel-sources/*.md
+# =========================================
+# Local intelligence / self-assessment files
+intel-sources/
+self-assessment-structure/
+*.zip
+*tree.txt
 
-# Keep folder structure if needed
-!intel-sources/.gitkeep
-
+# =========================================
 # Python cache and virtual environments
 __pycache__/
 *.py[cod]
@@ -17,12 +18,14 @@ __pycache__/
 venv/
 env/
 
+# =========================================
 # IDE and OS files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
+# =========================================
 # Runtime output artifacts (keep folder structure only)
 output/**
 !output/.gitkeep
@@ -35,6 +38,7 @@ output/**
 !output/logs/
 !output/logs/.gitkeep
 
+# =========================================
 # Local test scratch
 .tmp/
 .tmp_test/
