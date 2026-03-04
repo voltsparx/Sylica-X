@@ -2,6 +2,7 @@
 self-assesment-structure/
 *tree.txt
 *.zip
+intel-sources/
 
 # Python cache and virtual environments
 __pycache__/

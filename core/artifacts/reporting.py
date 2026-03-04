@@ -35,6 +35,11 @@ class ReportGenerator:
         """Generate HTML dashboard path for fused payload."""
 
         target = _fused_target(fused_data)
+        intelligence_bundle = (
+            fused_data.get("intelligence_bundle")
+            if isinstance(fused_data.get("intelligence_bundle"), dict)
+            else (fused_data.get("fused_intel", {}) or {}).get("intelligence_bundle")
+        )
         return generate_html(
             target=target,
             results=list(fused_data.get("results", []) or []),
@@ -48,6 +53,7 @@ class ReportGenerator:
             plugin_errors=list(fused_data.get("plugin_errors", []) or []),
             filter_results=list(fused_data.get("filters", []) or []),
             filter_errors=list(fused_data.get("filter_errors", []) or []),
+            intelligence_bundle=intelligence_bundle if isinstance(intelligence_bundle, dict) else {},
         )
 
     def export_pdf_excel(self, fused_data: dict[str, Any], format: str = "pdf") -> str:
@@ -84,11 +90,21 @@ class ReportGenerator:
         confidence = fused_data.get("confidence_score", "-")
         risk_score = (fused_data.get("risk") or {}).get("risk_score", "-")
         anomalies = ", ".join(fused_data.get("anomalies", []) or []) or "none"
+        intelligence_bundle = (
+            fused_data.get("intelligence_bundle")
+            if isinstance(fused_data.get("intelligence_bundle"), dict)
+            else {}
+        )
+        facets = intelligence_bundle.get("entity_facets", {}) if isinstance(intelligence_bundle, dict) else {}
+        names = ", ".join((facets.get("names", []) or [])[:5]) if isinstance(facets, dict) else ""
+        emails = ", ".join((facets.get("emails", []) or [])[:5]) if isinstance(facets, dict) else ""
         summary = (
             f"Target={target}\n"
             f"Confidence={confidence}\n"
             f"Risk={risk_score}\n"
             f"Anomalies={anomalies}\n"
+            f"Emails={emails or '-'}\n"
+            f"Names={names or '-'}\n"
         )
         return summary
 

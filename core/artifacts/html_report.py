@@ -85,6 +85,10 @@ def _render_target_snapshot(target: str, snapshot: dict, total_checks: int) -> s
         f"<div>{_render_chip_list(snapshot.get('phones', []))}</div>"
         "</div>"
         "<div class='chip-group'>"
+        "<h4>Names</h4>"
+        f"<div>{_render_chip_list(snapshot.get('names', []))}</div>"
+        "</div>"
+        "<div class='chip-group'>"
         "<h4>Mentions</h4>"
         f"<div>{_render_chip_list(snapshot.get('mentions', []))}</div>"
         "</div>"
@@ -305,6 +309,112 @@ def _render_filters(filter_results: list[dict], filter_errors: list[str]) -> str
     return "".join(cards)
 
 
+def _render_intelligence_bundle(intelligence_bundle: dict | None) -> str:
+    bundle = intelligence_bundle or {}
+    if not bundle:
+        return "<p class='muted'>No intelligence scoring bundle was generated for this run.</p>"
+
+    metadata = bundle.get("metadata", {}) or {}
+    confidence_distribution = bundle.get("confidence_distribution", {}) or {}
+    risk_summary = bundle.get("risk_summary", {}) or {}
+    facets = bundle.get("entity_facets", {}) or {}
+    scored_contacts = list(facets.get("scored_contacts", []) or [])
+    scored_entities = list(bundle.get("scored_entities", []) or [])
+    correlation_summary = bundle.get("correlation_summary", {}) or {}
+    guidance = bundle.get("execution_guidance", {}) or {}
+    actions = guidance.get("actions", []) if isinstance(guidance.get("actions"), list) else []
+
+    contact_rows = []
+    for item in scored_contacts[:28]:
+        if not isinstance(item, dict):
+            continue
+        contact_rows.append(
+            "<tr>"
+            f"<td>{html.escape(str(item.get('kind', '-')))}</td>"
+            f"<td>{html.escape(str(item.get('value', '-')))}</td>"
+            f"<td>{html.escape(str(item.get('score_percent', 0)))}%</td>"
+            f"<td>{html.escape(str(item.get('supporting_entities', 0)))}</td>"
+            f"<td>{html.escape(str(item.get('risk_level', 'LOW')))}</td>"
+            "</tr>"
+        )
+    if not contact_rows:
+        contact_rows.append("<tr><td colspan='5'>No contact/name scoring rows.</td></tr>")
+
+    entity_rows = []
+    for item in scored_entities[:34]:
+        if not isinstance(item, dict):
+            continue
+        entity_rows.append(
+            "<tr>"
+            f"<td>{html.escape(str(item.get('rank', '-')))}</td>"
+            f"<td>{html.escape(str(item.get('entity_type', '-')))}</td>"
+            f"<td>{html.escape(str(item.get('value', '-')))}</td>"
+            f"<td>{html.escape(str(item.get('source', '-')))}</td>"
+            f"<td>{html.escape(str(item.get('confidence_percent', 0)))}%</td>"
+            f"<td>{html.escape(str(item.get('risk_level', 'LOW')))}</td>"
+            f"<td>{html.escape(str(item.get('relationship_count', 0)))}</td>"
+            "</tr>"
+        )
+    if not entity_rows:
+        entity_rows.append("<tr><td colspan='7'>No scored entities.</td></tr>")
+
+    reason_breakdown = correlation_summary.get("reason_breakdown", {}) or {}
+    reason_items = "".join(
+        f"<li><strong>{html.escape(str(reason))}</strong>: {html.escape(str(count))}</li>"
+        for reason, count in list(reason_breakdown.items())[:12]
+    ) or "<li>None</li>"
+    guidance_items = "".join(
+        "<li>"
+        f"[{html.escape(str(item.get('priority', 'P3')))}] {html.escape(str(item.get('title', 'Action')))}"
+        f"<br><span class='muted'>{html.escape(str(item.get('rationale', '-')))}</span>"
+        f"<br><span class='muted'>Hint: {html.escape(str(item.get('command_hint', '-')))}</span>"
+        "</li>"
+        for item in actions[:8]
+        if isinstance(item, dict)
+    ) or "<li>None</li>"
+
+    return (
+        f"<p><strong>Entities:</strong> {html.escape(str(metadata.get('entity_count', 0)))} | "
+        f"<strong>Evidence:</strong> {html.escape(str(metadata.get('evidence_count', 0)))} | "
+        f"<strong>Links:</strong> {html.escape(str(correlation_summary.get('link_count', 0)))}</p>"
+        "<p><strong>Confidence Distribution:</strong> "
+        f"high={html.escape(str(confidence_distribution.get('high', 0)))} "
+        f"medium={html.escape(str(confidence_distribution.get('medium', 0)))} "
+        f"low={html.escape(str(confidence_distribution.get('low', 0)))}</p>"
+        f"<p><strong>Risk Summary:</strong> {html.escape(str(risk_summary))}</p>"
+        "<div class='chip-group'>"
+        "<h4>Emails</h4>"
+        f"<div>{_render_chip_list(list(facets.get('emails', []) or []), max_items=18)}</div>"
+        "</div>"
+        "<div class='chip-group'>"
+        "<h4>Phones</h4>"
+        f"<div>{_render_chip_list(list(facets.get('phones', []) or []), max_items=18)}</div>"
+        "</div>"
+        "<div class='chip-group'>"
+        "<h4>Names</h4>"
+        f"<div>{_render_chip_list(list(facets.get('names', []) or []), max_items=18)}</div>"
+        "</div>"
+        "<h4>Top Contact / Name Signals</h4>"
+        "<div class='table-wrap'>"
+        "<table>"
+        "<tr><th>Kind</th><th>Value</th><th>Score</th><th>Support</th><th>Risk</th></tr>"
+        f"{''.join(contact_rows)}"
+        "</table>"
+        "</div>"
+        "<h4>Top Scored Entities</h4>"
+        "<div class='table-wrap'>"
+        "<table>"
+        "<tr><th>Rank</th><th>Type</th><th>Value</th><th>Source</th><th>Confidence</th><th>Risk</th><th>Links</th></tr>"
+        f"{''.join(entity_rows)}"
+        "</table>"
+        "</div>"
+        "<h4>Correlation Reasons</h4>"
+        f"<ul>{reason_items}</ul>"
+        "<h4>Explainable Guidance</h4>"
+        f"<ul>{guidance_items}</ul>"
+    )
+
+
 def generate_html(
     target: str,
     results: list[dict] | None,
@@ -319,6 +429,7 @@ def generate_html(
     plugin_errors: list[str] | None = None,
     filter_results: list[dict] | None = None,
     filter_errors: list[str] | None = None,
+    intelligence_bundle: dict | None = None,
 ) -> str:
     results = results or []
     correlation = correlation or {}
@@ -328,6 +439,7 @@ def generate_html(
     plugin_errors = plugin_errors or []
     filter_results = filter_results or []
     filter_errors = filter_errors or []
+    intelligence_bundle = intelligence_bundle or {}
 
     display_target = str(target or "").strip()
     target_display = display_target or sanitize_target(target)
@@ -541,6 +653,11 @@ def generate_html(
         <section class="panel">
           <h3>Filter Intelligence</h3>
           {_render_filters(filter_results, filter_errors)}
+        </section>
+
+        <section class="panel">
+          <h3>Intelligence Scoring & Guidance</h3>
+          {_render_intelligence_bundle(intelligence_bundle)}
         </section>
 
         <section class="panel">

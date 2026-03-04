@@ -52,7 +52,10 @@ from core.extensions.signal_forge import list_plugin_descriptors, list_plugin_di
 from core.collect.platform_schema import PlatformValidationError
 from core.analyze.profile_summary import error_profile_rows, found_profile_rows, summarize_target_intel
 from core.collect.scanner import scan_username
+from core.domain import BaseEntity
 from core.foundation.session_state import PromptSessionState
+from core.intelligence import IntelligenceEngine
+from core.intelligence.entity_builder import build_fusion_entities, build_profile_entities, build_surface_entities
 from core.artifacts.storage import ensure_output_tree, results_json_path, sanitize_target
 from core.prompt_handlers import (
     apply_prompt_defaults as _apply_prompt_defaults_impl,
@@ -71,6 +74,7 @@ EXIT_USAGE = 2
 PLUGIN_MANAGER = PluginManager()
 FUSION_ENGINE = FusionEngine()
 REPORT_GENERATOR = ReportGenerator()
+INTELLIGENCE_ENGINE = IntelligenceEngine()
 
 
 @dataclass
