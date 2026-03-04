@@ -1,4 +1,4 @@
-# core/confidence.py
+# core/analyze/confidence.py
 def explain_confidence(r):
     reasons = []
     if r["status"] == "FOUND":
@@ -12,3 +12,4 @@ def explain_confidence(r):
     if r["confidence"] >= 90:
         reasons.append("High reliability platform")
     return reasons
+

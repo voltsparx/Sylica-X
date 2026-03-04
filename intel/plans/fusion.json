@@ -41,18 +41,18 @@
     }
   ],
   "target_modules": [
-    "core/parallel_engine.py",
-    "core/thread_engine.py",
-    "core/plugin_manager.py",
-    "core/signal_forge.py",
-    "core/signal_sieve.py",
-    "core/storage.py",
-    "core/output.py",
-    "core/correlator.py",
-    "core/fusion_engine.py",
-    "core/reverse_engineering.py",
-    "core/reporting.py",
-    "core/html_report.py",
+    "core/engines/parallel_engine.py",
+    "core/engines/thread_engine.py",
+    "core/extensions/plugin_manager.py",
+    "core/extensions/signal_forge.py",
+    "core/extensions/signal_sieve.py",
+    "core/artifacts/storage.py",
+    "core/artifacts/output.py",
+    "core/analyze/correlator.py",
+    "core/engines/fusion_engine.py",
+    "core/intel/capability_matrix.py",
+    "core/artifacts/reporting.py",
+    "core/artifacts/html_report.py",
     "tests/"
   ]
 }

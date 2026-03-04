@@ -6,28 +6,28 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from core.cli_ui import CLIUI
-from core.credential_manager import CredentialManager
-from core.fusion_engine import FusionEngine
-from core.intelligence_advisor import IntelligenceAdvisor
-from core.parallel_engine import ParallelEngine
-from core.plugin_manager import PluginManager
-from core.prompt_intelligence import PromptEngine
-from core.reporting import ReportGenerator
-from core.reverse_engineering import (
+from core.interface.cli_ui import CLIUI
+from core.foundation.credential_manager import CredentialManager
+from core.engines.fusion_engine import FusionEngine
+from core.intel.advisor import IntelligenceAdvisor
+from core.engines.parallel_engine import ParallelEngine
+from core.extensions.plugin_manager import PluginManager
+from core.intel.prompt_engine import PromptEngine
+from core.artifacts.reporting import ReportGenerator
+from core.intel.capability_matrix import (
     build_capability_pack,
     build_capability_gap_report,
     load_capability_index,
-    load_reverse_engineering_map,
-    map_tools_to_silica_modules,
+    load_source_map,
+    map_sources_to_core_modules,
     recommend_capability_priorities,
-    recommend_research_focus,
+    recommend_focus_modules,
     render_capability_markdown,
-    scan_framework_capabilities,
+    scan_source_capabilities,
     write_capability_report,
 )
-from core.scheduler import Scheduler
-from core.security_manager import SecurityManager
+from core.engines.scheduler import Scheduler
+from core.foundation.security_manager import SecurityManager
 
 
 async def _async_increment(value: int) -> int:
@@ -44,7 +44,7 @@ def _cpu_square(value: int) -> int:
 
 
 class TestBlueprintModules(unittest.TestCase):
-    def test_reverse_engineering_map_parsing_and_mapping(self):
+    def test_source_map_parsing_and_mapping(self):
         content = """
 1. Sherlock
 * Username account discovery across platforms
@@ -58,16 +58,16 @@ class TestBlueprintModules(unittest.TestCase):
             map_path = Path(temp_dir) / "map.txt"
             map_path.write_text(content, encoding="utf-8")
 
-            mapping = load_reverse_engineering_map(map_path)
-            module_map = map_tools_to_silica_modules(mapping)
-            profile_research = recommend_research_focus("profile", mapping)
-            surface_research = recommend_research_focus("surface", mapping)
+            mapping = load_source_map(map_path)
+            module_map = map_sources_to_core_modules(mapping)
+            profile_research = recommend_focus_modules("profile", mapping)
+            surface_research = recommend_focus_modules("surface", mapping)
 
         self.assertEqual(len(mapping.tools), 2)
         self.assertEqual(mapping.tools[0].name, "Sherlock")
-        self.assertIn("core/scanner.py", module_map)
-        self.assertIn("Sherlock", module_map["core/scanner.py"])
-        self.assertIn("Amass", module_map["core/domain_intel.py"])
+        self.assertIn("core/collect/scanner.py", module_map)
+        self.assertIn("Sherlock", module_map["core/collect/scanner.py"])
+        self.assertIn("Amass", module_map["core/collect/domain_intel.py"])
         self.assertTrue(profile_research[0].startswith("Study patterns from:"))
         self.assertTrue(surface_research[0].startswith("Study patterns from:"))
 
@@ -200,7 +200,7 @@ class TestBlueprintModules(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             map_path = Path(temp_dir) / "reverse-map.txt"
             map_path.write_text(map_content, encoding="utf-8")
-            advisor = IntelligenceAdvisor(history=["profile alice"], reverse_map_path=str(map_path))
+            advisor = IntelligenceAdvisor(history=["profile alice"], source_map_path=str(map_path))
             recommendations = advisor.recommend_next()
             normalized_confidence = advisor.estimate_confidence({"confidence_score": 80})
 
@@ -208,9 +208,9 @@ class TestBlueprintModules(unittest.TestCase):
         self.assertTrue(any("Study patterns from:" in row for row in recommendations))
         self.assertAlmostEqual(normalized_confidence, 0.8, places=2)
 
-    def test_reverse_engineering_capability_scan_and_report(self):
+    def test_source_capability_scan_and_report(self):
         with TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir) / "reverse-engineering-temp"
+            root = Path(temp_dir) / "intel-sources"
             fw_a = root / "framework-a"
             fw_b = root / "framework-b"
             fw_a.mkdir(parents=True, exist_ok=True)
@@ -221,7 +221,7 @@ class TestBlueprintModules(unittest.TestCase):
             (fw_a / "two.md").write_text("json csv html plugin module unittest", encoding="utf-8")
             (fw_b / "only.txt").write_text("sqlite threadpool queue pdf xlsx", encoding="utf-8")
 
-            profiles = scan_framework_capabilities(root)
+            profiles = scan_source_capabilities(root)
             gap = build_capability_gap_report(profiles)
             markdown = render_capability_markdown(profiles)
             report_path = write_capability_report(root / "report.md", build_pack=False)
@@ -231,9 +231,9 @@ class TestBlueprintModules(unittest.TestCase):
         self.assertIn("Recommendations", markdown)
         self.assertTrue(Path(report_path).name.endswith(".md"))
 
-    def test_reverse_engineering_capability_pack_generation(self):
+    def test_source_capability_pack_generation(self):
         with TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir) / "reverse-engineering-temp"
+            root = Path(temp_dir) / "intel-sources"
             fw_a = root / "framework-a"
             fw_b = root / "framework-b"
             fw_a.mkdir(parents=True, exist_ok=True)
@@ -293,7 +293,7 @@ class TestBlueprintModules(unittest.TestCase):
             "anomalies": ["weak_identity_overlap"],
         }
 
-        with patch("core.reporting.generate_html", return_value="dashboard.html") as mocked_generate:
+        with patch("core.artifacts.reporting.generate_html", return_value="dashboard.html") as mocked_generate:
             dashboard_path = generator.generate_html_dashboard(fused_data)
         self.assertEqual(dashboard_path, "dashboard.html")
         mocked_generate.assert_called_once()
@@ -346,3 +346,6 @@ class TestBlueprintModules(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+

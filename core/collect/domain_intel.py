@@ -11,8 +11,8 @@ from typing import Any
 
 import aiohttp
 
-from core.http_resilience import RetryPolicy, request_text_with_retries
-from core.thread_engine import run_blocking
+from core.collect.http_resilience import RetryPolicy, request_text_with_retries
+from core.engines.thread_engine import run_blocking
 
 
 @dataclass(frozen=True)
@@ -289,3 +289,5 @@ async def scan_domain_surface(
         "rdap": rdap_data,
         "scan_notes": notes,
     }
+
+

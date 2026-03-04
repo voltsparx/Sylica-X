@@ -7,8 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from core.html_report import generate_html
-from core.storage import ensure_output_tree, sanitize_target
+from core.artifacts.html_report import generate_html
+from core.artifacts.storage import ensure_output_tree, sanitize_target
 
 
 def _fused_target(value: dict[str, Any]) -> str:
@@ -91,3 +91,4 @@ class ReportGenerator:
             f"Anomalies={anomalies}\n"
         )
         return summary
+

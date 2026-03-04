@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from core.http_resilience import RetryPolicy, request_text_with_retries
+from core.collect.http_resilience import RetryPolicy, request_text_with_retries
 
 
 class _FakeResponse:
@@ -62,7 +62,7 @@ class TestHttpResilience(unittest.IsolatedAsyncioTestCase):
             ]
         )
 
-        with patch("core.http_resilience.asyncio.sleep", new=AsyncMock()) as mocked_sleep:
+        with patch("core.collect.http_resilience.asyncio.sleep", new=AsyncMock()) as mocked_sleep:
             result = await request_text_with_retries(
                 session,
                 method="GET",
@@ -78,7 +78,7 @@ class TestHttpResilience(unittest.IsolatedAsyncioTestCase):
 
     async def test_returns_error_after_timeout_retries(self):
         session = _FakeSession([asyncio.TimeoutError(), asyncio.TimeoutError()])
-        with patch("core.http_resilience.asyncio.sleep", new=AsyncMock()):
+        with patch("core.collect.http_resilience.asyncio.sleep", new=AsyncMock()):
             result = await request_text_with_retries(
                 session,
                 method="GET",
@@ -92,7 +92,7 @@ class TestHttpResilience(unittest.IsolatedAsyncioTestCase):
 
     async def test_does_not_retry_non_retryable_status(self):
         session = _FakeSession([_FakeResponse(status=404, url="https://missing.example", body="missing")])
-        with patch("core.http_resilience.asyncio.sleep", new=AsyncMock()) as mocked_sleep:
+        with patch("core.collect.http_resilience.asyncio.sleep", new=AsyncMock()) as mocked_sleep:
             result = await request_text_with_retries(
                 session,
                 method="GET",
@@ -108,3 +108,5 @@ class TestHttpResilience(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+

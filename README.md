@@ -2,7 +2,7 @@
 
 **Silica-X** is an OSINT framework for **profile intelligence**, **domain-surface reconnaissance**, and **fused correlation reporting**.<br><br>
 <p align="center">
-This tool is built by stitching together the digital bones of open-source intelligence—reverse-engineering how information flows through public APIs while standing on the shoulders of established OSINT frameworks.
+This tool is built by stitching together public OSINT workflows and studying how data flows through open APIs while standing on the shoulders of established frameworks.
 </p>
 
 <p align="center">
@@ -24,8 +24,8 @@ This tool is built by stitching together the digital bones of open-source intell
 * 🔎 Profile scan workflow (`profile`, `scan`, `persona`, `social`)
 * 🌐 Domain surface workflow (`surface`, `domain`, `asset`)
 * 🔗 Fusion workflow (`fusion`, `full`, `combo`)
-* 🧩 Pluggable intelligence system (`core/signal_forge.py` + `plugins/`)
-* 🧹 Pluggable filtering system (`core/signal_sieve.py` + `filters/`)
+* 🧩 Pluggable intelligence system (`core/extensions/signal_forge.py` + `plugins/`)
+* 🧹 Pluggable filtering system (`core/extensions/signal_sieve.py` + `filters/`)
 * 🖥️ Prompt mode with keyword shortcuts, metasploit-style context prompt, and session defaults
 * 📖 Explain system (`--explain`, `explain`) for command/plugin/filter onboarding
 * 📊 HTML, JSON, CLI, CSV, and run-log outputs
@@ -35,21 +35,22 @@ This tool is built by stitching together the digital bones of open-source intell
 
 ## 🛠️ Engineering Upgrades Included
 
-* Parser construction split into `core/cli_parsers.py`
-* Shared prompt presets/keywords split into `core/cli_config.py`
+* Parser construction split into `core/interface/cli_parsers.py`
+* Shared prompt presets/keywords split into `core/interface/cli_config.py`
 * Prompt command handlers split into `core/prompt_handlers.py`
-* Centralized about/description renderer in `core/about.py`
-* Centralized explain renderer in `core/explain.py`
-* ⚡ Native async engine (`core/async_engine.py`) with adaptive batch concurrency
-* 🧵 Native thread engine (`core/thread_engine.py`) with shared executor + adaptive batch concurrency
-* 🧠 Hybrid parallel orchestration engine (`core/parallel_engine.py`) for async + thread + CPU execution
-* 🔗 Fusion analytics engine (`core/fusion_engine.py`) with confidence scoring, anomaly flags, and graph output
-* 🧩 Async plugin manager (`core/plugin_manager.py`) with chaining support and dependency checks
-* 🌐 Shared resilient HTTP layer (`core/http_resilience.py`) with retry/backoff and `Retry-After` handling
-* 💡 Prompt intelligence + advisor modules (`core/prompt_intelligence.py`, `core/intelligence_advisor.py`)
-* 🔐 Credential + security managers (`core/credential_manager.py`, `core/security_manager.py`)
-* 📈 Reporting/scheduler/CLI helpers (`core/reporting.py`, `core/scheduler.py`, `core/cli_ui.py`)
-* 🗺️ Reverse-engineering map integration (`core/reverse_engineering.py`)
+* Centralized about/description renderer in `core/interface/about.py`
+* Centralized explain renderer in `core/interface/explain.py`
+* ⚡ Native async engine (`core/engines/async_engine.py`) with adaptive batch concurrency
+* 🧵 Native thread engine (`core/engines/thread_engine.py`) with shared executor + adaptive batch concurrency
+* 🧠 Hybrid parallel orchestration engine (`core/engines/parallel_engine.py`) for async + thread + CPU execution
+* 🔗 Fusion analytics engine (`core/engines/fusion_engine.py`) with confidence scoring, anomaly flags, and graph output
+* 🧩 Async plugin manager (`core/extensions/plugin_manager.py`) with chaining support and dependency checks
+* 🌐 Shared resilient HTTP layer (`core/collect/http_resilience.py`) with retry/backoff and `Retry-After` handling
+* 💡 Prompt intelligence + advisor modules (`core/intel/prompt_engine.py`, `core/intel/advisor.py`)
+* 📁 Categorized core layout (`core/interface/`, `core/collect/`, `core/analyze/`, `core/extensions/`, `core/artifacts/`, `core/foundation/`, `core/engines/`, `core/intel/`)
+* 🔐 Credential + security managers (`core/foundation/credential_manager.py`, `core/foundation/security_manager.py`)
+* 📈 Reporting/scheduler/CLI helpers (`core/artifacts/reporting.py`, `core/engines/scheduler.py`, `core/interface/cli_ui.py`)
+* 🗺️ Capability-source map integration (`core/intel/capability_matrix.py`)
 * 🧬 Silica capability intel generated under `intel/` (`baseline/`, `features/`, `plans/`, `wiring/`)
 * 🧩 Plugin/filter intel views generated in `plugins/_intel/` and `filters/_intel/`
 * 🔒 TLS verification enabled by default in scan collectors
@@ -318,10 +319,10 @@ python -m mypy
 python -m compileall -q core filters plugins tests silica-x.py
 ```
 
-### Reverse-engineering capability scan
+### Capability source scan
 
 ```bash
-python -c "from core.reverse_engineering import write_capability_report; print(write_capability_report())"
+python -c "from core.intel.capability_matrix import write_capability_report; print(write_capability_report())"
 ```
 
 Writes a capability summary to `docs/silica-capability-scan.md`.
@@ -354,3 +355,5 @@ Generates/refreshes:
 ---
 
 ⭐ If you find Silica-X useful, consider starring the repository!
+
+

@@ -1,7 +1,7 @@
 import unittest
 
-from core.async_engine import ASYNC_TASKS, recommend_async_concurrency
-from core.thread_engine import THREAD_TASKS, WORKFLOWS, recommend_thread_concurrency, workflow_plan
+from core.engines.async_engine import ASYNC_TASKS, recommend_async_concurrency
+from core.engines.thread_engine import THREAD_TASKS, WORKFLOWS, recommend_thread_concurrency, workflow_plan
 
 
 class TestNativeEngines(unittest.TestCase):
@@ -35,3 +35,4 @@ class TestNativeEngines(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -5,12 +5,12 @@ from __future__ import annotations
 import argparse
 from typing import Callable
 
-from core.cli_config import PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
-from core.colors import Colors, c
-from core.selector_keys import selector_keys
-from core.session_state import PromptSessionState
-from core.signal_forge import list_plugin_descriptors
-from core.signal_sieve import list_filter_descriptors
+from core.interface.cli_config import PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
+from core.foundation.colors import Colors, c
+from core.extensions.selector_keys import selector_keys
+from core.foundation.session_state import PromptSessionState
+from core.extensions.signal_forge import list_plugin_descriptors
+from core.extensions.signal_sieve import list_filter_descriptors
 
 
 VALID_MODULES = {"profile", "surface", "fusion"}
@@ -302,3 +302,4 @@ def handle_prompt_use_command(
             )
 
     return True
+

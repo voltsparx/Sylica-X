@@ -1,47 +1,47 @@
 {
   "async_engine": [
-    "core/async_engine.py",
-    "core/scanner.py",
-    "core/domain_intel.py"
+    "core/engines/async_engine.py",
+    "core/collect/scanner.py",
+    "core/collect/domain_intel.py"
   ],
   "retry_backoff": [
-    "core/http_resilience.py",
-    "core/scanner.py",
-    "core/domain_intel.py"
+    "core/collect/http_resilience.py",
+    "core/collect/scanner.py",
+    "core/collect/domain_intel.py"
   ],
   "rate_limit": [
-    "core/async_engine.py",
-    "core/thread_engine.py",
-    "core/parallel_engine.py"
+    "core/engines/async_engine.py",
+    "core/engines/thread_engine.py",
+    "core/engines/parallel_engine.py"
   ],
   "caching": [
-    "core/fusion_engine.py",
-    "core/reverse_engineering.py",
-    "core/storage.py"
+    "core/engines/fusion_engine.py",
+    "core/intel/capability_matrix.py",
+    "core/artifacts/storage.py"
   ],
   "workspace_db": [
-    "core/storage.py",
-    "core/output.py",
-    "core/correlator.py"
+    "core/artifacts/storage.py",
+    "core/artifacts/output.py",
+    "core/analyze/correlator.py"
   ],
   "plugin_module_system": [
-    "core/plugin_manager.py",
-    "core/signal_forge.py",
-    "core/signal_sieve.py"
+    "core/extensions/plugin_manager.py",
+    "core/extensions/signal_forge.py",
+    "core/extensions/signal_sieve.py"
   ],
   "parallel_workers": [
-    "core/parallel_engine.py",
-    "core/thread_engine.py"
+    "core/engines/parallel_engine.py",
+    "core/engines/thread_engine.py"
   ],
   "exports_reporting": [
-    "core/reporting.py",
-    "core/output.py",
-    "core/html_report.py"
+    "core/artifacts/reporting.py",
+    "core/artifacts/output.py",
+    "core/artifacts/html_report.py"
   ],
   "tor_proxy_ops": [
-    "core/network.py",
-    "core/security_manager.py",
-    "core/anonymity.py"
+    "core/collect/network.py",
+    "core/foundation/security_manager.py",
+    "core/collect/anonymity.py"
   ],
   "test_coverage": [
     "tests/"

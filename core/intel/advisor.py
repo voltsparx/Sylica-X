@@ -7,14 +7,14 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.prompt_intelligence import PromptEngine
-from core.reverse_engineering import (
+from core.intel.prompt_engine import PromptEngine
+from core.intel.capability_matrix import (
     DEFAULT_CAPABILITY_PACK_ROOT,
-    DEFAULT_MAP_PATH,
+    DEFAULT_SOURCE_MAP_PATH,
     build_capability_pack,
-    load_reverse_engineering_map,
+    load_source_map,
     recommend_capability_priorities,
-    recommend_research_focus,
+    recommend_focus_modules,
 )
 
 
@@ -30,7 +30,7 @@ class IntelligenceAdvisor:
     """Provides recommendations from local run history and research map insights."""
 
     history: list[dict[str, Any] | str] = field(default_factory=list)
-    reverse_map_path: str = str(DEFAULT_MAP_PATH)
+    source_map_path: str = str(DEFAULT_SOURCE_MAP_PATH)
     capability_index_path: str = str(DEFAULT_CAPABILITY_PACK_ROOT / "index.json")
     auto_build_capability_pack: bool = False
 
@@ -71,8 +71,8 @@ class IntelligenceAdvisor:
             if dominant_scope not in {"profile", "surface", "fusion"}:
                 dominant_scope = "profile"
 
-        reverse_map = load_reverse_engineering_map(self.reverse_map_path)
-        research = recommend_research_focus(dominant_scope, reverse_map)
+        source_map = load_source_map(self.source_map_path)
+        research = recommend_focus_modules(dominant_scope, source_map)
         capability_hints = recommend_capability_priorities(
             dominant_scope,
             capability_index_path=self.capability_index_path,
@@ -113,3 +113,4 @@ class IntelligenceAdvisor:
 
         raw = avg_confidence * 0.55 + overlap * 0.35 + min(found_profiles, 10.0) * 2.5 - risk_score * 0.3
         return max(0.0, min(1.0, raw / 100.0))
+

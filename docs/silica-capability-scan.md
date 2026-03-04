@@ -11,7 +11,7 @@ Frameworks scanned: 8
 | recon-ng | 74 | 0 | 1 | 2 | 8 | 17 | 3 | 30 | 26 | 0 |
 | sherlock | 87 | 0 | 1 | 2 | 11 | 20 | 1 | 26 | 37 | 18 |
 | spiderfoot | 853 | 5 | 6 | 25 | 123 | 735 | 16 | 205 | 335 | 452 |
-| theHarvester | 163 | 49 | 12 | 21 | 18 | 43 | 6 | 71 | 100 | 23 |
+| theHarvester | 38 | 2 | 3 | 0 | 10 | 6 | 0 | 7 | 13 | 5 |
 
 ## Recommendations
 

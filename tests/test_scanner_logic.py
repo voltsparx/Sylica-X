@@ -1,7 +1,7 @@
 import unittest
 
-from core.platform_schema import PlatformConfig
-from core.scanner import evaluate_presence
+from core.collect.platform_schema import PlatformConfig
+from core.collect.scanner import evaluate_presence
 
 
 class TestScannerDecisionLogic(unittest.TestCase):
@@ -84,3 +84,4 @@ class TestScannerDecisionLogic(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -2,11 +2,11 @@
   "feature": "workspace_db",
   "description": "Queryable persistent storage for historical OSINT artifacts.",
   "target_modules": [
-    "core/storage.py",
-    "core/output.py",
-    "core/correlator.py"
+    "core/artifacts/storage.py",
+    "core/artifacts/output.py",
+    "core/analyze/correlator.py"
   ],
-  "signal_total": 27,
+  "signal_total": 25,
   "coverage_ratio": 0.75,
   "strength": "core",
   "priority": "harden",

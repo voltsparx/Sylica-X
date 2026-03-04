@@ -1,4 +1,4 @@
-"""Reverse-engineering knowledge map helpers for Silica-X."""
+"""Capability source map helpers for Silica-X."""
 
 from __future__ import annotations
 
@@ -11,7 +11,8 @@ import re
 from typing import Sequence
 
 
-DEFAULT_MAP_PATH = Path("reverse-engineering-temp/reverse-engineering-tools-map.txt")
+DEFAULT_SOURCE_SCAN_ROOT = Path("intel-sources")
+DEFAULT_SOURCE_MAP_PATH = DEFAULT_SOURCE_SCAN_ROOT / "tools-map.txt"
 DEFAULT_CAPABILITY_PACK_ROOT = Path("intel")
 DEFAULT_PLUGIN_CAPABILITY_ROOT = Path("plugins/_intel")
 DEFAULT_FILTER_CAPABILITY_ROOT = Path("filters/_intel")
@@ -19,7 +20,7 @@ DEFAULT_FILTER_CAPABILITY_ROOT = Path("filters/_intel")
 
 @dataclass(frozen=True)
 class ToolInsight:
-    """Structured metadata extracted from reverse-engineering study notes."""
+    """Structured metadata extracted from capability source study notes."""
 
     name: str
     bullets: tuple[str, ...]
@@ -27,7 +28,7 @@ class ToolInsight:
 
 
 @dataclass(frozen=True)
-class ReverseEngineeringMap:
+class CapabilitySourceMap:
     """Container for parsed tool insights."""
 
     tools: tuple[ToolInsight, ...]
@@ -71,15 +72,19 @@ _FEATURE_DESCRIPTIONS: dict[str, str] = {
     "test_coverage": "Automated tests and confidence gates for regressions.",
 }
 _FEATURE_TARGET_MODULES: dict[str, tuple[str, ...]] = {
-    "async_engine": ("core/async_engine.py", "core/scanner.py", "core/domain_intel.py"),
-    "retry_backoff": ("core/http_resilience.py", "core/scanner.py", "core/domain_intel.py"),
-    "rate_limit": ("core/async_engine.py", "core/thread_engine.py", "core/parallel_engine.py"),
-    "caching": ("core/fusion_engine.py", "core/reverse_engineering.py", "core/storage.py"),
-    "workspace_db": ("core/storage.py", "core/output.py", "core/correlator.py"),
-    "plugin_module_system": ("core/plugin_manager.py", "core/signal_forge.py", "core/signal_sieve.py"),
-    "parallel_workers": ("core/parallel_engine.py", "core/thread_engine.py"),
-    "exports_reporting": ("core/reporting.py", "core/output.py", "core/html_report.py"),
-    "tor_proxy_ops": ("core/network.py", "core/security_manager.py", "core/anonymity.py"),
+    "async_engine": ("core/engines/async_engine.py", "core/collect/scanner.py", "core/collect/domain_intel.py"),
+    "retry_backoff": ("core/collect/http_resilience.py", "core/collect/scanner.py", "core/collect/domain_intel.py"),
+    "rate_limit": (
+        "core/engines/async_engine.py",
+        "core/engines/thread_engine.py",
+        "core/engines/parallel_engine.py",
+    ),
+    "caching": ("core/engines/fusion_engine.py", "core/intel/capability_matrix.py", "core/artifacts/storage.py"),
+    "workspace_db": ("core/artifacts/storage.py", "core/artifacts/output.py", "core/analyze/correlator.py"),
+    "plugin_module_system": ("core/extensions/plugin_manager.py", "core/extensions/signal_forge.py", "core/extensions/signal_sieve.py"),
+    "parallel_workers": ("core/engines/parallel_engine.py", "core/engines/thread_engine.py"),
+    "exports_reporting": ("core/artifacts/reporting.py", "core/artifacts/output.py", "core/artifacts/html_report.py"),
+    "tor_proxy_ops": ("core/collect/network.py", "core/foundation/security_manager.py", "core/collect/anonymity.py"),
     "test_coverage": ("tests/",),
 }
 _WORKFLOW_FEATURES: dict[str, tuple[str, ...]] = {
@@ -128,6 +133,14 @@ def _dedupe(values: Sequence[str]) -> list[str]:
     return ordered
 
 
+def _resolve_source_map_path(path: str | Path) -> Path:
+    return Path(path)
+
+
+def _resolve_source_scan_root(root: str | Path) -> Path:
+    return Path(root)
+
+
 def _workflow_capability_plan(
     workflow: str,
     features: Sequence[str],
@@ -146,12 +159,13 @@ def _workflow_capability_plan(
     return plan
 
 
-def load_reverse_engineering_map(path: str | Path = DEFAULT_MAP_PATH) -> ReverseEngineeringMap:
-    """Parse the reverse-engineering map text file into structured entries."""
+def load_source_map(path: str | Path = DEFAULT_SOURCE_MAP_PATH) -> CapabilitySourceMap:
+    """Parse the capability source map text file into structured entries."""
 
-    source_path = Path(path)
+    requested_path = Path(path)
+    source_path = _resolve_source_map_path(requested_path)
     if not source_path.exists():
-        return ReverseEngineeringMap(tools=(), source_path=source_path)
+        return CapabilitySourceMap(tools=(), source_path=requested_path)
 
     tools: list[ToolInsight] = []
     current_name: str | None = None
@@ -204,36 +218,36 @@ def load_reverse_engineering_map(path: str | Path = DEFAULT_MAP_PATH) -> Reverse
             )
         )
 
-    return ReverseEngineeringMap(tools=tuple(tools), source_path=source_path)
+    return CapabilitySourceMap(tools=tuple(tools), source_path=requested_path)
 
 
-def map_tools_to_silica_modules(
-    mapping: ReverseEngineeringMap,
+def map_sources_to_core_modules(
+    mapping: CapabilitySourceMap,
 ) -> dict[str, list[str]]:
     """Map external framework strengths to Silica-X module focus areas."""
 
     module_map: dict[str, list[str]] = {
-        "core/scanner.py": [],
-        "core/domain_intel.py": [],
-        "core/signal_forge.py": [],
-        "core/signal_sieve.py": [],
-        "core/output.py": [],
-        "core/html_report.py": [],
+        "core/collect/scanner.py": [],
+        "core/collect/domain_intel.py": [],
+        "core/extensions/signal_forge.py": [],
+        "core/extensions/signal_sieve.py": [],
+        "core/artifacts/output.py": [],
+        "core/artifacts/html_report.py": [],
     }
 
     for tool in mapping.tools:
         lowered = " ".join((tool.name, *tool.bullets)).lower()
         if any(token in lowered for token in ("username", "profile", "account", "sherlock", "maigret")):
-            module_map["core/scanner.py"].append(tool.name)
+            module_map["core/collect/scanner.py"].append(tool.name)
         if any(token in lowered for token in ("domain", "subdomain", "network", "amass", "harvester")):
-            module_map["core/domain_intel.py"].append(tool.name)
+            module_map["core/collect/domain_intel.py"].append(tool.name)
         if any(token in lowered for token in ("modular", "module", "plugin", "recon-ng", "spiderfoot")):
-            module_map["core/signal_forge.py"].append(tool.name)
+            module_map["core/extensions/signal_forge.py"].append(tool.name)
         if any(token in lowered for token in ("correlation", "workspace", "normalization", "datasploit")):
-            module_map["core/signal_sieve.py"].append(tool.name)
+            module_map["core/extensions/signal_sieve.py"].append(tool.name)
         if any(token in lowered for token in ("output", "json", "html", "report", "cli")):
-            module_map["core/output.py"].append(tool.name)
-            module_map["core/html_report.py"].append(tool.name)
+            module_map["core/artifacts/output.py"].append(tool.name)
+            module_map["core/artifacts/html_report.py"].append(tool.name)
 
     # De-duplicate while preserving insertion order.
     deduped: dict[str, list[str]] = {}
@@ -249,33 +263,33 @@ def map_tools_to_silica_modules(
     return deduped
 
 
-def recommend_research_focus(workflow: str, mapping: ReverseEngineeringMap) -> list[str]:
-    """Return human-readable research recommendations for a workflow area."""
+def recommend_focus_modules(workflow: str, mapping: CapabilitySourceMap) -> list[str]:
+    """Return human-readable source-study recommendations for a workflow area."""
 
-    module_map = map_tools_to_silica_modules(mapping)
+    module_map = map_sources_to_core_modules(mapping)
     key = workflow.strip().lower()
     if key == "profile":
-        targets = module_map.get("core/scanner.py", [])
+        targets = module_map.get("core/collect/scanner.py", [])
     elif key == "surface":
-        targets = module_map.get("core/domain_intel.py", [])
+        targets = module_map.get("core/collect/domain_intel.py", [])
     elif key == "fusion":
-        targets = module_map.get("core/signal_sieve.py", []) + module_map.get("core/output.py", [])
+        targets = module_map.get("core/extensions/signal_sieve.py", []) + module_map.get("core/artifacts/output.py", [])
     else:
         targets = []
 
     if not targets:
-        return ["No mapped research target yet."]
+        return ["No mapped source focus target yet."]
     return [f"Study patterns from: {', '.join(targets)}"]
 
 
-def scan_framework_capabilities(
-    root: str | Path = "reverse-engineering-temp",
+def scan_source_capabilities(
+    root: str | Path = DEFAULT_SOURCE_SCAN_ROOT,
     *,
     max_file_bytes: int = 1_500_000,
 ) -> tuple[FrameworkCapabilityProfile, ...]:
-    """Scan local reverse-engineering trees for capability signals."""
+    """Scan local source trees for capability signals."""
 
-    base = Path(root)
+    base = _resolve_source_scan_root(root)
     if not base.exists():
         return ()
 
@@ -316,7 +330,7 @@ def build_capability_gap_report(
         return {
             "frameworks": 0,
             "leaders": {},
-            "recommendations": ["No reverse-engineering frameworks were discovered."],
+            "recommendations": ["No capability source frameworks were discovered."],
         }
 
     leaders: dict[str, dict[str, object]] = {}
@@ -409,7 +423,7 @@ def write_capability_report(
 ) -> Path:
     """Scan frameworks and write markdown capability report to disk."""
 
-    profiles = scan_framework_capabilities()
+    profiles = scan_source_capabilities()
     report = render_capability_markdown(profiles)
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -458,7 +472,7 @@ def _build_plugin_capability_views(
     *,
     output_root: Path,
 ) -> Path:
-    from core.signal_forge import list_plugin_descriptors
+    from core.extensions.signal_forge import list_plugin_descriptors
 
     plans_dir = output_root / "plans"
     plans_dir.mkdir(parents=True, exist_ok=True)
@@ -507,7 +521,7 @@ def _build_filter_capability_views(
     *,
     output_root: Path,
 ) -> Path:
-    from core.signal_sieve import list_filter_descriptors
+    from core.extensions.signal_sieve import list_filter_descriptors
 
     plans_dir = output_root / "plans"
     plans_dir.mkdir(parents=True, exist_ok=True)
@@ -552,7 +566,7 @@ def _build_filter_capability_views(
 
 
 def build_capability_pack(
-    root: str | Path = "reverse-engineering-temp",
+    root: str | Path = DEFAULT_SOURCE_SCAN_ROOT,
     *,
     output_root: str | Path = DEFAULT_CAPABILITY_PACK_ROOT,
     plugin_output_root: str | Path = DEFAULT_PLUGIN_CAPABILITY_ROOT,
@@ -560,7 +574,7 @@ def build_capability_pack(
 ) -> Path:
     """Build internal intel assets from scanned capability signals."""
 
-    profiles = scan_framework_capabilities(root)
+    profiles = scan_source_capabilities(root)
     out_root = Path(output_root)
     baseline_dir = out_root / "baseline"
     features_dir = out_root / "features"
@@ -729,3 +743,4 @@ def recommend_capability_priorities(
         action = str(feature_data.get("action") or _feature_action(str(feature)))
         hints.append(f"Capability priority ({feature}, {priority}): {action}")
     return hints[:3]
+

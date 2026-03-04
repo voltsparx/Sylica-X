@@ -1,4 +1,4 @@
-# core/colors.py
+# core/foundation/colors.py
 
 class Colors:
     RESET = "\033[0m"
@@ -15,3 +15,4 @@ class Colors:
 
 def c(text, color):
     return f"{color}{text}{Colors.RESET}"
+

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from core.metadata import PROJECT_NAME, VERSION
-from core.signal_forge import list_plugin_descriptors
-from core.signal_sieve import list_filter_descriptors
+from core.foundation.metadata import PROJECT_NAME, VERSION
+from core.extensions.signal_forge import list_plugin_descriptors
+from core.extensions.signal_sieve import list_filter_descriptors
 
 
 COMMAND_EXPLANATIONS: dict[str, str] = {
@@ -65,3 +65,4 @@ def build_explain_text() -> str:
     lines.append("- profile/surface/fusion share filter flags: --filter, --all-filters, --list-filters.")
     lines.append("- explain command and --explain flag produce the same explain output.")
     return "\n".join(lines)
+

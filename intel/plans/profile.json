@@ -41,18 +41,18 @@
     }
   ],
   "target_modules": [
-    "core/async_engine.py",
-    "core/scanner.py",
-    "core/domain_intel.py",
-    "core/http_resilience.py",
-    "core/thread_engine.py",
-    "core/parallel_engine.py",
-    "core/plugin_manager.py",
-    "core/signal_forge.py",
-    "core/signal_sieve.py",
-    "core/reporting.py",
-    "core/output.py",
-    "core/html_report.py",
+    "core/engines/async_engine.py",
+    "core/collect/scanner.py",
+    "core/collect/domain_intel.py",
+    "core/collect/http_resilience.py",
+    "core/engines/thread_engine.py",
+    "core/engines/parallel_engine.py",
+    "core/extensions/plugin_manager.py",
+    "core/extensions/signal_forge.py",
+    "core/extensions/signal_sieve.py",
+    "core/artifacts/reporting.py",
+    "core/artifacts/output.py",
+    "core/artifacts/html_report.py",
     "tests/"
   ]
 }

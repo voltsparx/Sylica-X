@@ -2,11 +2,11 @@
   "feature": "plugin_module_system",
   "description": "Dynamic module/plugin discovery and orchestration.",
   "target_modules": [
-    "core/plugin_manager.py",
-    "core/signal_forge.py",
-    "core/signal_sieve.py"
+    "core/extensions/plugin_manager.py",
+    "core/extensions/signal_forge.py",
+    "core/extensions/signal_sieve.py"
   ],
-  "signal_total": 1000,
+  "signal_total": 963,
   "coverage_ratio": 1.0,
   "strength": "core",
   "priority": "harden",

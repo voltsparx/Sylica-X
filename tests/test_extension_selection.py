@@ -1,7 +1,7 @@
 import unittest
 
-from core.signal_forge import execute_plugins
-from core.signal_sieve import execute_filters
+from core.extensions.signal_forge import execute_plugins
+from core.extensions.signal_sieve import execute_filters
 
 
 class TestExtensionSelectionByName(unittest.TestCase):
@@ -41,3 +41,4 @@ class TestExtensionSelectionByName(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

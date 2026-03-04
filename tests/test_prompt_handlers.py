@@ -8,7 +8,7 @@ from core.prompt_handlers import (
     keyword_to_command,
     rewrite_tokens_with_keywords,
 )
-from core.session_state import PromptSessionState
+from core.foundation.session_state import PromptSessionState
 
 
 class TestPromptHandlers(unittest.TestCase):
@@ -177,3 +177,4 @@ class TestPromptHandlers(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

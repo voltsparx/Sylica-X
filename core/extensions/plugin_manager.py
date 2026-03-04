@@ -7,9 +7,9 @@ import importlib
 import importlib.util
 from typing import Any
 
-from core.selector_keys import selector_keys
-from core.signal_forge import list_plugin_specs
-from core.thread_engine import run_blocking, run_blocking_batch
+from core.extensions.selector_keys import selector_keys
+from core.extensions.signal_forge import list_plugin_specs
+from core.engines.thread_engine import run_blocking, run_blocking_batch
 
 
 @dataclass(frozen=True)
@@ -221,3 +221,5 @@ class PluginManager:
             previous_plugin_data[plugin.plugin_id] = result["data"]
 
         return results, errors
+
+

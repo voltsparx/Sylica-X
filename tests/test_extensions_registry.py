@@ -1,7 +1,7 @@
 import unittest
 
-from core.signal_sieve import list_filter_descriptors
-from core.signal_forge import list_plugin_descriptors
+from core.extensions.signal_sieve import list_filter_descriptors
+from core.extensions.signal_forge import list_plugin_descriptors
 
 
 class TestExtensionsRegistry(unittest.TestCase):
@@ -42,3 +42,4 @@ class TestExtensionsRegistry(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

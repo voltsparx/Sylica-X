@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from core.scanner import DEFAULT_MAX_CONCURRENCY, DEFAULT_TIMEOUT_SECONDS
+from core.collect.scanner import DEFAULT_MAX_CONCURRENCY, DEFAULT_TIMEOUT_SECONDS
 
 
 PROFILE_PRESETS = {
@@ -35,3 +35,4 @@ PROMPT_KEYWORDS = {
     "help": {"help", "-h", "--help"},
     "exit": {"exit", "quit"},
 }
+

@@ -3,7 +3,7 @@ import time
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from core.domain_intel import HttpArtifact, normalize_domain, scan_domain_surface
+from core.collect.domain_intel import HttpArtifact, normalize_domain, scan_domain_surface
 
 
 class TestDomainIntel(unittest.IsolatedAsyncioTestCase):
@@ -31,10 +31,10 @@ class TestDomainIntel(unittest.IsolatedAsyncioTestCase):
             return {"handle": "HANDLE-1"}, None
 
         with (
-            patch("core.domain_intel._resolve_addresses", AsyncMock(return_value=["1.1.1.1"])),
-            patch("core.domain_intel._http_probe", new=fake_http_probe),
-            patch("core.domain_intel._load_ct_subdomains", new=fake_ct),
-            patch("core.domain_intel._load_rdap", new=fake_rdap),
+            patch("core.collect.domain_intel._resolve_addresses", AsyncMock(return_value=["1.1.1.1"])),
+            patch("core.collect.domain_intel._http_probe", new=fake_http_probe),
+            patch("core.collect.domain_intel._load_ct_subdomains", new=fake_ct),
+            patch("core.collect.domain_intel._load_rdap", new=fake_rdap),
         ):
             started = time.perf_counter()
             result = await scan_domain_surface(
@@ -53,3 +53,5 @@ class TestDomainIntel(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+

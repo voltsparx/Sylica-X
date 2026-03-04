@@ -4,7 +4,7 @@
   "target_modules": [
     "tests/"
   ],
-  "signal_total": 518,
+  "signal_total": 500,
   "coverage_ratio": 0.625,
   "strength": "established",
   "priority": "harden",

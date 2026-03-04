@@ -3,7 +3,7 @@ import os
 import shutil
 import unittest
 
-from core.platform_schema import PlatformValidationError, load_platforms
+from core.collect.platform_schema import PlatformValidationError, load_platforms
 
 
 class TestPlatformSchema(unittest.TestCase):
@@ -55,3 +55,4 @@ class TestPlatformSchema(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

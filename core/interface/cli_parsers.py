@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from typing import NoReturn
 
-from core.cli_config import PROFILE_PRESETS, SURFACE_PRESETS
+from core.interface.cli_config import PROFILE_PRESETS, SURFACE_PRESETS
 
 
 class InteractiveArgumentParser(argparse.ArgumentParser):
@@ -402,3 +402,4 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
     _add_toggle_flags(wizard_parser, "proxy", "HTTP proxy routing")
 
     return parser
+

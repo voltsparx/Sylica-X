@@ -2,11 +2,11 @@
   "feature": "async_engine",
   "description": "Asynchronous request orchestration and non-blocking collectors.",
   "target_modules": [
-    "core/async_engine.py",
-    "core/scanner.py",
-    "core/domain_intel.py"
+    "core/engines/async_engine.py",
+    "core/collect/scanner.py",
+    "core/collect/domain_intel.py"
   ],
-  "signal_total": 85,
+  "signal_total": 38,
   "coverage_ratio": 0.625,
   "strength": "established",
   "priority": "harden",

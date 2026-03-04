@@ -5,16 +5,16 @@ from dataclasses import dataclass
 
 import aiohttp
 
-from core.async_engine import run_async_batch
-from core.extractor import (
+from core.engines.async_engine import run_async_batch
+from core.collect.extractor import (
     extract_bio,
     extract_contacts,
     extract_links,
     extract_username_mentions,
 )
-from core.http_resilience import RetryPolicy, request_text_with_retries
-from core.platform_schema import PlatformConfig, load_platforms
-from core.thread_engine import run_blocking_batch
+from core.collect.http_resilience import RetryPolicy, request_text_with_retries
+from core.collect.platform_schema import PlatformConfig, load_platforms
+from core.engines.thread_engine import run_blocking_batch
 
 
 HEADERS_POOL = [
@@ -351,3 +351,5 @@ async def scan_username(
         ]
         rows = await run_async_batch(tasks, concurrency_limit=effective_concurrency)
         return [row for row in rows if isinstance(row, dict)]
+
+

@@ -41,19 +41,19 @@
     }
   ],
   "target_modules": [
-    "core/async_engine.py",
-    "core/scanner.py",
-    "core/domain_intel.py",
-    "core/http_resilience.py",
-    "core/thread_engine.py",
-    "core/parallel_engine.py",
-    "core/storage.py",
-    "core/output.py",
-    "core/correlator.py",
-    "core/network.py",
-    "core/security_manager.py",
-    "core/anonymity.py",
-    "core/reporting.py",
-    "core/html_report.py"
+    "core/engines/async_engine.py",
+    "core/collect/scanner.py",
+    "core/collect/domain_intel.py",
+    "core/collect/http_resilience.py",
+    "core/engines/thread_engine.py",
+    "core/engines/parallel_engine.py",
+    "core/artifacts/storage.py",
+    "core/artifacts/output.py",
+    "core/analyze/correlator.py",
+    "core/collect/network.py",
+    "core/foundation/security_manager.py",
+    "core/collect/anonymity.py",
+    "core/artifacts/reporting.py",
+    "core/artifacts/html_report.py"
   ]
 }

@@ -6,15 +6,15 @@ import json
 from collections import Counter
 from typing import Iterable
 
-from core.colors import Colors, c
-from core.metadata import framework_signature, utc_timestamp
-from core.profile_summary import (
+from core.foundation.colors import Colors, c
+from core.foundation.metadata import framework_signature, utc_timestamp
+from core.analyze.profile_summary import (
     error_profile_rows,
     focused_profile_rows,
     found_profile_rows,
     summarize_target_intel,
 )
-from core.storage import (
+from core.artifacts.storage import (
     cli_report_path,
     data_target_dir,
     ensure_output_tree,
@@ -540,3 +540,4 @@ def save_results(
     print(c(f"CLI report saved to {cli_path}", Colors.GREEN))
     print(c(f"Run log saved to {run_log}", Colors.GREEN))
     return str(json_path)
+

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from core.colors import Colors, c
-from core.metadata import PROJECT_NAME, VERSION
+from core.foundation.colors import Colors, c
+from core.foundation.metadata import PROJECT_NAME, VERSION
 
 
 def show_flag_help() -> None:
@@ -70,3 +70,4 @@ def show_prompt_help() -> None:
 def show_help() -> None:
     # Backward-compatible wrapper
     show_prompt_help()
+

@@ -2,8 +2,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from core.signal_forge import execute_plugins, list_plugin_discovery_errors
-from core.signal_sieve import execute_filters, list_filter_discovery_errors
+from core.extensions.signal_forge import execute_plugins, list_plugin_discovery_errors
+from core.extensions.signal_sieve import execute_filters, list_filter_discovery_errors
 
 
 class TestExtensionArchitecture(unittest.TestCase):
@@ -30,8 +30,8 @@ class TestExtensionArchitecture(unittest.TestCase):
             return fake_module
 
         with (
-            patch("core.signal_forge._iter_plugin_module_names", return_value=["module_file"]),
-            patch("core.signal_forge._load_plugin_module", side_effect=loader),
+            patch("core.extensions.signal_forge._iter_plugin_module_names", return_value=["module_file"]),
+            patch("core.extensions.signal_forge._load_plugin_module", side_effect=loader),
         ):
             results, errors = execute_plugins(
                 scope="profile",
@@ -69,8 +69,8 @@ class TestExtensionArchitecture(unittest.TestCase):
             return fake_module
 
         with (
-            patch("core.signal_sieve._iter_filter_module_names", return_value=["module_file"]),
-            patch("core.signal_sieve._load_filter_module", side_effect=loader),
+            patch("core.extensions.signal_sieve._iter_filter_module_names", return_value=["module_file"]),
+            patch("core.extensions.signal_sieve._load_filter_module", side_effect=loader),
         ):
             results, errors = execute_filters(
                 scope="profile",
@@ -87,8 +87,8 @@ class TestExtensionArchitecture(unittest.TestCase):
 
     def test_plugin_discovery_errors_are_reported(self):
         with (
-            patch("core.signal_forge._iter_plugin_module_names", return_value=["broken_plugin"]),
-            patch("core.signal_forge._load_plugin_module", side_effect=RuntimeError("boom")),
+            patch("core.extensions.signal_forge._iter_plugin_module_names", return_value=["broken_plugin"]),
+            patch("core.extensions.signal_forge._load_plugin_module", side_effect=RuntimeError("boom")),
         ):
             errors = list_plugin_discovery_errors()
             _, exec_errors = execute_plugins(
@@ -103,8 +103,8 @@ class TestExtensionArchitecture(unittest.TestCase):
 
     def test_filter_discovery_errors_are_reported(self):
         with (
-            patch("core.signal_sieve._iter_filter_module_names", return_value=["broken_filter"]),
-            patch("core.signal_sieve._load_filter_module", side_effect=RuntimeError("boom")),
+            patch("core.extensions.signal_sieve._iter_filter_module_names", return_value=["broken_filter"]),
+            patch("core.extensions.signal_sieve._load_filter_module", side_effect=RuntimeError("boom")),
         ):
             errors = list_filter_discovery_errors()
             _, exec_errors = execute_filters(
@@ -120,3 +120,5 @@ class TestExtensionArchitecture(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+

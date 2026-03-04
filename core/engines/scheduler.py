@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 import time
 from typing import Any, Callable
 
-from core.thread_engine import run_blocking
+from core.engines.thread_engine import run_blocking
 
 
 @dataclass
@@ -68,3 +68,4 @@ class Scheduler:
     def send_alert(self, target: str, findings: dict[str, Any]) -> str:
         score = findings.get("risk_score") if isinstance(findings, dict) else None
         return f"[alert] target={target} risk_score={score if score is not None else '-'}"
+

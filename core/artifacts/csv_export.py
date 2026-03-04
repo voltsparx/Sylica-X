@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import json
 
-from core.storage import cli_report_path, legacy_results_json_path, results_json_path, sanitize_target
+from core.artifacts.storage import cli_report_path, legacy_results_json_path, results_json_path, sanitize_target
 
 
 def export_to_csv(target: str) -> str | None:
@@ -63,3 +63,4 @@ def export_to_csv(target: str) -> str | None:
 
     print(f"CSV exported -> {csv_file}")
     return str(csv_file)
+

@@ -1,18 +1,18 @@
 {
-  "generated_at_utc": "2026-03-04T10:02:49Z",
-  "source_root": "reverse-engineering-temp",
+  "generated_at_utc": "2026-03-04T10:58:58Z",
+  "source_root": "intel-sources",
   "source_count": 8,
-  "files_scanned": 1738,
+  "files_scanned": 1613,
   "features": {
     "async_engine": {
       "feature": "async_engine",
       "description": "Asynchronous request orchestration and non-blocking collectors.",
       "target_modules": [
-        "core/async_engine.py",
-        "core/scanner.py",
-        "core/domain_intel.py"
+        "core/engines/async_engine.py",
+        "core/collect/scanner.py",
+        "core/collect/domain_intel.py"
       ],
-      "signal_total": 85,
+      "signal_total": 38,
       "coverage_ratio": 0.625,
       "strength": "established",
       "priority": "harden",
@@ -22,11 +22,11 @@
       "feature": "retry_backoff",
       "description": "Resilient retries, transient-failure handling, and backoff behavior.",
       "target_modules": [
-        "core/http_resilience.py",
-        "core/scanner.py",
-        "core/domain_intel.py"
+        "core/collect/http_resilience.py",
+        "core/collect/scanner.py",
+        "core/collect/domain_intel.py"
       ],
-      "signal_total": 30,
+      "signal_total": 21,
       "coverage_ratio": 1.0,
       "strength": "core",
       "priority": "harden",
@@ -36,12 +36,12 @@
       "feature": "rate_limit",
       "description": "Concurrency/rate controls to reduce bans and unstable collection.",
       "target_modules": [
-        "core/async_engine.py",
-        "core/thread_engine.py",
-        "core/parallel_engine.py"
+        "core/engines/async_engine.py",
+        "core/engines/thread_engine.py",
+        "core/engines/parallel_engine.py"
       ],
-      "signal_total": 64,
-      "coverage_ratio": 0.875,
+      "signal_total": 43,
+      "coverage_ratio": 0.75,
       "strength": "core",
       "priority": "harden",
       "action": "Calibrate concurrency with adaptive workload backpressure."
@@ -50,11 +50,11 @@
       "feature": "caching",
       "description": "Result caching and TTL reuse to reduce duplicate calls and latency.",
       "target_modules": [
-        "core/fusion_engine.py",
-        "core/reverse_engineering.py",
-        "core/storage.py"
+        "core/engines/fusion_engine.py",
+        "core/intel/capability_matrix.py",
+        "core/artifacts/storage.py"
       ],
-      "signal_total": 289,
+      "signal_total": 281,
       "coverage_ratio": 1.0,
       "strength": "core",
       "priority": "harden",
@@ -64,11 +64,11 @@
       "feature": "workspace_db",
       "description": "Queryable persistent storage for historical OSINT artifacts.",
       "target_modules": [
-        "core/storage.py",
-        "core/output.py",
-        "core/correlator.py"
+        "core/artifacts/storage.py",
+        "core/artifacts/output.py",
+        "core/analyze/correlator.py"
       ],
-      "signal_total": 27,
+      "signal_total": 25,
       "coverage_ratio": 0.75,
       "strength": "core",
       "priority": "harden",
@@ -78,11 +78,11 @@
       "feature": "plugin_module_system",
       "description": "Dynamic module/plugin discovery and orchestration.",
       "target_modules": [
-        "core/plugin_manager.py",
-        "core/signal_forge.py",
-        "core/signal_sieve.py"
+        "core/extensions/plugin_manager.py",
+        "core/extensions/signal_forge.py",
+        "core/extensions/signal_sieve.py"
       ],
-      "signal_total": 1000,
+      "signal_total": 963,
       "coverage_ratio": 1.0,
       "strength": "core",
       "priority": "harden",
@@ -92,11 +92,11 @@
       "feature": "parallel_workers",
       "description": "Thread/process/queue worker models for throughput scaling.",
       "target_modules": [
-        "core/parallel_engine.py",
-        "core/thread_engine.py"
+        "core/engines/parallel_engine.py",
+        "core/engines/thread_engine.py"
       ],
-      "signal_total": 47,
-      "coverage_ratio": 0.875,
+      "signal_total": 41,
+      "coverage_ratio": 0.75,
       "strength": "core",
       "priority": "harden",
       "action": "Balance async/thread/process lanes by workload shape."
@@ -105,11 +105,11 @@
       "feature": "exports_reporting",
       "description": "Analyst exports and multi-format report outputs.",
       "target_modules": [
-        "core/reporting.py",
-        "core/output.py",
-        "core/html_report.py"
+        "core/artifacts/reporting.py",
+        "core/artifacts/output.py",
+        "core/artifacts/html_report.py"
       ],
-      "signal_total": 515,
+      "signal_total": 451,
       "coverage_ratio": 1.0,
       "strength": "core",
       "priority": "harden",
@@ -119,11 +119,11 @@
       "feature": "tor_proxy_ops",
       "description": "Proxy/Tor routing and anonymized collection channels.",
       "target_modules": [
-        "core/network.py",
-        "core/security_manager.py",
-        "core/anonymity.py"
+        "core/collect/network.py",
+        "core/foundation/security_manager.py",
+        "core/collect/anonymity.py"
       ],
-      "signal_total": 738,
+      "signal_total": 651,
       "coverage_ratio": 1.0,
       "strength": "core",
       "priority": "harden",
@@ -135,7 +135,7 @@
       "target_modules": [
         "tests/"
       ],
-      "signal_total": 518,
+      "signal_total": 500,
       "coverage_ratio": 0.625,
       "strength": "established",
       "priority": "harden",
@@ -186,18 +186,18 @@
         }
       ],
       "target_modules": [
-        "core/async_engine.py",
-        "core/scanner.py",
-        "core/domain_intel.py",
-        "core/http_resilience.py",
-        "core/thread_engine.py",
-        "core/parallel_engine.py",
-        "core/plugin_manager.py",
-        "core/signal_forge.py",
-        "core/signal_sieve.py",
-        "core/reporting.py",
-        "core/output.py",
-        "core/html_report.py",
+        "core/engines/async_engine.py",
+        "core/collect/scanner.py",
+        "core/collect/domain_intel.py",
+        "core/collect/http_resilience.py",
+        "core/engines/thread_engine.py",
+        "core/engines/parallel_engine.py",
+        "core/extensions/plugin_manager.py",
+        "core/extensions/signal_forge.py",
+        "core/extensions/signal_sieve.py",
+        "core/artifacts/reporting.py",
+        "core/artifacts/output.py",
+        "core/artifacts/html_report.py",
         "tests/"
       ]
     },
@@ -244,20 +244,20 @@
         }
       ],
       "target_modules": [
-        "core/async_engine.py",
-        "core/scanner.py",
-        "core/domain_intel.py",
-        "core/http_resilience.py",
-        "core/thread_engine.py",
-        "core/parallel_engine.py",
-        "core/storage.py",
-        "core/output.py",
-        "core/correlator.py",
-        "core/network.py",
-        "core/security_manager.py",
-        "core/anonymity.py",
-        "core/reporting.py",
-        "core/html_report.py"
+        "core/engines/async_engine.py",
+        "core/collect/scanner.py",
+        "core/collect/domain_intel.py",
+        "core/collect/http_resilience.py",
+        "core/engines/thread_engine.py",
+        "core/engines/parallel_engine.py",
+        "core/artifacts/storage.py",
+        "core/artifacts/output.py",
+        "core/analyze/correlator.py",
+        "core/collect/network.py",
+        "core/foundation/security_manager.py",
+        "core/collect/anonymity.py",
+        "core/artifacts/reporting.py",
+        "core/artifacts/html_report.py"
       ]
     },
     "fusion": {
@@ -303,18 +303,18 @@
         }
       ],
       "target_modules": [
-        "core/parallel_engine.py",
-        "core/thread_engine.py",
-        "core/plugin_manager.py",
-        "core/signal_forge.py",
-        "core/signal_sieve.py",
-        "core/storage.py",
-        "core/output.py",
-        "core/correlator.py",
-        "core/fusion_engine.py",
-        "core/reverse_engineering.py",
-        "core/reporting.py",
-        "core/html_report.py",
+        "core/engines/parallel_engine.py",
+        "core/engines/thread_engine.py",
+        "core/extensions/plugin_manager.py",
+        "core/extensions/signal_forge.py",
+        "core/extensions/signal_sieve.py",
+        "core/artifacts/storage.py",
+        "core/artifacts/output.py",
+        "core/analyze/correlator.py",
+        "core/engines/fusion_engine.py",
+        "core/intel/capability_matrix.py",
+        "core/artifacts/reporting.py",
+        "core/artifacts/html_report.py",
         "tests/"
       ]
     }

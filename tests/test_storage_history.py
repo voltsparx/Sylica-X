@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from core import storage
+from core.artifacts import storage
 
 
 class TestStorageHistory(unittest.TestCase):

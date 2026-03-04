@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from core.network import get_network_settings
+from core.collect.network import get_network_settings
 
 
 class TestNetworkSettings(unittest.TestCase):
@@ -34,3 +34,4 @@ class TestNetworkSettings(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

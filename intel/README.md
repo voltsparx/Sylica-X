@@ -3,7 +3,7 @@
 Generated internal capability intelligence for Silica-X architecture alignment.
 
 - Sources scanned: 8
-- Files scanned: 1738
+- Files scanned: 1613
 - Features mapped: 10
 - Workflow profiles: 3
 

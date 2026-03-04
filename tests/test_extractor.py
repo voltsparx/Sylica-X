@@ -1,6 +1,6 @@
 import unittest
 
-from core.extractor import extract_bio, extract_contacts, extract_links, extract_username_mentions
+from core.collect.extractor import extract_bio, extract_contacts, extract_links, extract_username_mentions
 
 
 class TestExtractor(unittest.TestCase):
@@ -35,3 +35,4 @@ class TestExtractor(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

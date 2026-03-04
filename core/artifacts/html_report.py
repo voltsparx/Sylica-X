@@ -5,14 +5,14 @@ from __future__ import annotations
 import html
 from datetime import datetime
 
-from core.metadata import AUTHOR, PROJECT_NAME, VERSION, framework_signature
-from core.profile_summary import (
+from core.foundation.metadata import AUTHOR, PROJECT_NAME, VERSION, framework_signature
+from core.analyze.profile_summary import (
     error_profile_rows,
     focused_profile_rows,
     found_profile_rows,
     summarize_target_intel,
 )
-from core.storage import ensure_output_tree, html_report_path, sanitize_target
+from core.artifacts.storage import ensure_output_tree, html_report_path, sanitize_target
 
 
 def _status_badge(status: str) -> str:
@@ -548,3 +548,4 @@ def generate_html(
     report_file = html_report_path(target_key)
     report_file.write_text(report_html, encoding="utf-8")
     return str(report_file)
+

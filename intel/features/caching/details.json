@@ -2,11 +2,11 @@
   "feature": "caching",
   "description": "Result caching and TTL reuse to reduce duplicate calls and latency.",
   "target_modules": [
-    "core/fusion_engine.py",
-    "core/reverse_engineering.py",
-    "core/storage.py"
+    "core/engines/fusion_engine.py",
+    "core/intel/capability_matrix.py",
+    "core/artifacts/storage.py"
   ],
-  "signal_total": 289,
+  "signal_total": 281,
   "coverage_ratio": 1.0,
   "strength": "core",
   "priority": "harden",

@@ -2,11 +2,11 @@
   "feature": "parallel_workers",
   "description": "Thread/process/queue worker models for throughput scaling.",
   "target_modules": [
-    "core/parallel_engine.py",
-    "core/thread_engine.py"
+    "core/engines/parallel_engine.py",
+    "core/engines/thread_engine.py"
   ],
-  "signal_total": 47,
-  "coverage_ratio": 0.875,
+  "signal_total": 41,
+  "coverage_ratio": 0.75,
   "strength": "core",
   "priority": "harden",
   "action": "Balance async/thread/process lanes by workload shape."

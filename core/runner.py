@@ -14,43 +14,43 @@ from dataclasses import dataclass
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from typing import Sequence
 
-from core.banner import show_banner
-from core.anonymity import TOR_HOST, TOR_SOCKS_PORT, install_tor, probe_tor_status, start_tor
-from core.about import build_about_text
-from core.explain import build_explain_text
-from core.cli_config import PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
-from core.cli_parsers import build_prompt_parser as _build_prompt_parser
-from core.cli_parsers import build_root_parser as _build_root_parser
-from core.colors import Colors, c
-from core.correlator import correlate
-from core.csv_export import export_to_csv
-from core.domain_intel import normalize_domain, scan_domain_surface
-from core.exposure import assess_domain_exposure, assess_profile_exposure, summarize_issues
-from core.signal_sieve import execute_filters, list_filter_descriptors, list_filter_discovery_errors
-from core.help_menu import show_flag_help, show_prompt_help
-from core.html_report import generate_html
-from core.fusion_engine import FusionEngine
-from core.intelligence_advisor import IntelligenceAdvisor
-from core.metadata import PROJECT_NAME, VERSION, framework_signature
-from core.narrative import build_nano_brief
-from core.network import get_network_settings
-from core.output import (
+from core.interface.banner import show_banner
+from core.collect.anonymity import TOR_HOST, TOR_SOCKS_PORT, install_tor, probe_tor_status, start_tor
+from core.interface.about import build_about_text
+from core.interface.explain import build_explain_text
+from core.interface.cli_config import PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
+from core.interface.cli_parsers import build_prompt_parser as _build_prompt_parser
+from core.interface.cli_parsers import build_root_parser as _build_root_parser
+from core.foundation.colors import Colors, c
+from core.analyze.correlator import correlate
+from core.artifacts.csv_export import export_to_csv
+from core.collect.domain_intel import normalize_domain, scan_domain_surface
+from core.analyze.exposure import assess_domain_exposure, assess_profile_exposure, summarize_issues
+from core.extensions.signal_sieve import execute_filters, list_filter_descriptors, list_filter_discovery_errors
+from core.interface.help_menu import show_flag_help, show_prompt_help
+from core.artifacts.html_report import generate_html
+from core.engines.fusion_engine import FusionEngine
+from core.intel.advisor import IntelligenceAdvisor
+from core.foundation.metadata import PROJECT_NAME, VERSION, framework_signature
+from core.analyze.narrative import build_nano_brief
+from core.collect.network import get_network_settings
+from core.artifacts.output import (
     append_framework_log,
     display_domain_results,
     display_results,
     list_scanned_targets,
     save_results,
 )
-from core.plugin_manager import PluginManager
-from core.prompt_intelligence import PromptEngine
-from core.reporting import ReportGenerator
-from core.reverse_engineering import build_capability_pack, write_capability_report
-from core.signal_forge import list_plugin_descriptors, list_plugin_discovery_errors
-from core.platform_schema import PlatformValidationError
-from core.profile_summary import error_profile_rows, found_profile_rows, summarize_target_intel
-from core.scanner import scan_username
-from core.session_state import PromptSessionState
-from core.storage import ensure_output_tree, results_json_path, sanitize_target
+from core.extensions.plugin_manager import PluginManager
+from core.intel.prompt_engine import PromptEngine
+from core.artifacts.reporting import ReportGenerator
+from core.intel.capability_matrix import build_capability_pack, write_capability_report
+from core.extensions.signal_forge import list_plugin_descriptors, list_plugin_discovery_errors
+from core.collect.platform_schema import PlatformValidationError
+from core.analyze.profile_summary import error_profile_rows, found_profile_rows, summarize_target_intel
+from core.collect.scanner import scan_username
+from core.foundation.session_state import PromptSessionState
+from core.artifacts.storage import ensure_output_tree, results_json_path, sanitize_target
 from core.prompt_handlers import (
     apply_prompt_defaults as _apply_prompt_defaults_impl,
     handle_prompt_set_command as _handle_prompt_set_command_impl,
@@ -1558,3 +1558,5 @@ async def run(argv: Sequence[str] | None = None) -> int:
     status = await _dispatch(args, state=state, prompt_mode=False)
     append_framework_log("framework_exit", f"status={status}")
     return status
+
+

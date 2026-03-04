@@ -9,8 +9,8 @@ from dataclasses import dataclass
 import os
 from typing import Any
 
-from core.async_engine import DEFAULT_ASYNC_CONCURRENCY, run_async_batch
-from core.thread_engine import DEFAULT_THREAD_WORKERS, run_blocking_batch
+from core.engines.async_engine import DEFAULT_ASYNC_CONCURRENCY, run_async_batch
+from core.engines.thread_engine import DEFAULT_THREAD_WORKERS, run_blocking_batch
 
 
 BlockingCall = tuple[Callable[..., Any], tuple[object, ...], dict[str, object]]
@@ -112,3 +112,4 @@ class ParallelEngine:
             else:
                 results.append(item)
         return results
+

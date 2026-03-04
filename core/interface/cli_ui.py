@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import time
 from typing import Any
 
-from core.cli_config import PROFILE_PRESETS, SURFACE_PRESETS
+from core.interface.cli_config import PROFILE_PRESETS, SURFACE_PRESETS
 
 try:  # pragma: no cover - optional dependency
     from rich.console import Console
@@ -51,3 +51,4 @@ class CLIUI:
         if name in SURFACE_PRESETS:
             return dict(SURFACE_PRESETS[name])
         raise ValueError(f"Unknown profile preset: {profile_name}")
+
