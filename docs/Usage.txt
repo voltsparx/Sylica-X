@@ -452,20 +452,32 @@ Runner scripts (guided setup + launch):
 - Linux:
   ./docker-scripts/run-docker-linux.sh
   ./docker-scripts/run-docker-linux.sh --runner-upgrade
+  ./docker-scripts/run-docker-linux.sh --runner-upgrade-host --runner-upgrade
+  ./docker-scripts/run-docker-linux.sh --runner-show-contexts
+  ./docker-scripts/run-docker-linux.sh --runner-context remote-lab profile alice --html
 - macOS:
   ./docker-scripts/run-docker-macos.sh
   ./docker-scripts/run-docker-macos.sh --runner-upgrade
+  ./docker-scripts/run-docker-macos.sh --runner-upgrade-host --runner-upgrade
+  ./docker-scripts/run-docker-macos.sh --runner-show-contexts
 - Termux:
   ./docker-scripts/run-docker-termux.sh
   ./docker-scripts/run-docker-termux.sh --runner-upgrade
+  ./docker-scripts/run-docker-termux.sh --runner-upgrade-host --runner-upgrade
+  ./docker-scripts/run-docker-termux.sh --runner-show-contexts
 - Windows (PowerShell):
   powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1
   powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-upgrade
+  powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-upgrade-host --runner-upgrade
+  powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-show-contexts
 
 Runner upgrade flags:
 - --runner-pull
 - --runner-no-cache
 - --runner-upgrade
+- --runner-upgrade-host
+- --runner-show-contexts
+- --runner-context <name>
 - --runner-python-version <version>
 
 

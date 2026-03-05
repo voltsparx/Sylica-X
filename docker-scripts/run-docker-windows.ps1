@@ -80,8 +80,10 @@ Silica args:
 Examples:
   .\docker-scripts\$ScriptName
   .\docker-scripts\$ScriptName profile alice --html
+  .\docker-scripts\$ScriptName --runner-show-contexts
   .\docker-scripts\$ScriptName --runner-stop
   .\docker-scripts\$ScriptName --runner-stop-docker
+  .\docker-scripts\$ScriptName --runner-upgrade-host --runner-upgrade
   .\docker-scripts\$ScriptName --runner-build --runner-use-tor-service profile alice --tor --html
   .\docker-scripts\$ScriptName -- --help
 "@
@@ -106,6 +108,13 @@ function Prompt-YesNo {
 
   $normalized = $reply.Trim().ToLowerInvariant()
   return $normalized.StartsWith('y')
+}
+
+function Get-DockerContextArgs {
+  if ([string]::IsNullOrWhiteSpace($RunnerContext)) {
+    return @()
+  }
+  return @('--context', $RunnerContext)
 }
 
 function Parse-RunnerArgs {
@@ -289,6 +298,21 @@ function Install-DockerWindows {
   throw 'Neither winget nor choco is available. Install Docker Desktop manually from https://www.docker.com/products/docker-desktop/'
 }
 
+function Upgrade-DockerWindows {
+  Write-InfoLine 'Upgrading Docker Desktop...'
+
+  if (Get-Command winget -ErrorAction SilentlyContinue) {
+    & winget upgrade -e --id Docker.DockerDesktop --accept-source-agreements --accept-package-agreements
+    return
+  }
+  if (Get-Command choco -ErrorAction SilentlyContinue) {
+    & choco upgrade -y docker-desktop
+    return
+  }
+
+  throw 'Neither winget nor choco is available. Upgrade Docker Desktop manually from https://www.docker.com/products/docker-desktop/'
+}
+
 function Get-DockerDesktopPath {
   $candidates = @(
     (Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'),
@@ -304,7 +328,10 @@ function Get-DockerDesktopPath {
 
 function Test-DockerDaemon {
   try {
-    & docker info *> $null
+    $args = [System.Collections.Generic.List[string]]::new()
+    $args.AddRange((Get-DockerContextArgs))
+    $args.Add('info')
+    & docker @args *> $null
     return ($LASTEXITCODE -eq 0)
   } catch {
     return $false
@@ -313,11 +340,56 @@ function Test-DockerDaemon {
 
 function Test-DockerComposePlugin {
   try {
-    & docker compose version *> $null
+    $args = [System.Collections.Generic.List[string]]::new()
+    $args.AddRange((Get-DockerContextArgs))
+    $args.AddRange(@('compose', 'version'))
+    & docker @args *> $null
     return ($LASTEXITCODE -eq 0)
   } catch {
     return $false
   }
+}
+
+function Show-DockerContexts {
+  if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    throw 'Docker command is not available.'
+  }
+  Write-InfoLine 'Available Docker contexts:'
+  & docker context ls
+  if ($LASTEXITCODE -ne 0) {
+    throw "Failed to list Docker contexts (exit code $LASTEXITCODE)."
+  }
+}
+
+function Try-AutoSelectDockerContext {
+  if (-not [string]::IsNullOrWhiteSpace($RunnerContext)) {
+    return $false
+  }
+
+  $contexts = @()
+  try {
+    $contexts = & docker context ls --format '{{.Name}}' 2>$null
+  } catch {
+    return $false
+  }
+
+  foreach ($ctx in $contexts) {
+    if ([string]::IsNullOrWhiteSpace($ctx) -or $ctx -eq 'default') {
+      continue
+    }
+    try {
+      & docker --context $ctx info *> $null
+      if ($LASTEXITCODE -eq 0) {
+        $script:RunnerContext = $ctx
+        Write-InfoLine "Using reachable Docker context: $ctx"
+        return $true
+      }
+    } catch {
+      continue
+    }
+  }
+
+  return $false
 }
 
 function Ensure-DockerCommand {
@@ -345,6 +417,10 @@ function Start-DockerDesktop {
     return
   }
 
+  if (Try-AutoSelectDockerContext) {
+    return
+  }
+
   $dockerDesktopExe = Get-DockerDesktopPath
   if (-not $dockerDesktopExe) {
     throw 'Docker Desktop executable was not found. Install Docker Desktop first.'
@@ -367,6 +443,11 @@ function Ensure-DockerDaemon {
   if (Test-DockerDaemon) {
     return
   }
+
+  if (Try-AutoSelectDockerContext) {
+    return
+  }
+
   Start-DockerDesktop
 }
 
@@ -426,9 +507,18 @@ function Invoke-Compose {
   try {
     if ($UseLegacyCompose) {
       $oldProfiles = $env:COMPOSE_PROFILES
+      $oldContext = $env:DOCKER_CONTEXT
+      $hadContext = Test-Path Env:DOCKER_CONTEXT
       try {
         if (-not [string]::IsNullOrWhiteSpace($RunnerProfile)) {
           $env:COMPOSE_PROFILES = $RunnerProfile
+        } else {
+          Remove-Item Env:COMPOSE_PROFILES -ErrorAction SilentlyContinue
+        }
+        if (-not [string]::IsNullOrWhiteSpace($RunnerContext)) {
+          $env:DOCKER_CONTEXT = $RunnerContext
+        } else {
+          Remove-Item Env:DOCKER_CONTEXT -ErrorAction SilentlyContinue
         }
         & docker-compose -f $ComposeFile @ComposeArgs
         if ($LASTEXITCODE -ne 0) {
@@ -440,11 +530,20 @@ function Invoke-Compose {
         } else {
           $env:COMPOSE_PROFILES = $oldProfiles
         }
+        if ($hadContext) {
+          $env:DOCKER_CONTEXT = $oldContext
+        } else {
+          Remove-Item Env:DOCKER_CONTEXT -ErrorAction SilentlyContinue
+        }
       }
       return
     }
 
-    $dockerArgs = @('compose', '-f', $ComposeFile)
+    $dockerArgs = @()
+    if (-not [string]::IsNullOrWhiteSpace($RunnerContext)) {
+      $dockerArgs += @('--context', $RunnerContext)
+    }
+    $dockerArgs += @('compose', '-f', $ComposeFile)
     if (-not [string]::IsNullOrWhiteSpace($RunnerProfile)) {
       $dockerArgs += @('--profile', $RunnerProfile)
     }
@@ -583,6 +682,13 @@ function Run-Silica {
 try {
   Parse-RunnerArgs -InputArgs $CliArgs
   Configure-ModeAndService
+
+  if ($RunnerShowContexts) {
+    Ensure-DockerCommand
+    Show-DockerContexts
+    exit 0
+  }
+
   Assert-ComposeFile
   if ($RunnerStop -or $RunnerStopDocker) {
     Perform-Shutdown
@@ -590,6 +696,9 @@ try {
   }
   Check-Resources
   Ensure-DockerCommand
+  if ($RunnerUpgradeHost) {
+    Upgrade-DockerWindows
+  }
   Ensure-DockerDaemon
   Ensure-ComposeAvailable
   Ensure-OutputDirs

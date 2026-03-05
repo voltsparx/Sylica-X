@@ -7,6 +7,7 @@ This folder now contains Tor wrapper scripts for container and host OS usage.
 Container runtime notes:
 - Docker images now default to Python `3.13` slim-bookworm.
 - Build arg `PYTHON_VERSION` is supported via compose and runner scripts.
+- Docker runners support host upgrade and context routing flags (`--runner-upgrade-host`, `--runner-show-contexts`, `--runner-context`).
 
 ## Files
 

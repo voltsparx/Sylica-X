@@ -74,6 +74,7 @@ Examples:
   ./${SCRIPT_NAME} profile alice --html
   ./${SCRIPT_NAME} --runner-stop
   ./${SCRIPT_NAME} --runner-stop-docker
+  ./${SCRIPT_NAME} --runner-upgrade-host --runner-upgrade
   ./${SCRIPT_NAME} --runner-show-contexts
   ./${SCRIPT_NAME} --runner-build --runner-use-tor-service profile alice --tor --html
   ./${SCRIPT_NAME} -- --help

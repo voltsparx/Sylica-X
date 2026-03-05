@@ -11,6 +11,8 @@ These scripts wrap `docker/docker-compose.yml` and provide guided setup for:
 - Prompt-safe argument forwarding to Silica-X
 - Clean shutdown of Silica containers (and optional Docker host stop)
 - Runtime upgrade controls (`--runner-upgrade`, `--runner-pull`, `--runner-no-cache`)
+- Host Docker/Desktop upgrade control (`--runner-upgrade-host`)
+- Docker context support (`--runner-show-contexts`, `--runner-context <name>`)
 - Python base version override for builds (`--runner-python-version <version>`)
 
 ## Scripts
@@ -49,6 +51,13 @@ Examples:
 # force runtime upgrade build (pull latest base layers, no cache)
 ./docker-scripts/run-docker-linux.sh --runner-upgrade
 
+# upgrade host Docker engine/Desktop and then rebuild runtime
+./docker-scripts/run-docker-linux.sh --runner-upgrade-host --runner-upgrade
+
+# list available contexts and use a specific one
+./docker-scripts/run-docker-linux.sh --runner-show-contexts
+./docker-scripts/run-docker-linux.sh --runner-context remote-lab profile alice --html
+
 # pin Docker build Python runtime
 ./docker-scripts/run-docker-linux.sh --runner-build --runner-python-version 3.13 profile alice --html
 
@@ -72,8 +81,11 @@ Script-only flags are namespaced with `--runner-`:
 - `--runner-pull`
 - `--runner-no-cache`
 - `--runner-upgrade`
+- `--runner-upgrade-host`
 - `--runner-stop`
 - `--runner-stop-docker`
+- `--runner-show-contexts`
+- `--runner-context <name>`
 - `--runner-use-tor-service`
 - `--runner-service <name>`
 - `--runner-profile <name>`

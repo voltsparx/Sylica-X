@@ -74,6 +74,7 @@ Examples:
   ./${SCRIPT_NAME} profile alice --html
   ./${SCRIPT_NAME} --runner-stop
   ./${SCRIPT_NAME} --runner-stop-docker
+  ./${SCRIPT_NAME} --runner-upgrade-host --runner-upgrade
   ./${SCRIPT_NAME} --runner-show-contexts
   ./${SCRIPT_NAME} --runner-build --runner-use-tor-service profile alice --tor --html
   ./${SCRIPT_NAME} -- --help
@@ -474,41 +475,16 @@ compose_exec_with_profile() {
   fi
 
   (
-    local old_profile="${COMPOSE_PROFILES:-}"
-    local old_context="${DOCKER_CONTEXT:-}"
-    local had_profile=0
-    local had_context=0
-
-    if [[ -n "${COMPOSE_PROFILES+x}" ]]; then
-      had_profile=1
-    fi
-    if [[ -n "${DOCKER_CONTEXT+x}" ]]; then
-      had_context=1
-    fi
-
     if [[ -n "$profile" ]]; then
       export COMPOSE_PROFILES="$profile"
     else
       unset COMPOSE_PROFILES
     fi
-
     if [[ -n "$RUNNER_CONTEXT" ]]; then
       export DOCKER_CONTEXT="$RUNNER_CONTEXT"
     fi
-
     cd "$REPO_ROOT"
     docker-compose -f "$COMPOSE_FILE" "$action" "$@"
-
-    if [[ "$had_profile" -eq 1 ]]; then
-      export COMPOSE_PROFILES="$old_profile"
-    else
-      unset COMPOSE_PROFILES
-    fi
-    if [[ "$had_context" -eq 1 ]]; then
-      export DOCKER_CONTEXT="$old_context"
-    else
-      unset DOCKER_CONTEXT
-    fi
   )
 }
 
