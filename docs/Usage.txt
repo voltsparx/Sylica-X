@@ -451,12 +451,22 @@ docker compose -f docker/docker-compose.yml --profile tor run --rm silica-x-tor 
 Runner scripts (guided setup + launch):
 - Linux:
   ./docker-scripts/run-docker-linux.sh
+  ./docker-scripts/run-docker-linux.sh --runner-upgrade
 - macOS:
   ./docker-scripts/run-docker-macos.sh
+  ./docker-scripts/run-docker-macos.sh --runner-upgrade
 - Termux:
   ./docker-scripts/run-docker-termux.sh
+  ./docker-scripts/run-docker-termux.sh --runner-upgrade
 - Windows (PowerShell):
   powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1
+  powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-upgrade
+
+Runner upgrade flags:
+- --runner-pull
+- --runner-no-cache
+- --runner-upgrade
+- --runner-python-version <version>
 
 
 12) Quality Gates

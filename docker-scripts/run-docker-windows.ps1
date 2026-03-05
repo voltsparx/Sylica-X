@@ -13,13 +13,20 @@ $RepoRoot = Split-Path -Parent $ScriptDir
 $ComposeFile = Join-Path $RepoRoot 'docker\docker-compose.yml'
 
 $RunnerBuild = $false
+$RunnerPull = $false
+$RunnerNoCache = $false
+$RunnerUpgrade = $false
+$RunnerUpgradeHost = $false
 $RunnerNoInstall = $false
 $RunnerForceTorService = $false
 $RunnerPrompt = $false
 $RunnerStop = $false
 $RunnerStopDocker = $false
+$RunnerShowContexts = $false
 $RunnerService = 'silica-x'
 $RunnerProfile = ''
+$RunnerPythonVersion = ''
+$RunnerContext = ''
 $RunnerServiceSet = $false
 $RunnerProfileSet = $false
 $UseLegacyCompose = $false
@@ -49,11 +56,18 @@ Usage:
 Runner options (reserved for this script):
   --runner-help              Show this help message.
   --runner-build             Build service image before running.
+  --runner-pull              Build with --pull to refresh base layers.
+  --runner-no-cache          Build with --no-cache.
+  --runner-upgrade           Upgrade container runtime (implies --runner-build --runner-pull --runner-no-cache).
+  --runner-upgrade-host      Upgrade host Docker Desktop/components.
   --runner-stop              Stop/remove Silica containers.
   --runner-stop-docker       Stop/remove Silica containers and stop Docker Desktop.
+  --runner-show-contexts     List Docker contexts and exit.
+  --runner-context <name>    Use a specific Docker context.
   --runner-use-tor-service   Force Tor service container (silica-x-tor).
   --runner-service <name>    Override compose service (default: silica-x).
   --runner-profile <name>    Override compose profile (default: auto).
+  --runner-python-version <v>  Override Docker build arg PYTHON_VERSION (e.g., 3.13).
   --runner-no-install        Never install missing Docker components.
   --runner-prompt            Force Silica prompt mode (ignore silica-args).
 
@@ -108,6 +122,18 @@ function Parse-RunnerArgs {
       '--runner-build' {
         $script:RunnerBuild = $true
       }
+      '--runner-pull' {
+        $script:RunnerPull = $true
+      }
+      '--runner-no-cache' {
+        $script:RunnerNoCache = $true
+      }
+      '--runner-upgrade' {
+        $script:RunnerUpgrade = $true
+      }
+      '--runner-upgrade-host' {
+        $script:RunnerUpgradeHost = $true
+      }
       '--runner-stop' {
         $script:RunnerStop = $true
       }
@@ -124,6 +150,16 @@ function Parse-RunnerArgs {
       '--runner-prompt' {
         $script:RunnerPrompt = $true
       }
+      '--runner-show-contexts' {
+        $script:RunnerShowContexts = $true
+      }
+      '--runner-context' {
+        $i++
+        if ($i -ge $InputArgs.Count) {
+          throw 'Missing value for --runner-context'
+        }
+        $script:RunnerContext = $InputArgs[$i]
+      }
       '--runner-service' {
         $i++
         if ($i -ge $InputArgs.Count) {
@@ -139,6 +175,13 @@ function Parse-RunnerArgs {
         }
         $script:RunnerProfile = $InputArgs[$i]
         $script:RunnerProfileSet = $true
+      }
+      '--runner-python-version' {
+        $i++
+        if ($i -ge $InputArgs.Count) {
+          throw 'Missing value for --runner-python-version'
+        }
+        $script:RunnerPythonVersion = $InputArgs[$i]
       }
       '--' {
         $i++
@@ -492,9 +535,32 @@ function Perform-Shutdown {
 }
 
 function Run-Silica {
+  if ($RunnerUpgrade) {
+    $script:RunnerBuild = $true
+    $script:RunnerPull = $true
+    $script:RunnerNoCache = $true
+  }
+
+  if ($RunnerPull -and -not $RunnerBuild) {
+    $script:RunnerBuild = $true
+  }
+
   if ($RunnerBuild) {
     Write-InfoLine "Building image for service: $RunnerService"
-    Invoke-Compose -ComposeArgs @('build', $RunnerService)
+    $buildArgs = [System.Collections.Generic.List[string]]::new()
+    $buildArgs.Add('build')
+    if ($RunnerPull) {
+      $buildArgs.Add('--pull')
+    }
+    if ($RunnerNoCache) {
+      $buildArgs.Add('--no-cache')
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RunnerPythonVersion)) {
+      $buildArgs.Add('--build-arg')
+      $buildArgs.Add("PYTHON_VERSION=$RunnerPythonVersion")
+    }
+    $buildArgs.Add($RunnerService)
+    Invoke-Compose -ComposeArgs $buildArgs.ToArray()
   }
 
   $runArgs = [System.Collections.Generic.List[string]]::new()

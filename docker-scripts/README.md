@@ -1,6 +1,6 @@
 # Docker Runner Scripts
 
-Release: v9.0 (Theme: Lattice)
+Release: v9.2 (Theme: Lattice)
 
 These scripts wrap `docker/docker-compose.yml` and provide guided setup for:
 
@@ -10,6 +10,8 @@ These scripts wrap `docker/docker-compose.yml` and provide guided setup for:
 - Basic host resource checks (RAM + disk)
 - Prompt-safe argument forwarding to Silica-X
 - Clean shutdown of Silica containers (and optional Docker host stop)
+- Runtime upgrade controls (`--runner-upgrade`, `--runner-pull`, `--runner-no-cache`)
+- Python base version override for builds (`--runner-python-version <version>`)
 
 ## Scripts
 
@@ -44,6 +46,12 @@ Examples:
 # stop Silica containers + Docker daemon/desktop
 ./docker-scripts/run-docker-linux.sh --runner-stop-docker
 
+# force runtime upgrade build (pull latest base layers, no cache)
+./docker-scripts/run-docker-linux.sh --runner-upgrade
+
+# pin Docker build Python runtime
+./docker-scripts/run-docker-linux.sh --runner-build --runner-python-version 3.13 profile alice --html
+
 # pass --help directly to Silica
 ./docker-scripts/run-docker-linux.sh -- --help
 ```
@@ -61,11 +69,15 @@ Script-only flags are namespaced with `--runner-`:
 
 - `--runner-help`
 - `--runner-build`
+- `--runner-pull`
+- `--runner-no-cache`
+- `--runner-upgrade`
 - `--runner-stop`
 - `--runner-stop-docker`
 - `--runner-use-tor-service`
 - `--runner-service <name>`
 - `--runner-profile <name>`
+- `--runner-python-version <version>`
 - `--runner-no-install`
 - `--runner-prompt`
 

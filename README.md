@@ -5,7 +5,7 @@ Multi-engine OSINT orchestration for profile intelligence, domain-surface reconn
 
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/images/silica-x-menu.png" alt="Silica-X Menu" width="600">
+  <img src="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/icon-images/silica-x-icon.png" alt="Silica-X Logo for now" width="600">
 </p>
 
 <p align="center">
@@ -545,24 +545,29 @@ chmod +x docker-scripts/run-docker-linux.sh docker-scripts/run-docker-macos.sh d
 # Linux
 ./docker-scripts/run-docker-linux.sh
 ./docker-scripts/run-docker-linux.sh profile alice --html
+./docker-scripts/run-docker-linux.sh --runner-upgrade
+./docker-scripts/run-docker-linux.sh --runner-build --runner-python-version 3.13 profile alice --html
 ./docker-scripts/run-docker-linux.sh --runner-stop
 ./docker-scripts/run-docker-linux.sh --runner-stop-docker
 
 # macOS
 ./docker-scripts/run-docker-macos.sh
 ./docker-scripts/run-docker-macos.sh profile alice --tor --html
+./docker-scripts/run-docker-macos.sh --runner-upgrade
 ./docker-scripts/run-docker-macos.sh --runner-stop
 ./docker-scripts/run-docker-macos.sh --runner-stop-docker
 
 # Termux
 ./docker-scripts/run-docker-termux.sh
 ./docker-scripts/run-docker-termux.sh profile alice --html
+./docker-scripts/run-docker-termux.sh --runner-upgrade
 ./docker-scripts/run-docker-termux.sh --runner-stop
 ./docker-scripts/run-docker-termux.sh --runner-stop-docker
 
 # Windows (PowerShell)
 powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1
 powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 profile alice --html
+powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-upgrade
 powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop
 powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop-docker
 ```
@@ -574,6 +579,8 @@ Runner behavior:
 * Script-only flags are namespaced as `--runner-*` to avoid collisions with Silica flags.
 * Any non-`--runner-*` args are forwarded to `silica-x.py` (flag mode).
 * No forwarded args starts Silica prompt mode automatically.
+* `--runner-upgrade` refreshes and rebuilds containers (`--pull` + `--no-cache`).
+* `--runner-python-version <v>` lets you pin the Docker build runtime (defaults to `3.13`).
 * `--runner-stop` cleanly tears down Silica containers when finished.
 * `--runner-stop-docker` also stops the local Docker daemon/Desktop (when supported).
 * Use `--` if you want to pass args like `--help` directly to Silica.

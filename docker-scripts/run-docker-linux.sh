@@ -7,13 +7,20 @@ REPO_ROOT="$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${REPO_ROOT}/docker/docker-compose.yml"
 
 RUNNER_BUILD=0
+RUNNER_PULL=0
+RUNNER_NO_CACHE=0
+RUNNER_UPGRADE=0
+RUNNER_UPGRADE_HOST=0
 RUNNER_NO_INSTALL=0
 RUNNER_FORCE_TOR_SERVICE=0
 RUNNER_PROMPT=0
 RUNNER_STOP=0
 RUNNER_STOP_DOCKER=0
+RUNNER_SHOW_CONTEXTS=0
 RUNNER_SERVICE="silica-x"
 RUNNER_PROFILE=""
+RUNNER_PYTHON_VERSION=""
+RUNNER_CONTEXT=""
 RUNNER_SERVICE_SET=0
 RUNNER_PROFILE_SET=0
 SILICA_ARGS=()
@@ -41,11 +48,18 @@ Usage:
 Runner options (reserved for this script):
   --runner-help              Show this help message.
   --runner-build             Build service image before running.
+  --runner-pull              Build with --pull to refresh base layers.
+  --runner-no-cache          Build with --no-cache.
+  --runner-upgrade           Upgrade container runtime (implies --runner-build --runner-pull --runner-no-cache).
+  --runner-upgrade-host      Upgrade host Docker engine/components.
   --runner-stop              Stop/remove Silica containers.
   --runner-stop-docker       Stop/remove Silica containers and stop Docker daemon.
+  --runner-show-contexts     List Docker contexts and exit.
+  --runner-context <name>    Use a specific Docker context.
   --runner-use-tor-service   Force Tor service container (silica-x-tor).
   --runner-service <name>    Override compose service (default: silica-x).
   --runner-profile <name>    Override compose profile (default: auto).
+  --runner-python-version <v>  Override Docker build arg PYTHON_VERSION (e.g., 3.13).
   --runner-no-install        Never install missing Docker components.
   --runner-prompt            Force Silica prompt mode (ignore silica-args).
 
@@ -60,6 +74,7 @@ Examples:
   ./${SCRIPT_NAME} profile alice --html
   ./${SCRIPT_NAME} --runner-stop
   ./${SCRIPT_NAME} --runner-stop-docker
+  ./${SCRIPT_NAME} --runner-show-contexts
   ./${SCRIPT_NAME} --runner-build --runner-use-tor-service profile alice --tor --html
   ./${SCRIPT_NAME} -- --help
 EOF
@@ -108,6 +123,15 @@ run_privileged() {
   die "Root privileges are required for: $*"
 }
 
+docker_cmd() {
+  local cmd=(docker)
+  if [[ -n "$RUNNER_CONTEXT" ]]; then
+    cmd+=(--context "$RUNNER_CONTEXT")
+  fi
+  cmd+=("$@")
+  "${cmd[@]}"
+}
+
 parse_args() {
   while (($#)); do
     case "$1" in
@@ -117,6 +141,18 @@ parse_args() {
         ;;
       --runner-build)
         RUNNER_BUILD=1
+        ;;
+      --runner-pull)
+        RUNNER_PULL=1
+        ;;
+      --runner-no-cache)
+        RUNNER_NO_CACHE=1
+        ;;
+      --runner-upgrade)
+        RUNNER_UPGRADE=1
+        ;;
+      --runner-upgrade-host)
+        RUNNER_UPGRADE_HOST=1
         ;;
       --runner-stop)
         RUNNER_STOP=1
@@ -134,6 +170,14 @@ parse_args() {
       --runner-prompt)
         RUNNER_PROMPT=1
         ;;
+      --runner-show-contexts)
+        RUNNER_SHOW_CONTEXTS=1
+        ;;
+      --runner-context)
+        shift
+        [[ $# -gt 0 ]] || die "Missing value for --runner-context"
+        RUNNER_CONTEXT="$1"
+        ;;
       --runner-service)
         shift
         [[ $# -gt 0 ]] || die "Missing value for --runner-service"
@@ -145,6 +189,11 @@ parse_args() {
         [[ $# -gt 0 ]] || die "Missing value for --runner-profile"
         RUNNER_PROFILE="$1"
         RUNNER_PROFILE_SET=1
+        ;;
+      --runner-python-version)
+        shift
+        [[ $# -gt 0 ]] || die "Missing value for --runner-python-version"
+        RUNNER_PYTHON_VERSION="$1"
         ;;
       --)
         shift
@@ -275,16 +324,59 @@ install_compose_linux() {
   fi
 }
 
+upgrade_docker_host_linux() {
+  info "Upgrading Docker components on host..."
+  if command -v apt-get >/dev/null 2>&1; then
+    run_privileged apt-get update
+    run_privileged apt-get install -y --only-upgrade docker.io docker-compose-plugin docker-compose || true
+  elif command -v dnf >/dev/null 2>&1; then
+    run_privileged dnf upgrade -y docker docker-compose-plugin docker-compose || true
+  elif command -v yum >/dev/null 2>&1; then
+    run_privileged yum update -y docker docker-compose-plugin docker-compose || true
+  elif command -v pacman >/dev/null 2>&1; then
+    run_privileged pacman -Syu --noconfirm docker docker-compose || true
+  elif command -v zypper >/dev/null 2>&1; then
+    run_privileged zypper --non-interactive update docker docker-compose || true
+  else
+    warn "Unsupported package manager for auto-upgrade. Upgrade Docker manually."
+  fi
+}
+
 wait_for_docker() {
   local attempts="${1:-45}"
   local i
   for ((i = 1; i <= attempts; i++)); do
-    if docker info >/dev/null 2>&1; then
+    if docker_cmd info >/dev/null 2>&1; then
       return 0
     fi
     sleep 2
   done
   return 1
+}
+
+auto_select_context() {
+  [[ -n "$RUNNER_CONTEXT" ]] && return 1
+  command -v docker >/dev/null 2>&1 || return 1
+
+  local contexts=()
+  local ctx=""
+  mapfile -t contexts < <(docker context ls --format '{{.Name}}' 2>/dev/null || true)
+  for ctx in "${contexts[@]}"; do
+    [[ -n "$ctx" ]] || continue
+    [[ "$ctx" == "default" ]] && continue
+    if docker --context "$ctx" info >/dev/null 2>&1; then
+      RUNNER_CONTEXT="$ctx"
+      info "Using reachable Docker context: $RUNNER_CONTEXT"
+      return 0
+    fi
+  done
+  return 1
+}
+
+show_contexts() {
+  command -v docker >/dev/null 2>&1 || die "Docker command is not available."
+  info "Available Docker contexts:"
+  docker context ls
 }
 
 ensure_docker_command() {
@@ -302,7 +394,11 @@ ensure_docker_command() {
 }
 
 start_docker_daemon() {
-  if docker info >/dev/null 2>&1; then
+  if docker_cmd info >/dev/null 2>&1; then
+    return
+  fi
+
+  if auto_select_context; then
     return
   fi
 
@@ -331,7 +427,7 @@ start_docker_daemon() {
 }
 
 detect_compose_variant() {
-  if docker compose version >/dev/null 2>&1; then
+  if docker_cmd compose version >/dev/null 2>&1; then
     COMPOSE_VARIANT="plugin"
     return 0
   fi
@@ -364,7 +460,11 @@ compose_exec_with_profile() {
   shift
 
   if [[ "$COMPOSE_VARIANT" == "plugin" ]]; then
-    local cmd=(docker compose -f "$COMPOSE_FILE")
+    local cmd=(docker)
+    if [[ -n "$RUNNER_CONTEXT" ]]; then
+      cmd+=(--context "$RUNNER_CONTEXT")
+    fi
+    cmd+=(compose -f "$COMPOSE_FILE")
     if [[ -n "$profile" ]]; then
       cmd+=(--profile "$profile")
     fi
@@ -373,11 +473,43 @@ compose_exec_with_profile() {
     return
   fi
 
-  if [[ -n "$profile" ]]; then
-    (cd "$REPO_ROOT" && COMPOSE_PROFILES="$profile" docker-compose -f "$COMPOSE_FILE" "$action" "$@")
-  else
-    (cd "$REPO_ROOT" && docker-compose -f "$COMPOSE_FILE" "$action" "$@")
-  fi
+  (
+    local old_profile="${COMPOSE_PROFILES:-}"
+    local old_context="${DOCKER_CONTEXT:-}"
+    local had_profile=0
+    local had_context=0
+
+    if [[ -n "${COMPOSE_PROFILES+x}" ]]; then
+      had_profile=1
+    fi
+    if [[ -n "${DOCKER_CONTEXT+x}" ]]; then
+      had_context=1
+    fi
+
+    if [[ -n "$profile" ]]; then
+      export COMPOSE_PROFILES="$profile"
+    else
+      unset COMPOSE_PROFILES
+    fi
+
+    if [[ -n "$RUNNER_CONTEXT" ]]; then
+      export DOCKER_CONTEXT="$RUNNER_CONTEXT"
+    fi
+
+    cd "$REPO_ROOT"
+    docker-compose -f "$COMPOSE_FILE" "$action" "$@"
+
+    if [[ "$had_profile" -eq 1 ]]; then
+      export COMPOSE_PROFILES="$old_profile"
+    else
+      unset COMPOSE_PROFILES
+    fi
+    if [[ "$had_context" -eq 1 ]]; then
+      export DOCKER_CONTEXT="$old_context"
+    else
+      unset DOCKER_CONTEXT
+    fi
+  )
 }
 
 compose_exec() {
@@ -452,9 +584,30 @@ perform_shutdown() {
 }
 
 run_silica() {
+  if [[ "$RUNNER_UPGRADE" -eq 1 ]]; then
+    RUNNER_BUILD=1
+    RUNNER_PULL=1
+    RUNNER_NO_CACHE=1
+  fi
+
+  if [[ "$RUNNER_PULL" -eq 1 && "$RUNNER_BUILD" -eq 0 ]]; then
+    RUNNER_BUILD=1
+  fi
+
   if [[ "$RUNNER_BUILD" -eq 1 ]]; then
     info "Building image for service: $RUNNER_SERVICE"
-    compose_exec build "$RUNNER_SERVICE"
+    local build_args=(build)
+    if [[ "$RUNNER_PULL" -eq 1 ]]; then
+      build_args+=(--pull)
+    fi
+    if [[ "$RUNNER_NO_CACHE" -eq 1 ]]; then
+      build_args+=(--no-cache)
+    fi
+    if [[ -n "$RUNNER_PYTHON_VERSION" ]]; then
+      build_args+=(--build-arg "PYTHON_VERSION=${RUNNER_PYTHON_VERSION}")
+    fi
+    build_args+=("$RUNNER_SERVICE")
+    compose_exec "${build_args[@]}"
   fi
 
   if [[ "${#SILICA_ARGS[@]}" -eq 0 ]]; then
@@ -470,6 +623,13 @@ run_silica() {
 main() {
   parse_args "$@"
   configure_mode_and_service
+
+  if [[ "$RUNNER_SHOW_CONTEXTS" -eq 1 ]]; then
+    ensure_docker_command
+    show_contexts
+    return
+  fi
+
   check_compose_file
   if [[ "$RUNNER_STOP" -eq 1 || "$RUNNER_STOP_DOCKER" -eq 1 ]]; then
     perform_shutdown
@@ -477,6 +637,9 @@ main() {
   fi
   check_resources
   ensure_docker_command
+  if [[ "$RUNNER_UPGRADE_HOST" -eq 1 ]]; then
+    upgrade_docker_host_linux
+  fi
   start_docker_daemon
   ensure_compose_available
   ensure_output_dirs

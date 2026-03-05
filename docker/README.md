@@ -1,8 +1,12 @@
 # Tor Wrappers
 
-Release: v9.0 (Theme: Lattice)
+Release: v9.2 (Theme: Lattice)
 
 This folder now contains Tor wrapper scripts for container and host OS usage.
+
+Container runtime notes:
+- Docker images now default to Python `3.13` slim-bookworm.
+- Build arg `PYTHON_VERSION` is supported via compose and runner scripts.
 
 ## Files
 
