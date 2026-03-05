@@ -4,7 +4,7 @@ from core.foundation.colors import Colors
 from core.foundation.metadata import AUTHOR, VERSION
 
 
-def show_banner(anonymity_status="No anonymization"):
+def show_banner(anonymity_status="No Anonymization"):
     grey = Colors.GREY
     yellow = Colors.YELLOW
     cyan = Colors.CYAN
@@ -18,6 +18,6 @@ def show_banner(anonymity_status="No anonymization"):
     print(f"{grey}       `8888Y' Y888888P Y88888P Y888888P  `Y88P' YP   YP{reset}         {grey}{yellow}YP    YP{reset}")
     print(f"{grey}                                                                          v{VERSION}{reset}")
     print("_________________________________________________________________________________")
-    print(f"{cyan}   Automated Multi-OSINT Tool - Developed by {AUTHOR} (github.com/{AUTHOR}){reset}")
-    print(f"{cyan}                     Current Anonymity: {anonymity_status}{reset}\n")
+    print(f"{cyan}    Automated Multi-OSINT Tool - Developed by {AUTHOR} (github.com/{AUTHOR}){reset}")
+    print(f"{cyan}                      Current Anonymity: {anonymity_status}{reset}\n")
 
