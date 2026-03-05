@@ -73,6 +73,7 @@ DEFAULT_DASHBOARD_PORT = 8000
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
 EXIT_USAGE = 2
+PROMPT_SHOW_COMMANDS = {"plugins", "filters", "modules", "history", "keywords", "config"}
 
 PLUGIN_MANAGER = PluginManager()
 FUSION_ENGINE = FusionEngine()
@@ -3007,7 +3008,36 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         if not command_text:
             continue
 
-        lowered = command_text.lower()
+        try:
+            raw_tokens = shlex.split(command_text)
+        except ValueError as exc:
+            print(c(f"Invalid command syntax: {exc}", Colors.RED))
+            continue
+        if not raw_tokens:
+            continue
+
+        first_token = raw_tokens[0].strip().lower()
+        if first_token == "show":
+            if len(raw_tokens) < 2:
+                print(
+                    c(
+                        "Usage: show <plugins|filters|modules|history|keywords|config> [flags]",
+                        Colors.YELLOW,
+                    )
+                )
+                continue
+            show_target = _keyword_to_command(raw_tokens[1]) or raw_tokens[1].strip().lower()
+            if show_target not in PROMPT_SHOW_COMMANDS:
+                print(c(f"Unsupported show target: {raw_tokens[1]}", Colors.RED))
+                continue
+            raw_tokens = [show_target, *raw_tokens[2:]]
+        else:
+            normalized_first = _keyword_to_command(first_token) or first_token
+            if normalized_first in PROMPT_SHOW_COMMANDS:
+                print(c(f"{symbol('tip')} Use `show {normalized_first}`.", Colors.YELLOW))
+                continue
+
+        lowered = " ".join(raw_tokens).lower()
         keyword_match = _keyword_to_command(lowered)
         if lowered in PROMPT_KEYWORDS["exit"]:
             print(c("\nExiting Silica-X.", Colors.RED))
@@ -3058,12 +3088,7 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
             _handle_prompt_control_command(command_text, session)
             continue
 
-        try:
-            tokens = shlex.split(command_text)
-        except ValueError as exc:
-            print(c(f"Invalid command syntax: {exc}", Colors.RED))
-            continue
-
+        tokens = list(raw_tokens)
         tokens = _rewrite_tokens_with_keywords(tokens)
 
         # Casual shortcuts:

@@ -2,63 +2,127 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from core.foundation.colors import Colors, c
 from core.foundation.metadata import PROJECT_NAME, VERSION, VERSION_THEME
 from core.interface.symbols import symbol
 
+HelpItems = Sequence[tuple[str, str]]
+COMMAND_COL_WIDTH = 44
+DESCRIPTION_GAP = 6
 
-def _rule(color: str = Colors.BLUE) -> None:
-    print(c("=" * 72, color))
+
+def _rule(color: str = Colors.BLUE, *, width: int = 118) -> None:
+    print(c("=" * width, color))
 
 
-def _section(title: str, *, color: str = Colors.BLUE) -> None:
+def _section(title: str, *, color: str = Colors.BLUE, icon: str = "major") -> None:
     print()
     _rule(color)
-    print(c(f"  {symbol('major')} {title}", Colors.BOLD + color))
+    print(c(f"  {symbol(icon)} {title}", Colors.BOLD + color))
     _rule(color)
 
 
 def _item(command: str, description: str) -> None:
-    print(c(f"  {symbol('bullet')} {command:<20}", Colors.CYAN) + c(f"{description}", Colors.GREY))
+    label = command.strip().rstrip(":").strip()
+    gap = " " * DESCRIPTION_GAP
+    command_label = f"{label}:"
+    if len(command_label) > COMMAND_COL_WIDTH:
+        print(c(f"  {command_label}", Colors.CYAN))
+        print(c(f"  {'':<{COMMAND_COL_WIDTH}}", Colors.CYAN) + c(f"{gap}{description}", Colors.GREY))
+        return
+    print(c(f"  {command_label:<{COMMAND_COL_WIDTH}}", Colors.CYAN) + c(f"{gap}{description}", Colors.GREY))
+
+
+def _render_items(items: HelpItems) -> None:
+    for command, description in items:
+        _item(command, description)
+
+
+def _example(command: str, description: str) -> None:
+    print(c(f"  {symbol('action')} {command}", Colors.YELLOW))
+    print(c(f"    {description}", Colors.GREY))
 
 
 def show_flag_help() -> None:
     print(c(f"\n{PROJECT_NAME} v{VERSION} [{VERSION_THEME}] Flag Help", Colors.BOLD + Colors.CYAN))
     print(c(f"{symbol('action')} Usage: python silica-x.py <command> [flags]", Colors.GREY))
 
-    _section("Global")
-    _item("--about", "Show framework description and exit.")
-    _item("--explain", "Show plain-language command and extension guide and exit.")
+    _section("Global Flags", icon="feature")
+    _render_items(
+        (
+            ("--about:", "Show framework description and exit."),
+            ("--explain:", "Show plain-language command and extension guide and exit."),
+        )
+    )
 
-    _section("Core Commands")
-    _item("profile <username...>", "Scan usernames for profile intelligence.")
-    _item("surface <domain>", "Scan a domain for surface exposure signals.")
-    _item("fusion <username> <domain>", "Run profile and surface workflows together.")
-    _item("orchestrate <mode> <target>", "Run policy-driven layered orchestration.")
-    _item("plugins [--scope ...]", "List available plugins.")
-    _item("filters [--scope ...]", "List available filters.")
-    _item("modules [query flags]", "List/sync/query source-intel module catalog.")
-    _item("history [--limit N]", "List previously scanned targets.")
-    _item("quicktest [flags]", "Run one random built-in victim template and emit full reports.")
-    _item("live <target> [--port]", "Open local live dashboard.")
-    _item("anonymity [flags]", "Check or change Tor/proxy routing.")
-    _item("wizard", "Run guided workflow questions.")
-    _item("wizard --help", "Show full wizard flags (phases, presets, selectors, toggles).")
-    _item("keywords", "Show prompt keyword shortcuts.")
-    _item("about | explain | prompt | help", "Metadata, explainers, interactive mode, help.")
+    _section("Primary Workflows")
+    _render_items(
+        (
+            ("profile <username...>:", "Scan usernames for profile intelligence."),
+            ("surface <domain>:", "Scan a domain for surface exposure signals."),
+            ("fusion <username> <domain>:", "Run profile and surface workflows together."),
+            ("orchestrate <mode> <target>:", "Run policy-driven layered orchestration."),
+            ("wizard:", "Run guided workflow questions."),
+            ("quicktest [flags]:", "Run one random built-in victim template with report outputs."),
+        )
+    )
 
-    _section("Extension + Routing")
-    _item("--plugin / --all-plugins", "Enable one or all plugins (repeatable/comma-separated selectors).")
-    _item("--filter / --all-filters", "Enable one or all filters (repeatable/comma-separated selectors).")
-    _item("--extension-control <mode>", "auto | manual | hybrid (fail-fast conflict validation)")
-    _item("wizard preflight", "Wizard validates extension compatibility before starting scans.")
-    _item("--tor / --proxy", "Enable Tor/proxy routing.")
-    _item("--no-tor / --no-proxy", "Disable Tor/proxy routing.")
-    _item("--check / --prompt", "Diagnostics or guided anonymity setup.")
+    _section("Inventory and Utility")
+    _render_items(
+        (
+            ("plugins [--scope ...]:", "List available plugins."),
+            ("filters [--scope ...]:", "List available filters."),
+            ("modules [query flags]:", "List/sync/query source-intel module catalog."),
+            ("history [--limit N]:", "List previously scanned targets."),
+            ("live <target> [--port]:", "Open local live dashboard."),
+            ("anonymity [flags]:", "Check or change Tor/proxy routing."),
+            ("keywords:", "Show prompt keyword shortcuts."),
+            ("about | explain | prompt | help:", "Metadata, explainers, interactive mode, help."),
+        )
+    )
+
+    _section("Extension and Routing Controls")
+    _render_items(
+        (
+            (
+                "--plugin / --all-plugins:",
+                "Enable one or all plugins (repeatable/comma-separated selectors).",
+            ),
+            (
+                "--filter / --all-filters:",
+                "Enable one or all filters (repeatable/comma-separated selectors).",
+            ),
+            (
+                "--extension-control <mode>:",
+                "auto | manual | hybrid (fail-fast conflict validation)",
+            ),
+            ("wizard preflight:", "Wizard validates extension compatibility before scans."),
+            ("--tor / --proxy:", "Enable Tor/proxy routing."),
+            ("--no-tor / --no-proxy:", "Disable Tor/proxy routing."),
+            ("--check / --prompt:", "Run diagnostics or guided anonymity setup."),
+        )
+    )
 
     _section("Output")
-    _item("--html / --csv", "Write HTML and CSV artifacts.")
-    _item("output/data output/html output/cli output/logs", "Default artifact directories.")
+    _render_items(
+        (
+            ("--html / --csv:", "Write HTML and CSV artifacts."),
+            ("wizard --help:", "Show full wizard flags (phases, presets, selectors, toggles)."),
+            ("output/data output/html output/cli output/logs:", "Default artifact directories."),
+        )
+    )
+
+    _section("Quick Start", icon="tip")
+    _example(
+        "python silica-x.py profile alice --preset deep --plugin threat_conductor --html --csv:",
+        "Run profile intelligence with explicit plugin selection and full artifacts.",
+    )
+    _example(
+        "python silica-x.py orchestrate fusion alice --secondary-target example.com --html:",
+        "Run orchestration in fusion mode with HTML reporting.",
+    )
     print()
 
 
@@ -66,38 +130,70 @@ def show_prompt_help() -> None:
     print(c(f"\n{PROJECT_NAME} v{VERSION} [{VERSION_THEME}] Prompt Help", Colors.BOLD + Colors.CYAN))
     print(c(f"{symbol('action')} Type one command and press Enter.", Colors.GREY))
 
-    _section("Prompt Commands")
-    _item("scan <username>", "Quick profile alias.")
-    _item("profile <username...>", "Run profile workflow.")
-    _item("surface <domain>", "Run surface workflow.")
-    _item("fusion <username> <domain>", "Run fusion workflow.")
-    _item("orchestrate <mode> <target>", "Run layered orchestration.")
-    _item("plugins | filters | modules", "Inventory and module intelligence catalog.")
-    _item("history [--limit N]", "List previously scanned targets.")
-    _item("quicktest [flags]", "Run one random built-in victim template.")
-    _item("config", "Show prompt defaults and active module.")
-    _item("anonymity [flags]", "Check or change Tor/proxy routing.")
-    _item("wizard", "Guided workflow with prompts.")
-    _item("keywords", "Show all prompt shortcut aliases.")
-    _item("about | explain | help | clear | exit", "Metadata, docs, help, clear screen, quit.")
+    _section("Workflow Commands")
+    _render_items(
+        (
+            ("scan <username>:", "Quick profile alias."),
+            ("profile <username...>:", "Run profile workflow."),
+            ("surface <domain>:", "Run surface workflow."),
+            ("fusion <username> <domain>:", "Run fusion workflow."),
+            ("orchestrate <mode> <target>:", "Run layered orchestration."),
+            ("quicktest [flags]:", "Run one random built-in victim template."),
+            ("wizard:", "Guided workflow with prompts."),
+        )
+    )
 
-    _section("Prompt Controls")
-    _item("use <profile|surface|fusion>", "Switch active module context.")
-    _item("select module <profile|surface|fusion>", "Alias for `use` module switch by name.")
-    _item("set plugins <none|all|a,b>", "Set module-compatible plugins (strict compatibility checks).")
-    _item("set filters <none|all|a,b>", "Set module-compatible filters (strict compatibility checks).")
-    _item("select plugins <a,b>", "Alias for `set plugins` (name-based selectors).")
-    _item("select filters <a,b>", "Alias for `set filters` (name-based selectors).")
-    _item("add plugins <a,b> / remove plugins <a,b>", "Incremental plugin control by name.")
-    _item("add filters <a,b> / remove filters <a,b>", "Incremental filter control by name.")
-    _item("set profile_preset <...>", "Default profile preset.")
-    _item("set surface_preset <...>", "Default surface preset.")
-    _item("set extension_control <...>", "Default control mode for active module.")
-    _item("set orchestrate_extension_control <...>", "Default control mode for orchestrate.")
+    _section("Inventory and Session")
+    _render_items(
+        (
+            ("show plugins | show filters | show modules:", "Inventory and module intelligence catalog."),
+            ("show history [--limit N]:", "List previously scanned targets."),
+            ("show config:", "Show prompt defaults and active module."),
+            ("anonymity [flags]:", "Check or change Tor/proxy routing."),
+            ("show keywords:", "Show all prompt shortcut aliases."),
+            ("about | explain | help | clear | exit:", "Metadata, docs, help, clear screen, quit."),
+        )
+    )
+
+    _section("Selection Controls")
+    _render_items(
+        (
+            ("use <profile|surface|fusion>:", "Switch active module context."),
+            ("select module <profile|surface|fusion>:", "Alias for `use` module switch by name."),
+            (
+                "set plugins <none|all|a,b>:",
+                "Set module-compatible plugins (strict compatibility checks).",
+            ),
+            (
+                "set filters <none|all|a,b>:",
+                "Set module-compatible filters (strict compatibility checks).",
+            ),
+            ("select plugins <a,b>:", "Alias for `set plugins` (name-based selectors)."),
+            ("select filters <a,b>:", "Alias for `set filters` (name-based selectors)."),
+            ("add plugins <a,b> / remove plugins <a,b>:", "Incremental plugin control by name."),
+            ("add filters <a,b> / remove filters <a,b>:", "Incremental filter control by name."),
+        )
+    )
+
+    _section("Defaults and Modes")
+    _render_items(
+        (
+            ("set profile_preset <...>:", "Default profile preset."),
+            ("set surface_preset <...>:", "Default surface preset."),
+            ("set extension_control <...>:", "Default control mode for active module."),
+            ("set orchestrate_extension_control <...>:", "Default control mode for orchestrate."),
+        )
+    )
 
     _section("Prompt Format")
     print(c(f"  {symbol('feature')} (console <module> ec=<mode> plugins=<set> filters=<set>)>>", Colors.CYAN))
     print(c(f"  {symbol('tip')} Run 'keywords' to inspect all alias mappings.", Colors.GREY))
+
+    _section("Prompt Examples", icon="tip")
+    _example("show plugins:", "List plugin inventory.")
+    _example("use fusion:", "Switch prompt context to fusion workflows.")
+    _example("set plugins threat_conductor,signal_fusion_core:", "Set plugin defaults by name.")
+    _example("quicktest --seed 7 --html --csv:", "Run deterministic synthetic smoke with reports.")
     print()
 
 

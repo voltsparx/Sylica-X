@@ -16,8 +16,8 @@ def show_banner(anonymity_status="No anonymization"):
     print(f"{grey}         `Y8b.    88    88         88    8b      88~~~88  C8888D{reset}  {grey}{yellow}.dPYb.{reset}")
     print(f"{grey}       db   8D   .88.   88booo.   .88.   Y8b  d8 88   88{reset}         {grey}{yellow}.8P  Y8.{reset}")
     print(f"{grey}       `8888Y' Y888888P Y88888P Y888888P  `Y88P' YP   YP{reset}         {grey}{yellow}YP    YP{reset}")
-    print(f"{yellow}                                                                          v{VERSION}{reset}")
+    print(f"{grey}                                                                          v{VERSION}{reset}")
     print("_________________________________________________________________________________")
-    print(f"{cyan}   Automated User OSINT Tool - Developed by {AUTHOR} (github.com/{AUTHOR}){reset}")
+    print(f"{cyan}   Automated Multi-OSINT Tool - Developed by {AUTHOR} (github.com/{AUTHOR}){reset}")
     print(f"{cyan}                     Current Anonymity: {anonymity_status}{reset}\n")
 
