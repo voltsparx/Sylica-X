@@ -554,6 +554,7 @@ chmod +x docker-scripts/run-docker-linux.sh docker-scripts/run-docker-macos.sh d
 ./docker-scripts/run-docker-linux.sh --runner-upgrade
 ./docker-scripts/run-docker-linux.sh --runner-upgrade-host --runner-upgrade
 ./docker-scripts/run-docker-linux.sh --runner-show-contexts
+./docker-scripts/run-docker-linux.sh --runner-diagnose
 ./docker-scripts/run-docker-linux.sh --runner-context remote-lab profile alice --html
 ./docker-scripts/run-docker-linux.sh --runner-build --runner-python-version 3.13 profile alice --html
 ./docker-scripts/run-docker-linux.sh --runner-stop
@@ -565,6 +566,7 @@ chmod +x docker-scripts/run-docker-linux.sh docker-scripts/run-docker-macos.sh d
 ./docker-scripts/run-docker-macos.sh --runner-upgrade
 ./docker-scripts/run-docker-macos.sh --runner-upgrade-host --runner-upgrade
 ./docker-scripts/run-docker-macos.sh --runner-show-contexts
+./docker-scripts/run-docker-macos.sh --runner-diagnose
 ./docker-scripts/run-docker-macos.sh --runner-stop
 ./docker-scripts/run-docker-macos.sh --runner-stop-docker
 
@@ -574,6 +576,7 @@ chmod +x docker-scripts/run-docker-linux.sh docker-scripts/run-docker-macos.sh d
 ./docker-scripts/run-docker-termux.sh --runner-upgrade
 ./docker-scripts/run-docker-termux.sh --runner-upgrade-host --runner-upgrade
 ./docker-scripts/run-docker-termux.sh --runner-show-contexts
+./docker-scripts/run-docker-termux.sh --runner-diagnose
 ./docker-scripts/run-docker-termux.sh --runner-stop
 ./docker-scripts/run-docker-termux.sh --runner-stop-docker
 
@@ -583,6 +586,7 @@ powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1
 powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-upgrade
 powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-upgrade-host --runner-upgrade
 powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-show-contexts
+powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-diagnose
 powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop
 powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop-docker
 ```
@@ -597,6 +601,7 @@ Runner behavior:
 * `--runner-upgrade` refreshes and rebuilds containers (`--pull` + `--no-cache`).
 * `--runner-upgrade-host` upgrades host Docker/Desktop packages (OS package manager).
 * `--runner-show-contexts` lists available Docker contexts.
+* `--runner-diagnose` runs a non-interactive compatibility check and exits.
 * `--runner-context <name>` runs against a selected Docker context.
 * `--runner-python-version <v>` lets you pin the Docker build runtime (defaults to `3.13`).
 * `--runner-stop` cleanly tears down Silica containers when finished.

@@ -13,6 +13,7 @@ These scripts wrap `docker/docker-compose.yml` and provide guided setup for:
 - Runtime upgrade controls (`--runner-upgrade`, `--runner-pull`, `--runner-no-cache`)
 - Host Docker/Desktop upgrade control (`--runner-upgrade-host`)
 - Docker context support (`--runner-show-contexts`, `--runner-context <name>`)
+- Non-interactive diagnostics (`--runner-diagnose`)
 - Python base version override for builds (`--runner-python-version <version>`)
 
 ## Scripts
@@ -58,6 +59,9 @@ Examples:
 ./docker-scripts/run-docker-linux.sh --runner-show-contexts
 ./docker-scripts/run-docker-linux.sh --runner-context remote-lab profile alice --html
 
+# run compatibility diagnostics
+./docker-scripts/run-docker-linux.sh --runner-diagnose
+
 # pin Docker build Python runtime
 ./docker-scripts/run-docker-linux.sh --runner-build --runner-python-version 3.13 profile alice --html
 
@@ -85,6 +89,7 @@ Script-only flags are namespaced with `--runner-`:
 - `--runner-stop`
 - `--runner-stop-docker`
 - `--runner-show-contexts`
+- `--runner-diagnose`
 - `--runner-context <name>`
 - `--runner-use-tor-service`
 - `--runner-service <name>`

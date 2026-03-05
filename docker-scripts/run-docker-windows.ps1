@@ -23,6 +23,7 @@ $RunnerPrompt = $false
 $RunnerStop = $false
 $RunnerStopDocker = $false
 $RunnerShowContexts = $false
+$RunnerDiagnose = $false
 $RunnerService = 'silica-x'
 $RunnerProfile = ''
 $RunnerPythonVersion = ''
@@ -63,6 +64,7 @@ Runner options (reserved for this script):
   --runner-stop              Stop/remove Silica containers.
   --runner-stop-docker       Stop/remove Silica containers and stop Docker Desktop.
   --runner-show-contexts     List Docker contexts and exit.
+  --runner-diagnose          Run non-interactive environment diagnostics and exit.
   --runner-context <name>    Use a specific Docker context.
   --runner-use-tor-service   Force Tor service container (silica-x-tor).
   --runner-service <name>    Override compose service (default: silica-x).
@@ -81,6 +83,7 @@ Examples:
   .\docker-scripts\$ScriptName
   .\docker-scripts\$ScriptName profile alice --html
   .\docker-scripts\$ScriptName --runner-show-contexts
+  .\docker-scripts\$ScriptName --runner-diagnose
   .\docker-scripts\$ScriptName --runner-stop
   .\docker-scripts\$ScriptName --runner-stop-docker
   .\docker-scripts\$ScriptName --runner-upgrade-host --runner-upgrade
@@ -154,6 +157,9 @@ function Parse-RunnerArgs {
       }
       '--runner-show-contexts' {
         $script:RunnerShowContexts = $true
+      }
+      '--runner-diagnose' {
+        $script:RunnerDiagnose = $true
       }
       '--runner-context' {
         $i++
@@ -331,6 +337,129 @@ function Test-DockerDaemon {
   } catch {
     return $false
   }
+}
+
+function Write-DiagLine {
+  param(
+    [string]$Label,
+    [string]$Value
+  )
+  Write-Host ("  {0,-24} {1}" -f $Label, $Value)
+}
+
+function Invoke-RunnerDiagnostics {
+  $issues = 0
+  $minMemory = 2GB
+  $minDisk = 4GB
+
+  Write-InfoLine 'Runner diagnostics'
+  Write-Host '----------------------------------------'
+  Write-DiagLine -Label 'script' -Value $ScriptName
+  Write-DiagLine -Label 'repo_root' -Value $RepoRoot
+  Write-DiagLine -Label 'compose_file' -Value $ComposeFile
+  if (Test-Path -Path $ComposeFile -PathType Leaf) {
+    Write-DiagLine -Label 'compose_file_status' -Value 'ok'
+  } else {
+    Write-DiagLine -Label 'compose_file_status' -Value 'missing'
+    $issues++
+  }
+  Write-DiagLine -Label 'service' -Value $RunnerService
+  Write-DiagLine -Label 'profile' -Value ($(if ([string]::IsNullOrWhiteSpace($RunnerProfile)) { 'auto' } else { $RunnerProfile }))
+  Write-DiagLine -Label 'requested_context' -Value ($(if ([string]::IsNullOrWhiteSpace($RunnerContext)) { 'default/auto' } else { $RunnerContext }))
+
+  $dockerPresent = $null -ne (Get-Command docker -ErrorAction SilentlyContinue)
+  if ($dockerPresent) {
+    $cliVersion = (& docker --version 2>$null)
+    if ([string]::IsNullOrWhiteSpace($cliVersion)) {
+      $cliVersion = 'unknown'
+    }
+    Write-DiagLine -Label 'docker_cli' -Value 'present'
+    Write-DiagLine -Label 'docker_cli_version' -Value $cliVersion
+
+    $activeContext = 'unknown'
+    if (-not [string]::IsNullOrWhiteSpace($RunnerContext)) {
+      $activeContext = $RunnerContext
+    } else {
+      try {
+        $activeContext = (& docker context show 2>$null).Trim()
+        if ([string]::IsNullOrWhiteSpace($activeContext)) {
+          $activeContext = 'unknown'
+        }
+      } catch {
+        $activeContext = 'unknown'
+      }
+    }
+    Write-DiagLine -Label 'docker_context_active' -Value $activeContext
+
+    if (Test-DockerDaemon) {
+      Write-DiagLine -Label 'docker_daemon' -Value 'reachable'
+    } else {
+      Write-DiagLine -Label 'docker_daemon' -Value 'unreachable'
+      $issues++
+    }
+
+    if (Test-DockerComposePlugin) {
+      Write-DiagLine -Label 'compose_support' -Value 'plugin'
+    } elseif (Get-Command docker-compose -ErrorAction SilentlyContinue) {
+      Write-DiagLine -Label 'compose_support' -Value 'legacy'
+    } else {
+      Write-DiagLine -Label 'compose_support' -Value 'missing'
+      $issues++
+    }
+  } else {
+    Write-DiagLine -Label 'docker_cli' -Value 'missing'
+    Write-DiagLine -Label 'docker_cli_version' -Value 'n/a'
+    Write-DiagLine -Label 'docker_context_active' -Value 'n/a'
+    Write-DiagLine -Label 'docker_daemon' -Value 'unavailable'
+    Write-DiagLine -Label 'compose_support' -Value 'missing'
+    $issues++
+  }
+
+  try {
+    $totalMemory = [int64](Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory
+  } catch {
+    $totalMemory = 0
+  }
+  if ($totalMemory -gt 0) {
+    Write-DiagLine -Label 'memory_total' -Value "$(Format-Gib -Bytes $totalMemory) GiB"
+    if ($totalMemory -lt $minMemory) {
+      Write-DiagLine -Label 'memory_status' -Value 'low (< 2 GiB)'
+      $issues++
+    } else {
+      Write-DiagLine -Label 'memory_status' -Value 'ok'
+    }
+  } else {
+    Write-DiagLine -Label 'memory_status' -Value 'unknown'
+  }
+
+  $rootPath = [System.IO.Path]::GetPathRoot($RepoRoot)
+  $freeDisk = 0
+  if ($rootPath) {
+    $driveName = $rootPath.Substring(0, 1)
+    $drive = Get-PSDrive -Name $driveName -ErrorAction SilentlyContinue
+    if ($drive) {
+      $freeDisk = [int64]$drive.Free
+    }
+  }
+  if ($freeDisk -gt 0) {
+    Write-DiagLine -Label 'disk_free' -Value "$(Format-Gib -Bytes $freeDisk) GiB"
+    if ($freeDisk -lt $minDisk) {
+      Write-DiagLine -Label 'disk_status' -Value 'low (< 4 GiB)'
+      $issues++
+    } else {
+      Write-DiagLine -Label 'disk_status' -Value 'ok'
+    }
+  } else {
+    Write-DiagLine -Label 'disk_status' -Value 'unknown'
+  }
+
+  if ($issues -eq 0) {
+    Write-InfoLine 'Diagnostics passed.'
+    return $true
+  }
+
+  Write-WarnLine "Diagnostics found $issues issue(s) that may block execution."
+  return $false
 }
 
 function Test-DockerComposePlugin {
@@ -680,8 +809,17 @@ try {
   Parse-RunnerArgs -InputArgs $CliArgs
   Configure-ModeAndService
 
+  if ($RunnerDiagnose) {
+    if (-not (Invoke-RunnerDiagnostics)) {
+      exit 1
+    }
+    exit 0
+  }
+
   if ($RunnerShowContexts) {
-    Ensure-DockerCommand
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+      throw 'Docker is not installed. Install Docker to list contexts.'
+    }
     Show-DockerContexts
     exit 0
   }

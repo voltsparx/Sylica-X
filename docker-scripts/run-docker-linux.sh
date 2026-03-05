@@ -17,6 +17,7 @@ RUNNER_PROMPT=0
 RUNNER_STOP=0
 RUNNER_STOP_DOCKER=0
 RUNNER_SHOW_CONTEXTS=0
+RUNNER_DIAGNOSE=0
 RUNNER_SERVICE="silica-x"
 RUNNER_PROFILE=""
 RUNNER_PYTHON_VERSION=""
@@ -55,6 +56,7 @@ Runner options (reserved for this script):
   --runner-stop              Stop/remove Silica containers.
   --runner-stop-docker       Stop/remove Silica containers and stop Docker daemon.
   --runner-show-contexts     List Docker contexts and exit.
+  --runner-diagnose          Run non-interactive environment diagnostics and exit.
   --runner-context <name>    Use a specific Docker context.
   --runner-use-tor-service   Force Tor service container (silica-x-tor).
   --runner-service <name>    Override compose service (default: silica-x).
@@ -76,6 +78,7 @@ Examples:
   ./${SCRIPT_NAME} --runner-stop-docker
   ./${SCRIPT_NAME} --runner-upgrade-host --runner-upgrade
   ./${SCRIPT_NAME} --runner-show-contexts
+  ./${SCRIPT_NAME} --runner-diagnose
   ./${SCRIPT_NAME} --runner-build --runner-use-tor-service profile alice --tor --html
   ./${SCRIPT_NAME} -- --help
 EOF
@@ -173,6 +176,9 @@ parse_args() {
         ;;
       --runner-show-contexts)
         RUNNER_SHOW_CONTEXTS=1
+        ;;
+      --runner-diagnose)
+        RUNNER_DIAGNOSE=1
         ;;
       --runner-context)
         shift
@@ -275,6 +281,102 @@ check_resources() {
       die "Aborted due to low disk space."
     fi
   fi
+}
+
+diagnose_runner() {
+  local failures=0
+  local min_mem_kb=$((2 * 1024 * 1024))
+  local min_disk_kb=$((4 * 1024 * 1024))
+  local mem_kb=0
+  local disk_kb=0
+  local docker_cli='missing'
+  local daemon_state='unavailable'
+  local compose_state='missing'
+  local context_state='n/a'
+  local cli_version='n/a'
+
+  diag_line() {
+    printf '  %-24s %s\n' "$1" "$2"
+  }
+
+  info "Runner diagnostics"
+  printf '%s\n' '----------------------------------------'
+  diag_line "script" "$SCRIPT_NAME"
+  diag_line "repo_root" "$REPO_ROOT"
+  diag_line "compose_file" "$COMPOSE_FILE"
+  if [[ -f "$COMPOSE_FILE" ]]; then
+    diag_line "compose_file_status" "ok"
+  else
+    diag_line "compose_file_status" "missing"
+    failures=$((failures + 1))
+  fi
+  diag_line "service" "$RUNNER_SERVICE"
+  diag_line "profile" "${RUNNER_PROFILE:-auto}"
+  diag_line "requested_context" "${RUNNER_CONTEXT:-default/auto}"
+
+  if command -v docker >/dev/null 2>&1; then
+    docker_cli='present'
+    cli_version="$(docker --version 2>/dev/null || printf 'unknown')"
+    context_state="$(docker context show 2>/dev/null || printf 'unknown')"
+    if docker_cmd info >/dev/null 2>&1; then
+      daemon_state='reachable'
+    else
+      daemon_state='unreachable'
+      failures=$((failures + 1))
+    fi
+    if docker_cmd compose version >/dev/null 2>&1; then
+      compose_state='plugin'
+    elif command -v docker-compose >/dev/null 2>&1; then
+      compose_state='legacy'
+    else
+      compose_state='missing'
+      failures=$((failures + 1))
+    fi
+  else
+    failures=$((failures + 1))
+  fi
+
+  diag_line "docker_cli" "$docker_cli"
+  diag_line "docker_cli_version" "$cli_version"
+  diag_line "docker_context_active" "$context_state"
+  diag_line "docker_daemon" "$daemon_state"
+  diag_line "compose_support" "$compose_state"
+
+  if [[ -r /proc/meminfo ]]; then
+    mem_kb="$(awk '/MemTotal:/ {print $2}' /proc/meminfo)"
+  fi
+  if [[ "$mem_kb" =~ ^[0-9]+$ ]] && [[ "$mem_kb" -gt 0 ]]; then
+    diag_line "memory_total" "$(format_kb_to_gb "$mem_kb") GiB"
+    if (( mem_kb < min_mem_kb )); then
+      diag_line "memory_status" "low (< 2 GiB)"
+      failures=$((failures + 1))
+    else
+      diag_line "memory_status" "ok"
+    fi
+  else
+    diag_line "memory_status" "unknown"
+  fi
+
+  disk_kb="$(df -Pk "$REPO_ROOT" 2>/dev/null | awk 'NR==2 {print $4}')"
+  if [[ "$disk_kb" =~ ^[0-9]+$ ]] && [[ "$disk_kb" -gt 0 ]]; then
+    diag_line "disk_free" "$(format_kb_to_gb "$disk_kb") GiB"
+    if (( disk_kb < min_disk_kb )); then
+      diag_line "disk_status" "low (< 4 GiB)"
+      failures=$((failures + 1))
+    else
+      diag_line "disk_status" "ok"
+    fi
+  else
+    diag_line "disk_status" "unknown"
+  fi
+
+  if (( failures == 0 )); then
+    info "Diagnostics passed."
+    return 0
+  fi
+
+  warn "Diagnostics found ${failures} issue(s) that may block execution."
+  return 1
 }
 
 install_docker_linux() {
@@ -600,8 +702,13 @@ main() {
   parse_args "$@"
   configure_mode_and_service
 
+  if [[ "$RUNNER_DIAGNOSE" -eq 1 ]]; then
+    diagnose_runner
+    return
+  fi
+
   if [[ "$RUNNER_SHOW_CONTEXTS" -eq 1 ]]; then
-    ensure_docker_command
+    command -v docker >/dev/null 2>&1 || die "Docker is not installed. Install Docker to list contexts."
     show_contexts
     return
   fi
