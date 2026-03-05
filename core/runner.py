@@ -75,6 +75,10 @@ EXIT_FAILURE = 1
 EXIT_USAGE = 2
 PROMPT_SHOW_COMMANDS = {"plugins", "filters", "modules", "history", "keywords", "config"}
 
+
+def _print_prompt_help_hint() -> None:
+    print(c(f"{symbol('tip')} Invalid command. Use `help` command.", Colors.YELLOW))
+
 PLUGIN_MANAGER = PluginManager()
 FUSION_ENGINE = FusionEngine()
 REPORT_GENERATOR = ReportGenerator()
@@ -3010,8 +3014,8 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
 
         try:
             raw_tokens = shlex.split(command_text)
-        except ValueError as exc:
-            print(c(f"Invalid command syntax: {exc}", Colors.RED))
+        except ValueError:
+            _print_prompt_help_hint()
             continue
         if not raw_tokens:
             continue
@@ -3019,16 +3023,11 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         first_token = raw_tokens[0].strip().lower()
         if first_token == "show":
             if len(raw_tokens) < 2:
-                print(
-                    c(
-                        "Usage: show <plugins|filters|modules|history|keywords|config> [flags]",
-                        Colors.YELLOW,
-                    )
-                )
+                _print_prompt_help_hint()
                 continue
             show_target = _keyword_to_command(raw_tokens[1]) or raw_tokens[1].strip().lower()
             if show_target not in PROMPT_SHOW_COMMANDS:
-                print(c(f"Unsupported show target: {raw_tokens[1]}", Colors.RED))
+                _print_prompt_help_hint()
                 continue
             raw_tokens = [show_target, *raw_tokens[2:]]
         else:
@@ -3049,6 +3048,7 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
             clear_screen()
             continue
         if keyword_match == "banner" or lowered == "banner":
+            clear_screen()
             show_banner(get_anonymity_status(state))
             continue
         if lowered == "version":
@@ -3139,8 +3139,8 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
 
         try:
             args = prompt_parser.parse_args(tokens)
-        except ValueError as exc:
-            print(c(f"Invalid command usage. Type 'help' for options. ({exc})", Colors.RED))
+        except ValueError:
+            _print_prompt_help_hint()
             continue
 
         setattr(args, "_explicit_flags", explicit_flags)
