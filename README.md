@@ -17,11 +17,13 @@ Multi-engine OSINT orchestration for profile intelligence, domain-surface reconn
   <img src="https://img.shields.io/badge/license-Proprietary-8B0000?style=for-the-badge" alt="License Proprietary">
 </p>
 
-> **Power Summary**
+> **Power Summary:**
+> Silica-X is a fast, modular OSINT framework designed for identity, surface, and fusion intelligence workflows. It uses multi-engine orchestration (async, threading, scheduler, and parallel execution) to gather, correlate, and score open-source signals with structured reporting. <br>
 > Silica-X is built to run intelligence workflows as one coordinated system:
 > `profile`, `surface`, `fusion`, and `orchestrate`.
 >  
-> It combines policy-driven execution, plugin/filter control, and explainable scoring into one operator flow, with rich outputs across CLI, JSON, CSV, HTML, and logs.
+> It combines policy-driven execution, plugin/filter control, and explainable scoring into one operator flow, with rich outputs across CLI, JSON, CSV, HTML, and logs. <br>
+> Sorry for the old v3.0 image of Silica-X. I will change that soon^^
 
 ---
 
