@@ -1,10 +1,10 @@
-# Silica-X v9.0 "Lattice" Release Checklist
+# Silica-X v9.2.0 "Lattice" Release Checklist
 
-Date: 2026-03-05
+Date: 2026-03-14
 
 ## 1) Release Gate
 
-- [x] Versioned branding aligned to `v9.0` and theme `Lattice` in primary docs.
+- [x] Versioned branding aligned to `v9.2.0` and theme `Lattice` in primary docs.
 - [x] Core usage docs updated (`README.md`, `docs/Usage.txt`).
 - [x] OCR roadmap note clearly marked as future-scope (`v9.5`/`v10.0` planning lane).
 - [x] New plugin/filter/quicktest flows documented.
@@ -51,7 +51,7 @@ Current state: `READY TO PUBLISH` after final manual sanity in section 5.
 
 ## 7) Suggested Publish Sequence
 
-1. Commit grouped changes (see `docs/release-commit-plan-v9.0-lattice.md`).
+1. Commit grouped changes (see `docs/release-commit-plan-v9.2.0-lattice.md`).
 2. Push branch and confirm CI is green.
-3. Create annotated tag `v9.0`.
-4. Publish release with notes from `docs/release-notes-v9.0-lattice.md`.
+3. Create annotated tag `v9.2.0`.
+4. Publish release with notes from `docs/release-notes-v9.2.0-lattice.md`.

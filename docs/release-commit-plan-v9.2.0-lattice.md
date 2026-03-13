@@ -1,11 +1,11 @@
-# Silica-X v9.0 "Lattice" Commit Plan
+# Silica-X v9.2.0 "Lattice" Commit Plan
 
 Use this grouping to keep history readable and simplify rollback/cherry-pick paths.
 
 ## Commit 1: Core runtime and wiring
 
 Suggested message:
-`feat(core): harden runner, parser, and extension wiring for v9.0 lattice`
+`feat(core): harden runner, parser, and extension wiring for v9.2.0 lattice`
 
 Suggested files:
 
@@ -45,7 +45,7 @@ Suggested files:
 ## Commit 4: Documentation and release assets
 
 Suggested message:
-`docs: publish v9.0 lattice usage, release notes, and checklist`
+`docs: publish v9.2.0 lattice usage, release notes, and checklist`
 
 Suggested files:
 
@@ -54,14 +54,14 @@ Suggested files:
 - `docs/orchestration-architecture.md` (if changed)
 - `docs/silica-capability-scan.md` (if changed)
 - `docs/ocr-image-scan-infrastructure.md`
-- `docs/release-checklist-v9.0-lattice.md`
-- `docs/release-notes-v9.0-lattice.md`
-- `docs/release-commit-plan-v9.0-lattice.md`
+- `docs/release-checklist-v9.2.0-lattice.md`
+- `docs/release-notes-v9.2.0-lattice.md`
+- `docs/release-commit-plan-v9.2.0-lattice.md`
 
 ## Tag and release
 
 After commits and CI green:
 
-1. `git tag -a v9.0 -m "Silica-X v9.0 Lattice"`
+1. `git tag -a v9.2.0 -m "Silica-X v9.2.0 Lattice"`
 2. `git push origin <branch> --follow-tags`
-3. Create GitHub release using `docs/release-notes-v9.0-lattice.md`
+3. Create GitHub release using `docs/release-notes-v9.2.0-lattice.md`

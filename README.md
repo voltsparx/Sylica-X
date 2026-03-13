@@ -109,10 +109,9 @@ For full command reference, see [Usage Guide](docs/Usage.txt).
 * [Orchestration Architecture](docs/orchestration-architecture.md)
 * [Capability Scan Report](docs/silica-capability-scan.md)
 * [OCR/Image Infrastructure Plan](docs/ocr-image-scan-infrastructure.md)
-* [Release Checklist v9.0 Lattice](docs/release-checklist-v9.0-lattice.md)
-* [Release Notes v9.0 Lattice](docs/release-notes-v9.0-lattice.md)
+* [Release Checklist v9.2.0 Lattice](docs/release-checklist-v9.2.0-lattice.md)
 * [Release Notes v9.2.0 Lattice](docs/release-notes-v9.2.0-lattice.md)
-* [Release Commit Plan v9.0 Lattice](docs/release-commit-plan-v9.0-lattice.md)
+* [Release Commit Plan v9.2.0 Lattice](docs/release-commit-plan-v9.2.0-lattice.md)
 * [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ---

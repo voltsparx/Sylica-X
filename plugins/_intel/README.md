@@ -1,6 +1,6 @@
 # Plugin Intel Views
 
-Release: v9.0 (Theme: Lattice)
+Release: v9.2.0 (Theme: Lattice)
 
 Silica-native plugin inventory and usage guidance.
 

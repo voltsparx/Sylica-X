@@ -1,6 +1,6 @@
 # Modules Catalog
 
-Release: v9.0 (Theme: Lattice)
+Release: v9.2.0 (Theme: Lattice)
 
 Generated index for module-like capabilities discovered under `intel-sources/`.
 

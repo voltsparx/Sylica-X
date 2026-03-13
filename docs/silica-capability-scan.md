@@ -1,6 +1,6 @@
 # Silica Capability Scan
 
-Release: v9.0 (Theme: Lattice)
+Release: v9.2.0 (Theme: Lattice)
 
 Frameworks scanned: 8
 

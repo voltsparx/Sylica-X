@@ -314,7 +314,7 @@ Prompt format:
 - Plugin inventory view separates crypto modules under a dedicated `Cryptography Plugin Set` section.
 
 
-6) New Plugins and Filters (v9.0 Lattice Expansion)
+6) New Plugins and Filters (v9.2.0 Lattice Expansion)
 ----------------------------------------------------
 New plugins:
 - account_recovery_exposure_probe (profile, fusion)
