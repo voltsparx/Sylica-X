@@ -336,8 +336,11 @@ New filters:
 Current runtime extension inventory:
 - plugins: 20
 - filters: 17
+- modules (catalog): 567
+- frameworks (catalog): 7
 - plugin scope coverage: profile=13 surface=12 fusion=18
 - filter scope coverage: profile=14 surface=9 fusion=17
+- runtime inventory snapshot (2026-03-14): intel/runtime-inventory.json
 
 6.1) Cryptography Plugin Operations
 -----------------------------------

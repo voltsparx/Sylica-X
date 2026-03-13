@@ -56,14 +56,15 @@ def run(context: dict) -> dict:
         return {
             "severity": "INFO",
             "summary": (
-                "No plugin-like source modules are cataloged yet. "
+                "No plugin-aligned source entries are cataloged yet. "
                 "Run `python silica-x.py modules --sync` to build the catalog."
             ),
-            "highlights": [f"scope={scope}", "catalog=empty"],
+            "highlights": [f"scope={scope}", "catalog=empty", "catalog_kind=plugin"],
             "data": {
                 "scope": scope,
-                "plugin_modules_total": 0,
-                "plugin_modules_scoped": 0,
+                "catalog_kind": "plugin",
+                "catalog_entries_total": 0,
+                "catalog_entries_scoped": 0,
                 "top_frameworks": [],
             },
         }
@@ -78,8 +79,9 @@ def run(context: dict) -> dict:
 
     frameworks = _top_frameworks(scoped_rows)
     highlights = [
-        f"plugin_total={len(all_rows)}",
-        f"plugin_{scope}={scoped_count}",
+        "catalog_kind=plugin",
+        f"catalog_entries={len(all_rows)}",
+        f"catalog_{scope}={scoped_count}",
         f"frameworks={len({row.get('framework') for row in scoped_rows})}",
     ]
     if frameworks:
@@ -88,14 +90,16 @@ def run(context: dict) -> dict:
     return {
         "severity": severity,
         "summary": (
-            f"Cataloged {len(all_rows)} plugin-like modules, with {scoped_count} aligned to '{scope}' workflow."
+            f"Cataloged {len(all_rows)} plugin-aligned catalog entries, "
+            f"with {scoped_count} aligned to '{scope}' workflow."
         ),
         "highlights": highlights,
         "data": {
             "scope": scope,
-            "plugin_modules_total": len(all_rows),
-            "plugin_modules_scoped": scoped_count,
+            "catalog_kind": "plugin",
+            "catalog_entries_total": len(all_rows),
+            "catalog_entries_scoped": scoped_count,
             "top_frameworks": frameworks,
-            "sample_modules": [row.get("path") for row in scoped_rows[:12]],
+            "sample_entries": [row.get("path") for row in scoped_rows[:12]],
         },
     }

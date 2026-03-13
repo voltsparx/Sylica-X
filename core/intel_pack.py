@@ -481,8 +481,6 @@ def build_runtime_inventory_snapshot(
     platform_count: int,
     module_count: int,
     framework_count: int,
-    module_plugin_count: int,
-    module_filter_count: int,
     plugin_scope_counts: dict[str, int],
     filter_scope_counts: dict[str, int],
     plugin_error_count: int = 0,
@@ -501,10 +499,6 @@ def build_runtime_inventory_snapshot(
             "platforms": int(platform_count),
             "modules": int(module_count),
             "frameworks": int(framework_count),
-            "module_breakdown": {
-                "plugin": int(module_plugin_count),
-                "filter": int(module_filter_count),
-            },
             "scope_coverage": {
                 "plugins": {key: int(value) for key, value in plugin_scope_counts.items()},
                 "filters": {key: int(value) for key, value in filter_scope_counts.items()},

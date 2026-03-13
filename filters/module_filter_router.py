@@ -56,14 +56,15 @@ def run(context: dict) -> dict:
         return {
             "severity": "INFO",
             "summary": (
-                "No scoped source-intel modules are cataloged yet. "
-                "Run `python silica-x.py modules --sync` to populate module routing intelligence."
+                "No scoped source-intel entries are cataloged yet. "
+                "Run `python silica-x.py modules --sync` to populate routing intelligence."
             ),
-            "highlights": [f"scope={scope}", "scoped_modules=0"],
+            "highlights": [f"scope={scope}", "scoped_entries=0", "catalog_kind=filter"],
             "data": {
                 "scope": scope,
-                "scoped_modules": 0,
-                "scoped_filter_modules": 0,
+                "catalog_kind": "filter",
+                "scoped_entries": 0,
+                "scoped_filter_entries": 0,
                 "filter_density": 0.0,
                 "top_filter_frameworks": [],
             },
@@ -79,9 +80,10 @@ def run(context: dict) -> dict:
 
     highlights = [
         f"scope={scope}",
-        f"scoped_modules={len(scoped_total)}",
-        f"filter_modules={len(scoped_filters)}",
+        f"scoped_entries={len(scoped_total)}",
+        f"filter_entries={len(scoped_filters)}",
         f"filter_density={density:.2f}",
+        "catalog_kind=filter",
     ]
     frameworks = _top_frameworks(scoped_filters)
     if frameworks:
@@ -91,15 +93,16 @@ def run(context: dict) -> dict:
         "severity": severity,
         "summary": (
             f"Filter routing density for '{scope}' is {density:.2f} "
-            f"({len(scoped_filters)} filter-like modules across {len(scoped_total)} scoped modules)."
+            f"({len(scoped_filters)} filter-aligned catalog entries across {len(scoped_total)} scoped entries)."
         ),
         "highlights": highlights,
         "data": {
             "scope": scope,
-            "scoped_modules": len(scoped_total),
-            "scoped_filter_modules": len(scoped_filters),
+            "catalog_kind": "filter",
+            "scoped_entries": len(scoped_total),
+            "scoped_filter_entries": len(scoped_filters),
             "filter_density": round(density, 4),
             "top_filter_frameworks": frameworks,
-            "sample_filter_modules": [row.get("path") for row in scoped_filters[:12]],
+            "sample_filter_entries": [row.get("path") for row in scoped_filters[:12]],
         },
     }

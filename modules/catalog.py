@@ -1126,11 +1126,19 @@ def summarize_module_catalog(catalog: dict[str, Any]) -> dict[str, Any]:
         power_avg = round(total_power / float(len(rows_raw)), 2)
     catalog_power_avg = _safe_float(catalog.get("power_score_avg"), power_avg)
 
+    framework_list = sorted(frameworks)
+    framework_count = len(framework_list)
+    module_count = len(rows_raw)
+    if not rows_raw:
+        framework_count = _safe_int(catalog.get("framework_count"), framework_count)
+        module_count = _safe_int(catalog.get("module_count"), module_count)
+
     return {
         "catalog_version": str(catalog.get("catalog_version") or DEFAULT_CATALOG_VERSION),
         "generated_at_utc": str(catalog.get("generated_at_utc", "")),
-        "framework_count": _safe_int(catalog.get("framework_count"), len(frameworks)),
-        "module_count": _safe_int(catalog.get("module_count"), len(rows_raw)),
+        "framework_count": framework_count,
+        "frameworks": framework_list,
+        "module_count": module_count,
         "kind_counts": {
             "plugin": _safe_int((catalog.get("kind_counts") or {}).get("plugin"), kind_counts.get("plugin", 0)),
             "filter": _safe_int((catalog.get("kind_counts") or {}).get("filter"), kind_counts.get("filter", 0)),

@@ -175,7 +175,8 @@ For full command reference, see [Usage Guide](docs/Usage.txt).
   * keyword/flag parity verified
 * Platform manifests loaded: **70**
 * Runtime plugin/filter discovery: **20 plugins, 17 filters**
-* Runtime inventory snapshot: `intel/runtime-inventory.json`
+* Runtime module catalog: **567 modules across 7 frameworks**
+* Runtime inventory snapshot (2026-03-14): `intel/runtime-inventory.json`
 
 ### Scope Compatibility Inventory
 

@@ -704,8 +704,6 @@ def _print_runtime_loaded_inventory() -> None:
 
     framework_count = 0
     module_count = 0
-    module_plugin_count = 0
-    module_filter_count = 0
     module_error: str | None = None
     try:
         catalog = ensure_module_catalog(
@@ -715,11 +713,8 @@ def _print_runtime_loaded_inventory() -> None:
         )
         summary = summarize_module_catalog(catalog)
         framework_count = int(summary.get("framework_count", 0) or 0)
+        framework_list = summary.get("frameworks", []) if isinstance(summary.get("frameworks"), list) else []
         module_count = int(summary.get("module_count", 0) or 0)
-        kind_counts_raw = summary.get("kind_counts", {})
-        kind_counts = kind_counts_raw if isinstance(kind_counts_raw, dict) else {}
-        module_plugin_count = int(kind_counts.get("plugin", 0) or 0)
-        module_filter_count = int(kind_counts.get("filter", 0) or 0)
     except Exception as exc:  # pragma: no cover - startup diagnostics
         module_error = str(exc)
 
@@ -744,13 +739,11 @@ def _print_runtime_loaded_inventory() -> None:
         )
     )
     print(c(f"{symbol('ok')} platforms={platform_count}", Colors.CYAN))
-    print(
-        c(
-            f"{symbol('ok')} modules={module_count} frameworks={framework_count} "
-            f"(plugin_modules={module_plugin_count} filter_modules={module_filter_count})",
-            Colors.CYAN,
-        )
-    )
+    print(c(f"{symbol('ok')} modules={module_count} frameworks={framework_count}", Colors.CYAN))
+    if framework_list:
+        preview = ", ".join(framework_list[:8])
+        suffix = f", +{len(framework_list) - 8} more" if len(framework_list) > 8 else ""
+        print(c(f"{symbol('feature')} frameworks: {preview}{suffix}", Colors.GREY))
     if plugin_errors:
         print(c(f"{symbol('warn')} plugin discovery warnings={len(plugin_errors)}", Colors.YELLOW))
     if filter_errors:
@@ -766,8 +759,6 @@ def _print_runtime_loaded_inventory() -> None:
         platform_count=platform_count,
         module_count=module_count,
         framework_count=framework_count,
-        module_plugin_count=module_plugin_count,
-        module_filter_count=module_filter_count,
         plugin_scope_counts=plugin_scope_counts,
         filter_scope_counts=filter_scope_counts,
         plugin_error_count=len(plugin_errors),
@@ -775,6 +766,8 @@ def _print_runtime_loaded_inventory() -> None:
         platform_error=platform_error,
         module_error=module_error,
     )
+    if framework_list:
+        snapshot["inventory"]["framework_list"] = framework_list
     try:
         write_runtime_inventory_snapshot(snapshot)
     except Exception as exc:  # pragma: no cover - diagnostics-only path
