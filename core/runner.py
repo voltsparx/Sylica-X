@@ -63,7 +63,12 @@ from core.artifacts.output import (
 from core.extensions.plugin_manager import PluginManager
 from core.intel.prompt_engine import PromptEngine
 from core.artifacts.reporting import ReportGenerator
-from core.intel.capability_matrix import build_capability_pack, write_capability_report
+from core.intel.capability_matrix import (
+    build_capability_pack,
+    build_runtime_inventory_snapshot,
+    write_capability_report,
+    write_runtime_inventory_snapshot,
+)
 from core.extensions.signal_forge import list_plugin_descriptors, list_plugin_discovery_errors
 from core.collect.platform_schema import PlatformValidationError, load_platforms
 from core.analyze.profile_summary import error_profile_rows, found_profile_rows, summarize_target_intel
@@ -722,33 +727,28 @@ def _print_runtime_loaded_inventory() -> None:
     print(c("-" * 36, Colors.BLUE))
     print(
         c(
-            f"{symbol('ok')} plugins={len(plugins)} filters={len(filters)} platforms={platform_count}",
+            f"{symbol('ok')} plugins={len(plugins)} "
+            f"(profile={plugin_scope_counts['profile']} "
+            f"surface={plugin_scope_counts['surface']} "
+            f"fusion={plugin_scope_counts['fusion']})",
             Colors.CYAN,
         )
     )
+    print(
+        c(
+            f"{symbol('ok')} filters={len(filters)} "
+            f"(profile={filter_scope_counts['profile']} "
+            f"surface={filter_scope_counts['surface']} "
+            f"fusion={filter_scope_counts['fusion']})",
+            Colors.CYAN,
+        )
+    )
+    print(c(f"{symbol('ok')} platforms={platform_count}", Colors.CYAN))
     print(
         c(
             f"{symbol('ok')} modules={module_count} frameworks={framework_count} "
             f"(plugin_modules={module_plugin_count} filter_modules={module_filter_count})",
             Colors.CYAN,
-        )
-    )
-    print(
-        c(
-            f"{symbol('feature')} plugin_scope_coverage "
-            f"profile={plugin_scope_counts['profile']} "
-            f"surface={plugin_scope_counts['surface']} "
-            f"fusion={plugin_scope_counts['fusion']}",
-            Colors.GREY,
-        )
-    )
-    print(
-        c(
-            f"{symbol('feature')} filter_scope_coverage "
-            f"profile={filter_scope_counts['profile']} "
-            f"surface={filter_scope_counts['surface']} "
-            f"fusion={filter_scope_counts['fusion']}",
-            Colors.GREY,
         )
     )
     if plugin_errors:
@@ -759,6 +759,26 @@ def _print_runtime_loaded_inventory() -> None:
         print(c(f"{symbol('warn')} platform inventory unavailable: {platform_error}", Colors.YELLOW))
     if module_error:
         print(c(f"{symbol('warn')} module catalog unavailable: {module_error}", Colors.YELLOW))
+
+    snapshot = build_runtime_inventory_snapshot(
+        plugin_count=len(plugins),
+        filter_count=len(filters),
+        platform_count=platform_count,
+        module_count=module_count,
+        framework_count=framework_count,
+        module_plugin_count=module_plugin_count,
+        module_filter_count=module_filter_count,
+        plugin_scope_counts=plugin_scope_counts,
+        filter_scope_counts=filter_scope_counts,
+        plugin_error_count=len(plugin_errors),
+        filter_error_count=len(filter_errors),
+        platform_error=platform_error,
+        module_error=module_error,
+    )
+    try:
+        write_runtime_inventory_snapshot(snapshot)
+    except Exception as exc:  # pragma: no cover - diagnostics-only path
+        print(c(f"{symbol('warn')} runtime inventory snapshot failed: {exc}", Colors.YELLOW))
 
 
 def launch_live_dashboard(

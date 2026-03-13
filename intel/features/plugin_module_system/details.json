@@ -10,5 +10,14 @@
   "coverage_ratio": 1.0,
   "strength": "core",
   "priority": "harden",
-  "action": "Strengthen module contracts and discovery validation."
+  "action": "Strengthen module contracts and discovery validation.",
+  "silica": {
+    "project": "Silica-X",
+    "version": "9.2.0",
+    "theme": "Lattice",
+    "component": "intel_pack"
+  },
+  "schema_version": "1.0",
+  "generated_at_utc": "2026-03-13T22:04:38Z",
+  "coverage_percent": 100.0
 }

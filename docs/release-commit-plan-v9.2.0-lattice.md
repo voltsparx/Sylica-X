@@ -18,7 +18,7 @@ Suggested files:
 - `core/artifacts/output.py`
 - `core/artifacts/html_report.py`
 - `core/output.py`
-- `core/reverse_engineering.py`
+- `core/intel_pack.py`
 
 ## Commit 2: Crypto plugin lane
 

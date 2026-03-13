@@ -175,6 +175,7 @@ For full command reference, see [Usage Guide](docs/Usage.txt).
   * keyword/flag parity verified
 * Platform manifests loaded: **70**
 * Runtime plugin/filter discovery: **20 plugins, 17 filters**
+* Runtime inventory snapshot: `intel/runtime-inventory.json`
 
 ### Scope Compatibility Inventory
 
@@ -215,6 +216,24 @@ python silica-x.py
 ```
 
 Running without flags starts **prompt mode**.
+
+---
+
+## 🧩 Adding Extensions
+
+Use the scaffold helper to create new plugins/filters (they are auto-discovered at runtime):
+
+```bash
+python scripts/scaffold_extension.py plugin my_plugin --title "My Plugin" --scopes profile,fusion
+python scripts/scaffold_extension.py filter my_filter --title "My Filter" --scopes profile,surface
+```
+
+Verify discovery:
+
+```bash
+python silica-x.py plugins --scope all
+python silica-x.py filters --scope all
+```
 
 ---
 

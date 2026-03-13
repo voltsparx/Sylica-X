@@ -27,5 +27,14 @@
     "tor_proxy_ops": 8,
     "signal_fusion_lane": 8,
     "test_coverage": 5
-  }
+  },
+  "silica": {
+    "project": "Silica-X",
+    "version": "9.2.0",
+    "theme": "Lattice",
+    "component": "intel_pack"
+  },
+  "schema_version": "1.0",
+  "feature_count": 11,
+  "feature_presence_total": 76
 }

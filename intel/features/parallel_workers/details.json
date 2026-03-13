@@ -9,5 +9,14 @@
   "coverage_ratio": 0.75,
   "strength": "core",
   "priority": "harden",
-  "action": "Balance async/thread/process lanes by workload shape."
+  "action": "Balance async/thread/process lanes by workload shape.",
+  "silica": {
+    "project": "Silica-X",
+    "version": "9.2.0",
+    "theme": "Lattice",
+    "component": "intel_pack"
+  },
+  "schema_version": "1.0",
+  "generated_at_utc": "2026-03-13T22:04:38Z",
+  "coverage_percent": 75.0
 }
