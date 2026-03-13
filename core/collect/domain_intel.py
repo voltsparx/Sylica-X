@@ -22,7 +22,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 import socket
-import time
 from typing import Any
 from urllib.parse import quote, urlsplit
 
@@ -77,12 +76,15 @@ async def _http_probe(
     url: str,
     timeout_seconds: int,
 ) -> HttpArtifact:
-    started = time.perf_counter()
     timeout = aiohttp.ClientTimeout(total=max(1, int(timeout_seconds)))
-    try:
-        async with session.get(url, timeout=timeout, allow_redirects=True) as response:
-            raw = await response.content.read(_MAX_BODY_BYTES)
-            body = raw.decode("utf-8", errors="ignore")
+
+    async def _request(method: str, *, max_bytes: int) -> HttpArtifact:
+        async with session.request(method, url, timeout=timeout, allow_redirects=True) as response:
+            if method.upper() == "HEAD":
+                body = ""
+            else:
+                raw = await response.content.read(max_bytes)
+                body = raw.decode("utf-8", errors="ignore")
             return HttpArtifact(
                 status=response.status,
                 final_url=str(response.url),
@@ -90,14 +92,18 @@ async def _http_probe(
                 body=body,
                 error=None,
             )
+
+    try:
+        head_result = await _request("HEAD", max_bytes=0)
+        if head_result.status in {405, 501}:
+            return await _request("GET", max_bytes=min(8000, _MAX_BODY_BYTES))
+        return head_result
     except asyncio.TimeoutError:
         return HttpArtifact(status=None, final_url=url, headers={}, body="", error="Timeout")
     except aiohttp.ClientError as exc:
         return HttpArtifact(status=None, final_url=url, headers={}, body="", error=f"Network error: {exc}")
     except Exception as exc:  # pragma: no cover
         return HttpArtifact(status=None, final_url=url, headers={}, body="", error=str(exc))
-    finally:
-        _ = int((time.perf_counter() - started) * 1000)
 
 
 async def _load_ct_subdomains(
@@ -248,17 +254,20 @@ async def scan_domain_surface(
         robots_preview = ""
         security_preview = ""
 
-        if timeout_seconds >= 15:
-            preferred_scheme = "https" if https_artifact.status and https_artifact.status < 400 else "http"
-            robots_url = f"{preferred_scheme}://{normalized_domain}/robots.txt"
-            security_url = f"{preferred_scheme}://{normalized_domain}/.well-known/security.txt"
+        preferred_scheme = "https" if https_artifact.status and https_artifact.status < 400 else "http"
+        robots_url = f"{preferred_scheme}://{normalized_domain}/robots.txt"
+        security_url = f"{preferred_scheme}://{normalized_domain}/.well-known/security.txt"
 
-            robots_present, robots_preview = await _fetch_small_text(
-                session, robots_url, min(8, timeout_seconds)
-            )
-            security_present, security_preview = await _fetch_small_text(
-                session, security_url, min(8, timeout_seconds)
-            )
+        robots_task = asyncio.create_task(
+            _fetch_small_text(session, robots_url, min(8, timeout_seconds))
+        )
+        security_task = asyncio.create_task(
+            _fetch_small_text(session, security_url, min(8, timeout_seconds))
+        )
+        (robots_present, robots_preview), (security_present, security_preview) = await asyncio.gather(
+            robots_task,
+            security_task,
+        )
 
     return {
         "target": normalized_domain,

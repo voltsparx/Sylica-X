@@ -45,11 +45,15 @@ class TestDomainIntel(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(0.2)
             return {"handle": "HANDLE-1"}, None
 
+        async def fake_fetch_small_text(session, url, timeout_seconds):
+            return False, ""
+
         with (
             patch("core.collect.domain_intel._resolve_addresses", AsyncMock(return_value=["1.1.1.1"])),
             patch("core.collect.domain_intel._http_probe", new=fake_http_probe),
             patch("core.collect.domain_intel._load_ct_subdomains", new=fake_ct),
             patch("core.collect.domain_intel._load_rdap", new=fake_rdap),
+            patch("core.collect.domain_intel._fetch_small_text", new=fake_fetch_small_text),
         ):
             started = time.perf_counter()
             result = await scan_domain_surface(

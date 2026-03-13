@@ -33,13 +33,11 @@ from core.collect.extractor import (
     extract_username_mentions,
 )
 from core.collect.platform_schema import PlatformConfig, load_platforms
-from core.engines.async_engine import run_async_batch
-
-
 DEFAULT_TIMEOUT_SECONDS = 20
 DEFAULT_MAX_CONCURRENCY = 25
 _MAX_RESPONSE_BYTES = 140_000
 _CACHE_TTL_SECONDS = 300
+_REGEX_CACHE: dict[str, re.Pattern[str] | None] = {}
 
 _PROFILE_ALIASES = {
     "safe": "fast",
@@ -136,10 +134,16 @@ def _safe_username(raw_username: str) -> str:
 def _evaluate_regex(platform: PlatformConfig, username: str) -> bool:
     if not platform.regex_check:
         return True
-    try:
-        return bool(re.fullmatch(platform.regex_check, username))
-    except re.error:
+    pattern = _REGEX_CACHE.get(platform.regex_check)
+    if pattern is None and platform.regex_check not in _REGEX_CACHE:
+        try:
+            pattern = re.compile(platform.regex_check)
+        except re.error:
+            pattern = None
+        _REGEX_CACHE[platform.regex_check] = pattern
+    if pattern is None:
         return True
+    return bool(pattern.fullmatch(username))
 
 
 def evaluate_presence(
@@ -223,15 +227,18 @@ async def _fetch_with_retries(
     for attempt_index in range(attempts):
         started = time.perf_counter()
         try:
-            async with session.request(
-                method=method,
-                url=url,
-                headers=headers,
-                timeout=timeout,
-                allow_redirects=allow_redirects,
-                proxy=proxy_url,
-                json=request_payload,
-            ) as response:
+            request_kwargs: dict[str, Any] = {
+                "method": method,
+                "url": url,
+                "headers": headers,
+                "timeout": timeout,
+                "allow_redirects": allow_redirects,
+                "proxy": proxy_url,
+            }
+            if request_payload is not None:
+                request_kwargs["json"] = request_payload
+
+            async with session.request(**request_kwargs) as response:
                 if method.upper() == "HEAD":
                     body_text = ""
                 else:
@@ -386,7 +393,7 @@ async def _probe_platform(
         links = extract_links(response.body)
         mentions = extract_username_mentions(response.body, username)
 
-    extract_followup = profile in {"balanced", "deep", "max"}
+    extract_followup = True
     needs_followup = verdict == "FOUND" and not response.body and extract_followup
 
     return {
@@ -468,74 +475,94 @@ async def scan_username(
     concurrency_limit = max(1, int(max_concurrency))
     connector = aiohttp.TCPConnector(
         limit=concurrency_limit,
-        limit_per_host=max(4, min(12, concurrency_limit)),
+        limit_per_host=max(8, min(32, concurrency_limit)),
         ttl_dns_cache=300,
     )
 
     async with aiohttp.ClientSession(connector=connector) as session:
+        semaphore = asyncio.Semaphore(concurrency_limit)
+
+        async def _probe_with_limit(index: int, platform: PlatformConfig) -> tuple[int, PlatformConfig, Any]:
+            async with semaphore:
+                try:
+                    payload = await _probe_platform(
+                        session,
+                        platform,
+                        username=normalized_username,
+                        timeout_seconds=timeout_seconds,
+                        proxy_url=proxy_url,
+                        profile=profile,
+                    )
+                except Exception as exc:  # pragma: no cover - defensive guard
+                    payload = exc
+                return index, platform, payload
+
+        async def _follow_with_limit(index: int, platform: PlatformConfig) -> tuple[int, Any]:
+            async with semaphore:
+                try:
+                    payload = await _fetch_profile_content(
+                        session,
+                        platform,
+                        username=normalized_username,
+                        timeout_seconds=timeout_seconds,
+                        proxy_url=proxy_url,
+                    )
+                except Exception as exc:  # pragma: no cover - defensive guard
+                    payload = exc
+                return index, payload
+
         tasks = [
-            _probe_platform(
-                session,
-                platform,
-                username=normalized_username,
-                timeout_seconds=timeout_seconds,
-                proxy_url=proxy_url,
-                profile=profile,
-            )
+            asyncio.create_task(_probe_with_limit(index, platform))
+            for index, platform in enumerate(selected)
+        ]
+
+        rows: list[dict[str, Any]] = [
+            {
+                "platform": platform.name,
+                "url": platform.url.format(username=quote(normalized_username, safe="")),
+                "status": "ERROR",
+                "confidence": 0,
+                "context": "pending",
+                "http_status": None,
+                "response_time_ms": None,
+                "contacts": {"emails": [], "phones": []},
+                "links": [],
+                "mentions": [],
+                "bio": "",
+            }
             for platform in selected
         ]
-        results = await run_async_batch(
-            tasks,
-            concurrency_limit=concurrency_limit,
-            return_exceptions=True,
-        )
 
-        rows: list[dict[str, Any]] = []
-        followups: list[tuple[int, PlatformConfig]] = []
-        for index, payload in enumerate(results):
+        follow_tasks: list[asyncio.Task[tuple[int, Any]]] = []
+        for future in asyncio.as_completed(tasks):
+            index, platform, payload = await future
             if isinstance(payload, Exception):
-                rows.append(
-                    {
-                        "platform": selected[index].name,
-                        "url": selected[index].url.format(username=quote(normalized_username, safe="")),
-                        "status": "ERROR",
-                        "confidence": 0,
-                        "context": str(payload),
-                        "http_status": None,
-                        "response_time_ms": None,
-                        "contacts": {"emails": [], "phones": []},
-                        "links": [],
-                        "mentions": [],
-                        "bio": "",
-                    }
-                )
+                rows[index] = {
+                    "platform": platform.name,
+                    "url": platform.url.format(username=quote(normalized_username, safe="")),
+                    "status": "ERROR",
+                    "confidence": 0,
+                    "context": str(payload),
+                    "http_status": None,
+                    "response_time_ms": None,
+                    "contacts": {"emails": [], "phones": []},
+                    "links": [],
+                    "mentions": [],
+                    "bio": "",
+                }
                 continue
-            if payload.get("_needs_followup"):
-                followups.append((len(rows), selected[index]))
-            payload.pop("_needs_followup", None)
-            rows.append(payload)
 
-        if followups:
-            follow_tasks = [
-                _fetch_profile_content(
-                    session,
-                    platform,
-                    username=normalized_username,
-                    timeout_seconds=timeout_seconds,
-                    proxy_url=proxy_url,
-                )
-                for _, platform in followups
-            ]
-            follow_results = await run_async_batch(
-                follow_tasks,
-                concurrency_limit=min(concurrency_limit, max(4, len(follow_tasks))),
-                return_exceptions=True,
-            )
-            for (row_index, _platform), payload in zip(followups, follow_results):
+            if payload.get("_needs_followup"):
+                follow_tasks.append(asyncio.create_task(_follow_with_limit(index, platform)))
+            payload.pop("_needs_followup", None)
+            rows[index] = payload
+
+        if follow_tasks:
+            for future in asyncio.as_completed(follow_tasks):
+                row_index, payload = await future
                 if isinstance(payload, Exception) or not isinstance(payload, dict):
                     continue
-                row = rows[row_index]
-                row.update(payload)
+                rows[row_index].update(payload)
 
     rows.sort(key=lambda item: str(item.get("platform", "")).lower())
     return rows
