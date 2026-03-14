@@ -24,7 +24,11 @@ from core.runner import DEFAULT_DASHBOARD_PORT, launch_live_dashboard
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m core.interface.live_server")
-    parser.add_argument("target", nargs="?", help="Target id to load from output/data/<target>/results.json.")
+    parser.add_argument(
+        "target",
+        nargs="?",
+        help="Target id (latest) to load from output/json/<target>-info-<timestamp>.json.",
+    )
     parser.add_argument(
         "--port",
         type=int,

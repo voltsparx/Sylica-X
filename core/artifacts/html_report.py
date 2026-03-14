@@ -29,6 +29,7 @@ from core.analyze.profile_summary import (
     summarize_target_intel,
 )
 from core.artifacts.storage import ensure_output_tree, html_report_path, sanitize_target
+from core.foundation.output_config import OutputConfigError
 
 
 def _safe_dict_rows(value: object) -> list[dict]:
@@ -565,6 +566,7 @@ def generate_html(
     filter_results: list[dict] | None = None,
     filter_errors: list[str] | None = None,
     intelligence_bundle: dict | None = None,
+    output_stamp: str | None = None,
 ) -> str:
     results = results or []
     correlation = correlation or {}
@@ -874,8 +876,11 @@ def generate_html(
     </html>
     """
 
-    ensure_output_tree()
-    report_file = html_report_path(target_key)
+    try:
+        ensure_output_tree(types={"html"})
+    except OutputConfigError as exc:
+        raise RuntimeError(f"Unable to prepare HTML output directory: {exc}") from exc
+    report_file = html_report_path(target_key, stamp=output_stamp)
     report_file.write_text(report_html, encoding="utf-8")
     return str(report_file)
 

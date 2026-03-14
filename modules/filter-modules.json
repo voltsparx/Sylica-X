@@ -4,10 +4,10 @@
   "source_root": "intel-sources",
   "module_count": 20,
   "framework_counts": {
-    "amass": 14,
-    "datasploit": 3,
-    "maigret": 2,
-    "recon-ng": 1
+    "source-pack-01": 14,
+    "source-pack-02": 3,
+    "source-pack-03": 2,
+    "source-pack-05": 1
   },
   "scope_counts": {
     "profile": 18,
@@ -27,10 +27,10 @@
   ],
   "modules": [
     {
-      "id": "amass-cmd-oam-i2y-ini",
-      "framework": "amass",
-      "path": "amass/cmd/oam_i2y/ini.go",
-      "file": "cmd/oam_i2y/ini.go",
+      "id": "source-pack-01-module-1",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-1.go",
+      "file": "module-1.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -68,10 +68,10 @@
       }
     },
     {
-      "id": "amass-config-active-test",
-      "framework": "amass",
-      "path": "amass/config/active_test.go",
-      "file": "config/active_test.go",
+      "id": "source-pack-01-module-2",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-2.go",
+      "file": "module-2.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -103,10 +103,10 @@
       }
     },
     {
-      "id": "amass-config-config",
-      "framework": "amass",
-      "path": "amass/config/config.go",
-      "file": "config/config.go",
+      "id": "source-pack-01-module-3",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-3.go",
+      "file": "module-3.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -148,10 +148,10 @@
       }
     },
     {
-      "id": "amass-config-config-test",
-      "framework": "amass",
-      "path": "amass/config/config_test.go",
-      "file": "config/config_test.go",
+      "id": "source-pack-01-module-4",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-4.go",
+      "file": "module-4.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -188,10 +188,10 @@
       }
     },
     {
-      "id": "amass-config-resolvers",
-      "framework": "amass",
-      "path": "amass/config/resolvers.go",
-      "file": "config/resolvers.go",
+      "id": "source-pack-01-module-5",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-5.go",
+      "file": "module-5.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -228,10 +228,10 @@
       }
     },
     {
-      "id": "amass-config-scope",
-      "framework": "amass",
-      "path": "amass/config/scope.go",
-      "file": "config/scope.go",
+      "id": "source-pack-01-module-6",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-6.go",
+      "file": "module-6.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -264,10 +264,10 @@
       }
     },
     {
-      "id": "amass-config-scope-test",
-      "framework": "amass",
-      "path": "amass/config/scope_test.go",
-      "file": "config/scope_test.go",
+      "id": "source-pack-01-module-7",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-7.go",
+      "file": "module-7.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -300,10 +300,10 @@
       }
     },
     {
-      "id": "amass-engine-api-graphql-server-generated",
-      "framework": "amass",
-      "path": "amass/engine/api/graphql/server/generated.go",
-      "file": "engine/api/graphql/server/generated.go",
+      "id": "source-pack-01-module-8",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-8.go",
+      "file": "module-8.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -341,10 +341,10 @@
       }
     },
     {
-      "id": "amass-engine-api-graphql-server-model-models-gen",
-      "framework": "amass",
-      "path": "amass/engine/api/graphql/server/model/models_gen.go",
-      "file": "engine/api/graphql/server/model/models_gen.go",
+      "id": "source-pack-01-module-9",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-9.go",
+      "file": "module-9.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -382,10 +382,10 @@
       }
     },
     {
-      "id": "amass-engine-api-graphql-server-resolver",
-      "framework": "amass",
-      "path": "amass/engine/api/graphql/server/resolver.go",
-      "file": "engine/api/graphql/server/resolver.go",
+      "id": "source-pack-01-module-10",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-10.go",
+      "file": "module-10.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -415,10 +415,10 @@
       }
     },
     {
-      "id": "amass-engine-api-graphql-server-schema-resolvers",
-      "framework": "amass",
-      "path": "amass/engine/api/graphql/server/schema.resolvers.go",
-      "file": "engine/api/graphql/server/schema.resolvers.go",
+      "id": "source-pack-01-module-11",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-11.go",
+      "file": "module-11.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -458,10 +458,10 @@
       }
     },
     {
-      "id": "amass-engine-api-graphql-server-server",
-      "framework": "amass",
-      "path": "amass/engine/api/graphql/server/server.go",
-      "file": "engine/api/graphql/server/server.go",
+      "id": "source-pack-01-module-12",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-12.go",
+      "file": "module-12.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -496,10 +496,10 @@
       }
     },
     {
-      "id": "amass-engine-plugins-support-filter",
-      "framework": "amass",
-      "path": "amass/engine/plugins/support/filter.go",
-      "file": "engine/plugins/support/filter.go",
+      "id": "source-pack-01-module-13",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-13.go",
+      "file": "module-13.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -532,10 +532,10 @@
       }
     },
     {
-      "id": "amass-internal-net-http-http",
-      "framework": "amass",
-      "path": "amass/internal/net/http/http.go",
-      "file": "internal/net/http/http.go",
+      "id": "source-pack-01-module-14",
+      "framework": "source-pack-01",
+      "path": "source-pack-01/module-14.go",
+      "file": "module-14.go",
       "language": "go",
       "kind": "filter",
       "scopes": [
@@ -575,10 +575,10 @@
       }
     },
     {
-      "id": "datasploit-core-input-classifier",
-      "framework": "datasploit",
-      "path": "datasploit/core/input_classifier.py",
-      "file": "core/input_classifier.py",
+      "id": "source-pack-02-module-15",
+      "framework": "source-pack-02",
+      "path": "source-pack-02/module-15.py",
+      "file": "module-15.py",
       "language": "py",
       "kind": "filter",
       "scopes": [
@@ -611,10 +611,10 @@
       }
     },
     {
-      "id": "datasploit-domain-domain-googletracking",
-      "framework": "datasploit",
-      "path": "datasploit/domain/domain_googletracking.py",
-      "file": "domain/domain_googletracking.py",
+      "id": "source-pack-02-module-16",
+      "framework": "source-pack-02",
+      "path": "source-pack-02/module-16.py",
+      "file": "module-16.py",
       "language": "py",
       "kind": "filter",
       "scopes": [
@@ -651,10 +651,10 @@
       }
     },
     {
-      "id": "datasploit-domain-domain-subdomains",
-      "framework": "datasploit",
-      "path": "datasploit/domain/domain_subdomains.py",
-      "file": "domain/domain_subdomains.py",
+      "id": "source-pack-02-module-17",
+      "framework": "source-pack-02",
+      "path": "source-pack-02/module-17.py",
+      "file": "module-17.py",
       "language": "py",
       "kind": "filter",
       "scopes": [
@@ -694,10 +694,10 @@
       }
     },
     {
-      "id": "maigret-maigret-report",
-      "framework": "maigret",
-      "path": "maigret/maigret/report.py",
-      "file": "maigret/report.py",
+      "id": "source-pack-03-module-18",
+      "framework": "source-pack-03",
+      "path": "source-pack-03/module-18.py",
+      "file": "module-18.py",
       "language": "py",
       "kind": "filter",
       "scopes": [
@@ -737,10 +737,10 @@
       }
     },
     {
-      "id": "maigret-maigret-web-app",
-      "framework": "maigret",
-      "path": "maigret/maigret/web/app.py",
-      "file": "maigret/web/app.py",
+      "id": "source-pack-03-module-19",
+      "framework": "source-pack-03",
+      "path": "source-pack-03/module-19.py",
+      "file": "module-19.py",
       "language": "py",
       "kind": "filter",
       "scopes": [
@@ -782,10 +782,10 @@
       }
     },
     {
-      "id": "recon-ng-recon-utils-parsers",
-      "framework": "recon-ng",
-      "path": "recon-ng/recon/utils/parsers.py",
-      "file": "recon/utils/parsers.py",
+      "id": "source-pack-05-module-20",
+      "framework": "source-pack-05",
+      "path": "source-pack-05/module-20.py",
+      "file": "module-20.py",
       "language": "py",
       "kind": "filter",
       "scopes": [

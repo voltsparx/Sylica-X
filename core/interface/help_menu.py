@@ -123,9 +123,12 @@ def show_flag_help() -> None:
     _section("Output")
     _render_items(
         (
-            ("--html / --csv:", "Write HTML and CSV artifacts."),
+            ("out-type <types>:", "Set persisted output formats (cli, html, csv, json)."),
+            ("out-print <path>:", "Set current output base directory for this session."),
+            ("default-out-print <path>:", "Set persisted default output base directory."),
+            ("--html/--no-html --csv/--no-csv:", "Enable or disable HTML/CSV artifacts for this run."),
             ("wizard --help:", "Show full wizard flags (phases, presets, selectors, toggles)."),
-            ("output/data output/html output/cli output/logs:", "Default artifact directories."),
+            ("output/json output/html output/cli output/csv output/logs:", "Default artifact directories."),
         )
     )
 
@@ -164,6 +167,9 @@ def show_prompt_help() -> None:
             ("show plugins | show filters | show modules:", "Inventory and module intelligence catalog."),
             ("show history [--limit N]:", "List previously scanned targets."),
             ("show config:", "Show prompt defaults and active module."),
+            ("out-type <types>:", "Set persisted output formats (cli, html, csv, json)."),
+            ("out-print <path>:", "Set current output base directory for this session."),
+            ("default-out-print <path>:", "Set persisted default output base directory."),
             ("anonymity [flags]:", "Check or change Tor/proxy routing."),
             ("show keywords:", "Show all prompt shortcut aliases."),
             ("about | explain | help | clear | exit:", "Metadata, docs, help, clear screen, quit."),

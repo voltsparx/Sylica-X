@@ -596,9 +596,10 @@ compose_exec() {
 
 ensure_output_dirs() {
   mkdir -p \
-    "${REPO_ROOT}/output/data" \
+    "${REPO_ROOT}/output/json" \
     "${REPO_ROOT}/output/html" \
     "${REPO_ROOT}/output/cli" \
+    "${REPO_ROOT}/output/csv" \
     "${REPO_ROOT}/output/logs"
 }
 

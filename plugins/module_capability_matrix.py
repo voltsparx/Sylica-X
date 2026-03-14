@@ -17,8 +17,6 @@
 
 from __future__ import annotations
 
-from collections import Counter
-
 from modules.catalog import ensure_module_catalog, select_module_entries
 
 
@@ -32,15 +30,6 @@ PLUGIN_SPEC = {
 }
 
 VALID_SCOPES = {"profile", "surface", "fusion"}
-
-
-def _top_frameworks(rows: list[dict], *, limit: int = 5) -> list[str]:
-    counter: Counter[str] = Counter()
-    for row in rows:
-        framework = str(row.get("framework", "")).strip()
-        if framework:
-            counter[framework] += 1
-    return [f"{name}:{count}" for name, count in counter.most_common(limit)]
 
 
 def run(context: dict) -> dict:
@@ -65,7 +54,6 @@ def run(context: dict) -> dict:
                 "catalog_kind": "plugin",
                 "catalog_entries_total": 0,
                 "catalog_entries_scoped": 0,
-                "top_frameworks": [],
             },
         }
 
@@ -77,15 +65,11 @@ def run(context: dict) -> dict:
     else:
         severity = "INFO"
 
-    frameworks = _top_frameworks(scoped_rows)
     highlights = [
         "catalog_kind=plugin",
         f"catalog_entries={len(all_rows)}",
         f"catalog_{scope}={scoped_count}",
-        f"frameworks={len({row.get('framework') for row in scoped_rows})}",
     ]
-    if frameworks:
-        highlights.append(f"top={frameworks[0]}")
 
     return {
         "severity": severity,
@@ -99,7 +83,6 @@ def run(context: dict) -> dict:
             "catalog_kind": "plugin",
             "catalog_entries_total": len(all_rows),
             "catalog_entries_scoped": scoped_count,
-            "top_frameworks": frameworks,
             "sample_entries": [row.get("path") for row in scoped_rows[:12]],
         },
     }

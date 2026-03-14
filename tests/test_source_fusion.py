@@ -28,13 +28,13 @@ from core.collect.source_fusion import (
 class TestSourceFusionConnectors(unittest.TestCase):
     def test_detect_connector_runtimes_uses_binary_and_source_hints(self):
         def _binary_probe(names: tuple[str, ...]) -> str | None:
-            if "amass" in names:
-                return "/usr/bin/amass"
+            if "source-pack-01" in names:
+                return "/usr/bin/source-pack-01"
             return None
 
         def _source_probe(paths: tuple[str, ...]) -> str | None:
-            if "intel-sources/sherlock/sherlock_project/__main__.py" in paths:
-                return "intel-sources/sherlock/sherlock_project/__main__.py"
+            if "intel-sources/source-pack-06/source-pack-06_project/__main__.py" in paths:
+                return "intel-sources/source-pack-06/source-pack-06_project/__main__.py"
             return None
 
         with (
@@ -54,13 +54,13 @@ class TestSourceFusionConnectors(unittest.TestCase):
         runtimes = [
             ConnectorRuntime(
                 spec=mesh_spec,
-                binary_path="/usr/bin/sherlock",
+                binary_path="/usr/bin/source-pack-06",
                 source_entry=None,
                 executable=True,
             ),
             ConnectorRuntime(
                 spec=surface_spec,
-                binary_path="/usr/bin/amass",
+                binary_path="/usr/bin/source-pack-01",
                 source_entry=None,
                 executable=True,
             ),
@@ -68,7 +68,7 @@ class TestSourceFusionConnectors(unittest.TestCase):
 
         def _subprocess_run(cmd, **_kwargs):  # noqa: ANN001
             command = " ".join(str(part) for part in cmd)
-            if "sherlock" in command:
+            if "source-pack-06" in command:
                 return CompletedProcess(
                     args=cmd,
                     returncode=0,
@@ -105,7 +105,7 @@ class TestSourceFusionConnectors(unittest.TestCase):
         runtimes = [
             ConnectorRuntime(
                 spec=mesh_spec,
-                binary_path="/usr/bin/sherlock",
+                binary_path="/usr/bin/source-pack-06",
                 source_entry=None,
                 executable=True,
             )

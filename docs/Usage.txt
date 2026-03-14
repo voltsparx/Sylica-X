@@ -31,7 +31,7 @@ python silica-x.py <command> [flags]
 Prompt-mode startup shows loaded inventory:
 - plugin/filter count
 - platform count
-- module catalog/framework count
+- module catalog count
 - plugin/filter scope coverage
 
 Execution mode aliases (v9.2.0):
@@ -90,11 +90,11 @@ Execution mode aliases (v9.2.0):
     </tr>
   </thead>
   <tbody>
-    <tr><td>JSON payload</td><td><code>output/data/&lt;target&gt;/results.json</code></td><td>Primary machine-readable output bundle.</td></tr>
-    <tr><td>HTML report</td><td><code>output/html/&lt;target&gt;.html</code></td><td>Rich visual report with scoring/correlation tables.</td></tr>
-    <tr><td>CLI report</td><td><code>output/cli/&lt;target&gt;.txt</code></td><td>Text summary output.</td></tr>
-    <tr><td>CSV exports</td><td><code>output/cli/&lt;target&gt;*.csv</code></td><td>Main + companion issue/plugin/filter/intel datasets.</td></tr>
-    <tr><td>Logs</td><td><code>output/logs/*.txt</code></td><td>Run logs and framework lifecycle log.</td></tr>
+    <tr><td>JSON payload</td><td><code>output/json/&lt;target&gt;-info-&lt;timestamp&gt;.json</code></td><td>Primary machine-readable output bundle.</td></tr>
+    <tr><td>HTML report</td><td><code>output/html/&lt;target&gt;-info-&lt;timestamp&gt;.html</code></td><td>Rich visual report with scoring/correlation tables.</td></tr>
+    <tr><td>CLI report</td><td><code>output/cli/&lt;target&gt;-info-&lt;timestamp&gt;.txt</code></td><td>Text summary output.</td></tr>
+    <tr><td>CSV exports</td><td><code>output/csv/&lt;target&gt;-info-&lt;timestamp&gt;*.csv</code></td><td>Main + companion issue/plugin/filter/intel datasets.</td></tr>
+    <tr><td>Logs</td><td><code>output/logs/*.log</code></td><td>Run logs and framework lifecycle log.</td></tr>
   </tbody>
 </table>
 
@@ -211,7 +211,7 @@ orchestrate <profile|surface|fusion> <target>
 Inventory and utility:
 plugins [--scope all|profile|surface|fusion]
 filters [--scope all|profile|surface|fusion]
-modules [--scope ... --kind ... --framework ... --tag ... --search ...]
+modules [--scope ... --kind ... --tag ... --search ...]
 history [--limit N]
 quicktest [--template <id>] [--seed N] [--list-templates] [--json]
 live <target> [--port PORT] [--no-browser]
@@ -337,7 +337,6 @@ Current runtime extension inventory:
 - plugins: 20
 - filters: 17
 - modules (catalog): 567
-- frameworks (catalog): 7
 - plugin scope coverage: profile=13 surface=12 fusion=18
 - filter scope coverage: profile=14 surface=9 fusion=17
 - runtime inventory snapshot (2026-03-14): intel/runtime-inventory.json
@@ -362,11 +361,11 @@ Current runtime extension inventory:
 7) Outputs (Richer Artifacts)
 -----------------------------
 Primary artifacts:
-- output/data/<target>/results.json
-- output/html/<target>.html
-- output/cli/<target>.txt
-- output/cli/<target>.csv
-- output/logs/<target>_<timestamp>.txt
+- output/json/<target>-info-<timestamp>.json
+- output/html/<target>-info-<timestamp>.html
+- output/cli/<target>-info-<timestamp>.txt
+- output/csv/<target>-info-<timestamp>.csv
+- output/logs/<target>-info-<timestamp>.log
 - output/logs/framework.log.txt
 
 JSON enrichment:
@@ -385,13 +384,13 @@ HTML enrichment:
 - intelligence scoring tables (contacts/entities), correlation reasoning, and guidance
 
 CSV enrichment:
-- primary result CSV: output/cli/<target>.csv
+- primary result CSV: output/csv/<target>-info-<timestamp>.csv
 - companion CSVs:
-  - output/cli/<target>.issues.csv
-  - output/cli/<target>.plugins.csv
-  - output/cli/<target>.filters.csv
-  - output/cli/<target>.intel-entities.csv
-  - output/cli/<target>.intel-contacts.csv
+  - output/csv/<target>-info-<timestamp>.issues.csv
+  - output/csv/<target>-info-<timestamp>.plugins.csv
+  - output/csv/<target>-info-<timestamp>.filters.csv
+  - output/csv/<target>-info-<timestamp>.intel-entities.csv
+  - output/csv/<target>-info-<timestamp>.intel-contacts.csv
 
 
 8) Security and Network Behavior

@@ -41,6 +41,7 @@ class ReportGenerator(_BaseReportGenerator):
         else:
             target = sanitize_target(str(target_data or "fused-target"))
 
+        output_stamp = fused_data.get("output_stamp") if isinstance(fused_data, dict) else None
         intelligence_bundle = (
             fused_data.get("intelligence_bundle")
             if isinstance(fused_data.get("intelligence_bundle"), dict)
@@ -60,6 +61,7 @@ class ReportGenerator(_BaseReportGenerator):
             filter_results=list(fused_data.get("filters", []) or []),
             filter_errors=list(fused_data.get("filter_errors", []) or []),
             intelligence_bundle=intelligence_bundle if isinstance(intelligence_bundle, dict) else {},
+            output_stamp=output_stamp,
         )
 
 __all__ = ["ReportGenerator", "generate_html"]

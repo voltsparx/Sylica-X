@@ -27,7 +27,7 @@ COPY docs ./docs
 COPY silica-x.py LICENSE README.md ./
 
 RUN useradd --create-home --shell /usr/sbin/nologin silica \
-    && mkdir -p /app/output/data /app/output/html /app/output/cli /app/output/logs \
+    && mkdir -p /app/output/json /app/output/html /app/output/cli /app/output/csv /app/output/logs \
     && chown -R silica:silica /app
 
 USER silica

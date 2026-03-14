@@ -5,13 +5,12 @@
     "theme": "Lattice",
     "component": "intel_pack"
   },
-  "generated_at_utc": "2026-03-13T22:57:38Z",
+  "generated_at_utc": "2026-03-14T04:26:55Z",
   "inventory": {
     "plugins": 20,
     "filters": 17,
     "platforms": 70,
     "modules": 567,
-    "frameworks": 7,
     "scope_coverage": {
       "plugins": {
         "profile": 13,
@@ -29,15 +28,6 @@
       "filter_errors": 0,
       "platform_error": 0,
       "module_error": 0
-    },
-    "framework_list": [
-      "amass",
-      "datasploit",
-      "maigret",
-      "maigret-1",
-      "recon-ng",
-      "sherlock",
-      "spiderfoot"
-    ]
+    }
   }
 }

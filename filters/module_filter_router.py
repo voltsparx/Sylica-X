@@ -17,8 +17,6 @@
 
 from __future__ import annotations
 
-from collections import Counter
-
 from modules.catalog import ensure_module_catalog, select_module_entries
 
 
@@ -32,15 +30,6 @@ FILTER_SPEC = {
 }
 
 VALID_SCOPES = {"profile", "surface", "fusion"}
-
-
-def _top_frameworks(rows: list[dict], *, limit: int = 5) -> list[str]:
-    counts: Counter[str] = Counter()
-    for row in rows:
-        framework = str(row.get("framework", "")).strip()
-        if framework:
-            counts[framework] += 1
-    return [f"{name}:{count}" for name, count in counts.most_common(limit)]
 
 
 def run(context: dict) -> dict:
@@ -66,7 +55,6 @@ def run(context: dict) -> dict:
                 "scoped_entries": 0,
                 "scoped_filter_entries": 0,
                 "filter_density": 0.0,
-                "top_filter_frameworks": [],
             },
         }
 
@@ -85,10 +73,6 @@ def run(context: dict) -> dict:
         f"filter_density={density:.2f}",
         "catalog_kind=filter",
     ]
-    frameworks = _top_frameworks(scoped_filters)
-    if frameworks:
-        highlights.append(f"top={frameworks[0]}")
-
     return {
         "severity": severity,
         "summary": (
@@ -102,7 +86,6 @@ def run(context: dict) -> dict:
             "scoped_entries": len(scoped_total),
             "scoped_filter_entries": len(scoped_filters),
             "filter_density": round(density, 4),
-            "top_filter_frameworks": frameworks,
             "sample_filter_entries": [row.get("path") for row in scoped_filters[:12]],
         },
     }

@@ -34,15 +34,15 @@ class TestModuleCatalog(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir) / "intel-sources"
             output_root = Path(temp_dir) / "modules"
-            (root / "recon-ng" / "recon" / "modules").mkdir(parents=True, exist_ok=True)
-            (root / "spiderfoot" / "modules").mkdir(parents=True, exist_ok=True)
+            (root / "source-pack-05" / "recon" / "modules").mkdir(parents=True, exist_ok=True)
+            (root / "source-pack-07" / "modules").mkdir(parents=True, exist_ok=True)
             (root / "custom" / "pipeline").mkdir(parents=True, exist_ok=True)
 
-            (root / "recon-ng" / "recon" / "modules" / "user_lookup.py").write_text(
+            (root / "source-pack-05" / "recon" / "modules" / "user_lookup.py").write_text(
                 "class Module:\n    pass\n# username profile account plugin",
                 encoding="utf-8",
             )
-            (root / "spiderfoot" / "modules" / "sfp_dns.py").write_text(
+            (root / "source-pack-07" / "modules" / "sfp_dns.py").write_text(
                 "# module dns domain http surface",
                 encoding="utf-8",
             )

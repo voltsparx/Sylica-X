@@ -202,8 +202,8 @@ def _normalize_platform(raw: dict[str, Any], source: str) -> PlatformConfig:
 
 def _normalize_detection_methods(raw: dict[str, Any], source: str) -> tuple[str, ...]:
     manual_methods = raw.get("detection", raw.get("detection_methods"))
-    sherlock_style = raw.get("errorType")
-    methods_raw = manual_methods if manual_methods is not None else sherlock_style
+    source_pack_style = raw.get("errorType")
+    methods_raw = manual_methods if manual_methods is not None else source_pack_style
 
     if methods_raw is None:
         return ("status_code",)

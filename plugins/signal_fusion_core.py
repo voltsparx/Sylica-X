@@ -63,6 +63,10 @@ def run(context: dict) -> dict:
         max_connectors=4,
     )
     catalog_summary = summarize_module_catalog(ensure_module_catalog(refresh=False))
+    if isinstance(catalog_summary, dict):
+        catalog_summary = dict(catalog_summary)
+        catalog_summary.pop("framework_count", None)
+        catalog_summary.pop("frameworks", None)
 
     coverage = fusion_intel.get("coverage", {})
     signals = fusion_intel.get("signals", {})

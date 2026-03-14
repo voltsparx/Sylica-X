@@ -42,9 +42,12 @@ COMMAND_EXPLANATIONS: dict[str, str] = {
         "Runs one random built-in victim template (5 total) and generates full JSON/CLI/CSV/HTML reports "
         "without live network collection."
     ),
-    "history": "Shows previously scanned targets from local output/data and output/html artifacts.",
+    "history": "Shows previously scanned targets from local output/json and output/html artifacts.",
     "anonymity": "Checks or updates Tor/proxy routing for current session execution.",
     "live": "Starts the local dashboard for a saved target result bundle.",
+    "out-type": "Sets the persisted output formats (cli, html, csv, json).",
+    "out-print": "Sets the output base directory for this session (affects output/...).",
+    "default-out-print": "Sets the persisted default output base directory.",
     "wizard": (
         "Guided interactive workflow that can run profile/surface/fusion phases with "
         "preset + extension-control selection and compatibility preflight checks."

@@ -18,6 +18,8 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
+from pathlib import Path
 from collections import Counter
 from typing import Any, Iterable
 
@@ -41,6 +43,7 @@ from core.artifacts.storage import (
     run_log_path,
     sanitize_target,
 )
+from core.foundation.output_config import OutputConfigError, get_output_settings
 
 
 def _safe_dict_rows(value: object) -> list[dict]:
@@ -761,14 +764,17 @@ def _render_cli_report(payload: dict) -> str:
 
 
 def append_framework_log(event: str, details: str = "", *, level: str = "INFO") -> str:
-    ensure_output_tree()
-    path = framework_log_path()
-    line = f"[{utc_timestamp()}] [{level.upper()}] {event}"
-    if details:
-        line = f"{line} | {details}"
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(line + "\n")
-    return str(path)
+    try:
+        ensure_output_tree()
+        path = framework_log_path()
+        line = f"[{utc_timestamp()}] [{level.upper()}] {event}"
+        if details:
+            line = f"{line} | {details}"
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+        return str(path)
+    except (OutputConfigError, OSError):
+        return ""
 
 
 def list_scanned_targets(limit: int = 50) -> list[dict[str, str]]:
@@ -801,11 +807,23 @@ def save_results(
     fused_intel: dict | None = None,
     fusion_graph: dict | None = None,
     intelligence_bundle: dict | None = None,
-) -> str:
-    ensure_output_tree()
+    output_types: set[str] | None = None,
+    output_stamp: str | None = None,
+    return_payload: bool = False,
+) -> str | tuple[str, dict[str, Any]]:
+    settings = get_output_settings()
+    selected_types = {item.lower() for item in (output_types or set(settings.types)) if str(item).strip()}
+    output_ready = True
+    try:
+        ensure_output_tree(types=selected_types)
+    except OutputConfigError as exc:
+        output_ready = False
+        print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+        append_framework_log("save_results_failed", f"output_tree_failed reason={exc}", level="WARN")
+        selected_types = set()
     target_display = str(target or "").strip()
     target_key = sanitize_target(target_display)
-    data_target_dir(target_key).mkdir(parents=True, exist_ok=True)
+    stamp = output_stamp or datetime.now().strftime("%Y%m%d_%H%M%S")
 
     payload: dict[str, Any] = {
         "metadata": {
@@ -848,51 +866,90 @@ def save_results(
     intelligence_entities = len(intelligence_payload.get("entities", []) or [])
     intelligence_links = len(intelligence_payload.get("relationships", []) or [])
 
-    json_path = results_json_path(target_key)
-    with json_path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=4)
+    json_path: Path | None = None
+    if output_ready and "json" in selected_types:
+        data_target_dir(target_key).mkdir(parents=True, exist_ok=True)
+        json_path = results_json_path(target_key, stamp=stamp)
+        try:
+            with json_path.open("w", encoding="utf-8") as handle:
+                json.dump(payload, handle, indent=4)
+        except OSError as exc:
+            append_framework_log("save_results_failed", f"json_write_failed target={target_key} reason={exc}", level="WARN")
+            print(c(f"{symbol('warn')} Failed to write JSON output: {exc}", Colors.YELLOW))
+            json_path = None
 
-    # Compatibility mirror for legacy paths used by older integrations.
-    legacy_path = legacy_results_json_path(target_key)
-    legacy_path.parent.mkdir(parents=True, exist_ok=True)
-    with legacy_path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=4)
+        if json_path is not None:
+            legacy_path = legacy_results_json_path(target_key)
+            try:
+                legacy_path.parent.mkdir(parents=True, exist_ok=True)
+                with legacy_path.open("w", encoding="utf-8") as handle:
+                    json.dump(payload, handle, indent=4)
+            except OSError as exc:
+                append_framework_log(
+                    "save_results_failed",
+                    f"legacy_json_write_failed target={target_key} reason={exc}",
+                    level="WARN",
+                )
+                print(c(f"{symbol('warn')} Failed to write legacy JSON output: {exc}", Colors.YELLOW))
 
-    cli_path = cli_report_path(target_key)
-    cli_path.write_text(_render_cli_report(payload), encoding="utf-8")
+    cli_path: Path | None = None
+    if output_ready and "cli" in selected_types:
+        cli_path = cli_report_path(target_key, stamp=stamp)
+        try:
+            cli_path.write_text(_render_cli_report(payload), encoding="utf-8")
+        except OSError as exc:
+            append_framework_log("save_results_failed", f"cli_write_failed target={target_key} reason={exc}", level="WARN")
+            print(c(f"{symbol('warn')} Failed to write CLI report: {exc}", Colors.YELLOW))
+            cli_path = None
 
-    run_log = run_log_path(target_key)
-    run_log.write_text(
-        (
-            f"timestamp={utc_timestamp()}\n"
-            f"target={target_display or target_key}\n"
-            f"target_key={target_key}\n"
-            f"mode={mode}\n"
-            f"results={results_count}\n"
-            f"issues={issues_count}\n"
-            f"plugins={plugins_count}\n"
-            f"filters={filters_count}\n"
-            f"issue_severity={issue_severity}\n"
-            f"plugin_severity={plugin_severity}\n"
-            f"filter_severity={filter_severity}\n"
-            f"fusion_nodes={fusion_nodes}\n"
-            f"fusion_edges={fusion_edges}\n"
-            f"intelligence_entities={intelligence_entities}\n"
-            f"intelligence_links={intelligence_links}\n"
-            f"framework={framework_signature()}\n"
-        ),
-        encoding="utf-8",
-    )
+    run_log: Path | None = None
+    if output_ready:
+        run_log = run_log_path(target_key, stamp=stamp)
+        try:
+            run_log.write_text(
+                (
+                    f"timestamp={utc_timestamp()}\n"
+                    f"target={target_display or target_key}\n"
+                    f"target_key={target_key}\n"
+                    f"mode={mode}\n"
+                    f"results={results_count}\n"
+                    f"issues={issues_count}\n"
+                    f"plugins={plugins_count}\n"
+                    f"filters={filters_count}\n"
+                    f"issue_severity={issue_severity}\n"
+                    f"plugin_severity={plugin_severity}\n"
+                    f"filter_severity={filter_severity}\n"
+                    f"fusion_nodes={fusion_nodes}\n"
+                    f"fusion_edges={fusion_edges}\n"
+                    f"intelligence_entities={intelligence_entities}\n"
+                    f"intelligence_links={intelligence_links}\n"
+                    f"framework={framework_signature()}\n"
+                ),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            append_framework_log(
+                "save_results_failed",
+                f"log_write_failed target={target_key} reason={exc}",
+                level="WARN",
+            )
+            print(c(f"{symbol('warn')} Failed to write run log: {exc}", Colors.YELLOW))
+            run_log = None
     append_framework_log(
         "scan_saved",
         (
             f"target={target_display or target_key} target_key={target_key} "
-            f"mode={mode} json={json_path} cli={cli_path} log={run_log}"
+            f"mode={mode} json={json_path or '-'} cli={cli_path or '-'} log={run_log or '-'}"
         ),
     )
 
-    print(c(f"\n{symbol('ok')} Results JSON saved to {json_path}", Colors.GREEN))
-    print(c(f"{symbol('ok')} CLI report saved to {cli_path}", Colors.GREEN))
-    print(c(f"{symbol('ok')} Run log saved to {run_log}", Colors.GREEN))
-    return str(json_path)
+    if json_path is not None:
+        print(c(f"\n{symbol('ok')} Results JSON saved to {json_path}", Colors.GREEN))
+    if cli_path is not None:
+        print(c(f"{symbol('ok')} CLI report saved to {cli_path}", Colors.GREEN))
+    if run_log is not None:
+        print(c(f"{symbol('ok')} Run log saved to {run_log}", Colors.GREEN))
+    if return_payload:
+        return str(json_path or run_log or ""), payload
+    return str(json_path or run_log or "")
 

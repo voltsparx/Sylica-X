@@ -233,8 +233,6 @@ class TestRunnerCli(unittest.TestCase):
                 "fusion",
                 "--kind",
                 "filter",
-                "--framework",
-                "spiderfoot",
                 "--search",
                 "dns identity",
                 "--tag",
@@ -255,7 +253,6 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.command, "modules")
         self.assertEqual(args.scope, "fusion")
         self.assertEqual(args.kind, "filter")
-        self.assertEqual(args.framework, ["spiderfoot"])
         self.assertEqual(args.search, "dns identity")
         self.assertEqual(args.tag, ["identity"])
         self.assertEqual(args.min_score, 25)
@@ -391,13 +388,11 @@ class TestRunnerCli(unittest.TestCase):
         args = argparse.Namespace(
             plugin=["threat_conductor,contact_lattice"],
             filter=["contact_canonicalizer,entity_name_resolver"],
-            framework=["sherlock,spiderfoot"],
             tag=["identity,pii"],
         )
         _normalize_multi_select_args(args)
         self.assertEqual(args.plugin, ["threat_conductor", "contact_lattice"])
         self.assertEqual(args.filter, ["contact_canonicalizer", "entity_name_resolver"])
-        self.assertEqual(args.framework, ["sherlock", "spiderfoot"])
         self.assertEqual(args.tag, ["identity", "pii"])
 
     def test_prompt_parser_raises_value_error_for_unknown_command(self):

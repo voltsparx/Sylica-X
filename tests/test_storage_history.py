@@ -15,34 +15,39 @@
 
 import json
 import unittest
-from contextlib import ExitStack, contextmanager
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
-
 from core.artifacts import storage
+from core.foundation.output_config import (
+    clear_session_output_base_dir,
+    get_session_output_base_dir,
+    set_session_output_base_dir,
+)
 
 
 class TestStorageHistory(unittest.TestCase):
     @contextmanager
-    def _patch_paths(self, root: Path):
-        with ExitStack() as stack:
-            stack.enter_context(patch.object(storage, "OUTPUT_ROOT", root))
-            stack.enter_context(patch.object(storage, "DATA_DIR", root / "data"))
-            stack.enter_context(patch.object(storage, "HTML_DIR", root / "html"))
-            stack.enter_context(patch.object(storage, "CLI_DIR", root / "cli"))
-            stack.enter_context(patch.object(storage, "LOG_DIR", root / "logs"))
+    def _patch_paths(self, base_dir: Path):
+        previous = get_session_output_base_dir()
+        set_session_output_base_dir(base_dir)
+        try:
             yield
+        finally:
+            if previous is None:
+                clear_session_output_base_dir()
+            else:
+                set_session_output_base_dir(previous)
 
     def test_list_targets_prefers_data_results_over_html_duplicates(self):
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             with self._patch_paths(root):
-                data_file = root / "data" / "alice" / "results.json"
+                data_file = root / "output" / "json" / "alice-info-20240101_000000.json"
                 data_file.parent.mkdir(parents=True, exist_ok=True)
                 data_file.write_text(json.dumps({"target": "alice"}), encoding="utf-8")
 
-                html_file = root / "html" / "alice.html"
+                html_file = root / "output" / "html" / "alice-info-20240101_000000.html"
                 html_file.parent.mkdir(parents=True, exist_ok=True)
                 html_file.write_text("<html></html>", encoding="utf-8")
 
@@ -56,7 +61,7 @@ class TestStorageHistory(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             with self._patch_paths(root):
-                html_file = root / "html" / "legacy_target.html"
+                html_file = root / "output" / "html" / "legacy_target-info-20240101_000000.html"
                 html_file.parent.mkdir(parents=True, exist_ok=True)
                 html_file.write_text("<html></html>", encoding="utf-8")
 

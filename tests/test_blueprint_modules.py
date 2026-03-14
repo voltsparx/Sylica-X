@@ -61,13 +61,13 @@ def _cpu_square(value: int) -> int:
 class TestBlueprintModules(unittest.TestCase):
     def test_source_map_parsing_and_mapping(self):
         content = """
-1. Sherlock
+1. source-pack-06
 * Username account discovery across platforms
-* Code: https://github.com/sherlock-project/sherlock
+* Code: https://github.com/source-pack-06-project/source-pack-06
 
-2. Amass
+2. source-pack-01
 * Domain and network intelligence mapper
-* Code: https://github.com/OWASP/Amass
+* Code: https://github.com/OWASP/source-pack-01
 """.strip()
         with TemporaryDirectory() as temp_dir:
             map_path = Path(temp_dir) / "map.txt"
@@ -79,10 +79,10 @@ class TestBlueprintModules(unittest.TestCase):
             surface_research = recommend_focus_modules("surface", mapping)
 
         self.assertEqual(len(mapping.tools), 2)
-        self.assertEqual(mapping.tools[0].name, "Sherlock")
+        self.assertEqual(mapping.tools[0].name, "source-pack-06")
         self.assertIn("core/collect/scanner.py", module_map)
-        self.assertIn("Sherlock", module_map["core/collect/scanner.py"])
-        self.assertIn("Amass", module_map["core/collect/domain_intel.py"])
+        self.assertIn("source-pack-06", module_map["core/collect/scanner.py"])
+        self.assertIn("source-pack-01", module_map["core/collect/domain_intel.py"])
         self.assertTrue(profile_research[0].startswith("Study patterns from:"))
         self.assertTrue(surface_research[0].startswith("Study patterns from:"))
 
@@ -206,10 +206,10 @@ class TestBlueprintModules(unittest.TestCase):
         self.assertEqual(len(suggestions), 3)
 
         map_content = """
-1. Sherlock
+1. source-pack-06
 * Username account discovery across platforms
 
-2. Recon-ng
+2. source-pack-05
 * Modular web reconnaissance platform
 """.strip()
         with TemporaryDirectory() as temp_dir:
@@ -242,7 +242,7 @@ class TestBlueprintModules(unittest.TestCase):
             report_path = write_capability_report(root / "report.md", build_pack=False)
 
         self.assertEqual(2, len(profiles))
-        self.assertEqual(2, gap["frameworks"])
+        self.assertEqual(2, gap["source_packs"])
         self.assertIn("Recommendations", markdown)
         self.assertTrue(Path(report_path).name.endswith(".md"))
 

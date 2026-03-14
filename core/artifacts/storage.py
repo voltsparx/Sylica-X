@@ -21,13 +21,33 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Iterable
+
+from core.foundation.output_config import OutputConfigError, get_output_settings
 
 
-OUTPUT_ROOT = Path("output")
-DATA_DIR = OUTPUT_ROOT / "data"
-HTML_DIR = OUTPUT_ROOT / "html"
-CLI_DIR = OUTPUT_ROOT / "cli"
-LOG_DIR = OUTPUT_ROOT / "logs"
+def output_root() -> Path:
+    return get_output_settings().output_root
+
+
+def json_dir() -> Path:
+    return output_root() / "json"
+
+
+def html_dir() -> Path:
+    return output_root() / "html"
+
+
+def cli_dir() -> Path:
+    return output_root() / "cli"
+
+
+def csv_dir() -> Path:
+    return output_root() / "csv"
+
+
+def log_dir() -> Path:
+    return output_root() / "logs"
 
 
 def sanitize_target(target: str) -> str:
@@ -39,38 +59,78 @@ def sanitize_target(target: str) -> str:
     return normalized or "target"
 
 
-def ensure_output_tree() -> None:
-    for path in (OUTPUT_ROOT, DATA_DIR, HTML_DIR, CLI_DIR, LOG_DIR):
-        path.mkdir(parents=True, exist_ok=True)
+def ensure_output_tree(types: Iterable[str] | None = None) -> None:
+    settings = get_output_settings()
+    selected = {item.strip().lower() for item in (types or settings.types) if str(item).strip()}
+    root = output_root()
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        log_dir().mkdir(parents=True, exist_ok=True)
+        if "json" in selected:
+            json_dir().mkdir(parents=True, exist_ok=True)
+        if "html" in selected:
+            html_dir().mkdir(parents=True, exist_ok=True)
+        if "cli" in selected:
+            cli_dir().mkdir(parents=True, exist_ok=True)
+        if "csv" in selected:
+            csv_dir().mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise OutputConfigError(f"Unable to create output directories under {root}: {exc}") from exc
+
+
+def _output_stamp() -> str:
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def build_output_basename(target: str, stamp: str | None = None) -> str:
+    stamp_value = stamp or _output_stamp()
+    return f"{sanitize_target(target)}-info-{stamp_value}"
 
 
 def data_target_dir(target: str) -> Path:
-    return DATA_DIR / sanitize_target(target)
+    return json_dir()
 
 
-def results_json_path(target: str) -> Path:
-    return data_target_dir(target) / "results.json"
+def results_json_path(target: str, *, stamp: str | None = None) -> Path:
+    return json_dir() / f"{build_output_basename(target, stamp)}.json"
+
+
+def latest_results_json_path(target: str) -> Path | None:
+    try:
+        ensure_output_tree(types={"json"})
+    except OutputConfigError:
+        return None
+    target_key = sanitize_target(target)
+    candidates = sorted(
+        json_dir().glob(f"{target_key}-info-*.json"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    return candidates[0] if candidates else None
 
 
 def legacy_results_json_path(target: str) -> Path:
-    return OUTPUT_ROOT / sanitize_target(target) / "results.json"
+    return output_root() / sanitize_target(target) / "results.json"
 
 
-def html_report_path(target: str) -> Path:
-    return HTML_DIR / f"{sanitize_target(target)}.html"
+def html_report_path(target: str, *, stamp: str | None = None) -> Path:
+    return html_dir() / f"{build_output_basename(target, stamp)}.html"
 
 
-def cli_report_path(target: str) -> Path:
-    return CLI_DIR / f"{sanitize_target(target)}.txt"
+def cli_report_path(target: str, *, stamp: str | None = None) -> Path:
+    return cli_dir() / f"{build_output_basename(target, stamp)}.txt"
 
 
-def run_log_path(target: str) -> Path:
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return LOG_DIR / f"{sanitize_target(target)}_{stamp}.txt"
+def csv_report_path(target: str, *, stamp: str | None = None) -> Path:
+    return csv_dir() / f"{build_output_basename(target, stamp)}.csv"
+
+
+def run_log_path(target: str, *, stamp: str | None = None) -> Path:
+    return log_dir() / f"{build_output_basename(target, stamp)}.log"
 
 
 def framework_log_path() -> Path:
-    return LOG_DIR / "framework.log.txt"
+    return log_dir() / "framework.log.txt"
 
 
 @dataclass(frozen=True)
@@ -90,16 +150,26 @@ def _read_data_target_label(file_path: Path, fallback: str) -> str:
     return target_value or fallback
 
 
+def _target_from_filename(file_path: Path) -> str:
+    name = file_path.stem
+    if "-info-" in name:
+        return name.split("-info-", maxsplit=1)[0]
+    return name
+
+
 def list_targets(limit: int = 50) -> list[HistoryRow]:
-    ensure_output_tree()
+    try:
+        ensure_output_tree(types={"json", "html"})
+    except OutputConfigError:
+        return []
     cap = max(1, int(limit))
     collected: list[tuple[float, HistoryRow]] = []
     seen_keys: set[str] = set()
 
-    for file_path in sorted(DATA_DIR.glob("*/results.json"), key=lambda p: p.stat().st_mtime, reverse=True):
-        key = sanitize_target(file_path.parent.name)
+    for file_path in sorted(json_dir().glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        key = sanitize_target(_target_from_filename(file_path))
         stamp = datetime.fromtimestamp(file_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-        target_label = _read_data_target_label(file_path, file_path.parent.name)
+        target_label = _read_data_target_label(file_path, key)
         collected.append(
             (
                 file_path.stat().st_mtime,
@@ -113,8 +183,8 @@ def list_targets(limit: int = 50) -> list[HistoryRow]:
         )
         seen_keys.add(key)
 
-    for file_path in sorted(HTML_DIR.glob("*.html"), key=lambda p: p.stat().st_mtime, reverse=True):
-        key = sanitize_target(file_path.stem)
+    for file_path in sorted(html_dir().glob("*.html"), key=lambda p: p.stat().st_mtime, reverse=True):
+        key = sanitize_target(_target_from_filename(file_path))
         if key in seen_keys:
             continue
         stamp = datetime.fromtimestamp(file_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
@@ -135,13 +205,16 @@ def list_targets(limit: int = 50) -> list[HistoryRow]:
 
 
 def list_targets_from_html(limit: int = 50) -> list[HistoryRow]:
-    ensure_output_tree()
+    try:
+        ensure_output_tree(types={"html"})
+    except OutputConfigError:
+        return []
     rows: list[HistoryRow] = []
-    for file_path in sorted(HTML_DIR.glob("*.html"), key=lambda p: p.stat().st_mtime, reverse=True):
+    for file_path in sorted(html_dir().glob("*.html"), key=lambda p: p.stat().st_mtime, reverse=True):
         stamp = datetime.fromtimestamp(file_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
         rows.append(
             HistoryRow(
-                target=file_path.stem,
+                target=_target_from_filename(file_path),
                 path=str(file_path),
                 modified_at=stamp,
                 source="html",

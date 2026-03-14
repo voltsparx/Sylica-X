@@ -23,7 +23,6 @@ from typing import NoReturn
 from core.interface.cli_config import EXTENSION_CONTROL_MODES, PROFILE_PRESETS, SURFACE_PRESETS
 
 MODULE_SORT_FIELDS = [
-    "framework",
     "file",
     "kind",
     "power_score",
@@ -194,12 +193,6 @@ def _add_modules_args(parser: argparse.ArgumentParser) -> None:
         help="Select catalog kind to display.",
     )
     parser.add_argument(
-        "--framework",
-        action="append",
-        default=[],
-        help="Filter by framework name (repeatable or comma-separated).",
-    )
-    parser.add_argument(
         "--search",
         default="",
         help="Full-text search across module id/path/capabilities.",
@@ -219,7 +212,7 @@ def _add_modules_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--sort-by",
         choices=MODULE_SORT_FIELDS,
-        default="framework",
+        default="file",
         help="Sort field for module listing.",
     )
     parser.add_argument(
@@ -266,7 +259,7 @@ def _add_history_args(parser: argparse.ArgumentParser) -> None:
         "--limit",
         type=positive_int,
         default=25,
-        help="Maximum number of scanned targets to list from output/data and output/html.",
+        help="Maximum number of scanned targets to list from output/json and output/html.",
     )
 
 
@@ -292,10 +285,20 @@ def _add_quicktest_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Print the generated quicktest payload as JSON after report generation.",
     )
+    parser.add_argument(
+        "--out-type",
+        default="",
+        help="Override output formats for this run only (comma-separated, non-persistent).",
+    )
+    parser.add_argument(
+        "--out-print",
+        default="",
+        help="Override output base directory for this run only (non-persistent).",
+    )
 
 
 def _add_live_args(parser: argparse.ArgumentParser, *, default_dashboard_port: int) -> None:
-    parser.add_argument("target", help="Target id for output/data/<target>/results.json.")
+    parser.add_argument("target", help="Target id (latest) for output/json/<target>-info-<timestamp>.json.")
     parser.add_argument(
         "--port",
         type=valid_port,
@@ -346,15 +349,15 @@ def _add_profile_args(parser: argparse.ArgumentParser, *, default_dashboard_port
         default=None,
         help="Max concurrent platform requests override.",
     )
-    parser.add_argument(
-        "--csv",
-        action="store_true",
-        help="Export output/cli/<username>.csv after each scan.",
+    _add_toggle_flags(
+        parser,
+        "csv",
+        "CSV export output/csv/<target>-info-<timestamp>.csv",
     )
-    parser.add_argument(
-        "--html",
-        action="store_true",
-        help="Generate and print output/html/<username>.html path after each scan.",
+    _add_toggle_flags(
+        parser,
+        "html",
+        "HTML report output/html/<target>-info-<timestamp>.html",
     )
     parser.add_argument(
         "--live",
@@ -371,6 +374,16 @@ def _add_profile_args(parser: argparse.ArgumentParser, *, default_dashboard_port
         "--no-browser",
         action="store_true",
         help="Do not auto-open browser for live dashboard.",
+    )
+    parser.add_argument(
+        "--out-type",
+        default="",
+        help="Override output formats for this run only (comma-separated, non-persistent).",
+    )
+    parser.add_argument(
+        "--out-print",
+        default="",
+        help="Override output base directory for this run only (non-persistent).",
     )
     _add_plugin_args(parser)
     _add_filter_args(parser)
@@ -401,10 +414,25 @@ def _add_surface_args(parser: argparse.ArgumentParser) -> None:
     )
     _add_toggle_flags(parser, "ct", "Certificate Transparency lookup")
     _add_toggle_flags(parser, "rdap", "RDAP ownership lookup")
+    _add_toggle_flags(
+        parser,
+        "html",
+        "HTML report output/html/<target>-info-<timestamp>.html",
+    )
+    _add_toggle_flags(
+        parser,
+        "csv",
+        "CSV export output/csv/<target>-info-<timestamp>.csv",
+    )
     parser.add_argument(
-        "--html",
-        action="store_true",
-        help="Generate and print output/html/<domain>.html.",
+        "--out-type",
+        default="",
+        help="Override output formats for this run only (comma-separated, non-persistent).",
+    )
+    parser.add_argument(
+        "--out-print",
+        default="",
+        help="Override output base directory for this run only (non-persistent).",
     )
     _add_plugin_args(parser)
     _add_filter_args(parser)
@@ -428,15 +456,25 @@ def _add_fusion_args(parser: argparse.ArgumentParser) -> None:
         default="balanced",
         help="Preset for surface phase.",
     )
-    parser.add_argument(
-        "--csv",
-        action="store_true",
-        help="Export profile phase CSV.",
+    _add_toggle_flags(
+        parser,
+        "csv",
+        "CSV export output/csv/<target>-info-<timestamp>.csv",
+    )
+    _add_toggle_flags(
+        parser,
+        "html",
+        "HTML report output/html/<target>-info-<timestamp>.html",
     )
     parser.add_argument(
-        "--html",
-        action="store_true",
-        help="Generate combined fusion HTML report.",
+        "--out-type",
+        default="",
+        help="Override output formats for this run only (comma-separated, non-persistent).",
+    )
+    parser.add_argument(
+        "--out-print",
+        default="",
+        help="Override output base directory for this run only (non-persistent).",
     )
     _add_plugin_args(parser)
     _add_filter_args(parser)
@@ -509,10 +547,25 @@ def _add_orchestrate_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Print full orchestration payload as JSON.",
     )
+    _add_toggle_flags(
+        parser,
+        "html",
+        "HTML report output/html/<target>-info-<timestamp>.html",
+    )
+    _add_toggle_flags(
+        parser,
+        "csv",
+        "CSV export output/csv/<target>-info-<timestamp>.csv",
+    )
     parser.add_argument(
-        "--html",
-        action="store_true",
-        help="Write orchestration HTML report into output/html.",
+        "--out-type",
+        default="",
+        help="Override output formats for this run only (comma-separated, non-persistent).",
+    )
+    parser.add_argument(
+        "--out-print",
+        default="",
+        help="Override output base directory for this run only (non-persistent).",
     )
     _add_plugin_args(parser)
     _add_filter_args(parser)
@@ -546,6 +599,16 @@ def _add_wizard_args(parser: argparse.ArgumentParser) -> None:
         choices=sorted(SURFACE_PRESETS.keys()),
         default=None,
         help="Default surface preset inside wizard workflow.",
+    )
+    parser.add_argument(
+        "--out-type",
+        default="",
+        help="Override output formats for this wizard run only (comma-separated, non-persistent).",
+    )
+    parser.add_argument(
+        "--out-print",
+        default="",
+        help="Override output base directory for this wizard run only (non-persistent).",
     )
     parser.add_argument(
         "--extension-control",
@@ -632,6 +695,29 @@ def build_root_parser(
     _add_plugins_args(plugins_parser)
     filters_parser = subparsers.add_parser("filters", help="List discovered filters from filters/ directory.")
     _add_filters_args(filters_parser)
+    out_type_parser = subparsers.add_parser("out-type", help="Set output formats (cli, html, csv, json).")
+    out_type_parser.add_argument(
+        "types",
+        nargs="*",
+        help="Comma-separated output types or a list (example: cli,html,csv,json).",
+    )
+    out_print_parser = subparsers.add_parser("out-print", help="Set output base directory for this session.")
+    out_print_parser.add_argument(
+        "path",
+        nargs="?",
+        default="",
+        help="Base directory where the output folder will be created.",
+    )
+    default_out_print_parser = subparsers.add_parser(
+        "default-out-print",
+        help="Set default output base directory (persisted).",
+    )
+    default_out_print_parser.add_argument(
+        "path",
+        nargs="?",
+        default="",
+        help="Base directory where the output folder will be created.",
+    )
     modules_parser = subparsers.add_parser(
         "modules",
         help="List/sync source-intel module catalog discovered from intel-sources.",
@@ -640,7 +726,7 @@ def build_root_parser(
     history_parser = subparsers.add_parser(
         "history",
         aliases=["targets", "scans"],
-        help="List scanned targets discovered from output/data and output/html artifacts.",
+        help="List scanned targets discovered from output/json and output/html artifacts.",
     )
     _add_history_args(history_parser)
     quicktest_parser = subparsers.add_parser(
@@ -718,6 +804,12 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
     _add_plugins_args(plugins_parser)
     filters_parser = subparsers.add_parser("filters", add_help=False)
     _add_filters_args(filters_parser)
+    out_type_parser = subparsers.add_parser("out-type", add_help=False)
+    out_type_parser.add_argument("types", nargs="*", default=[])
+    out_print_parser = subparsers.add_parser("out-print", add_help=False)
+    out_print_parser.add_argument("path", nargs="?", default="")
+    default_out_print_parser = subparsers.add_parser("default-out-print", add_help=False)
+    default_out_print_parser.add_argument("path", nargs="?", default="")
     modules_parser = subparsers.add_parser("modules", add_help=False)
     _add_modules_args(modules_parser)
     history_parser = subparsers.add_parser("history", aliases=["targets", "scans"], add_help=False)

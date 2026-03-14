@@ -23,7 +23,8 @@ from pathlib import Path
 from typing import Any
 
 from core.artifacts.html_report import generate_html
-from core.artifacts.storage import ensure_output_tree, sanitize_target
+from core.artifacts.storage import ensure_output_tree, output_root, sanitize_target
+from core.foundation.output_config import OutputConfigError
 
 
 def _fused_target(value: dict[str, Any]) -> str:
@@ -43,13 +44,26 @@ class ReportGenerator:
     output_dir: str = "output/"
 
     def _output_path(self) -> Path:
-        ensure_output_tree()
-        return Path(self.output_dir)
+        try:
+            ensure_output_tree()
+        except OutputConfigError as exc:
+            raise RuntimeError(f"Unable to prepare output directories: {exc}") from exc
+        configured = Path(self.output_dir)
+        if str(configured).strip() in {"output", "output/", "output\\"}:
+            path = output_root()
+        else:
+            path = configured
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise RuntimeError(f"Unable to create report output directory {path}: {exc}") from exc
+        return path
 
     def generate_html_dashboard(self, fused_data: dict[str, Any]) -> str:
         """Generate HTML dashboard path for fused payload."""
 
         target = _fused_target(fused_data)
+        output_stamp = fused_data.get("output_stamp") if isinstance(fused_data, dict) else None
         intelligence_bundle = (
             fused_data.get("intelligence_bundle")
             if isinstance(fused_data.get("intelligence_bundle"), dict)
@@ -69,6 +83,7 @@ class ReportGenerator:
             filter_results=list(fused_data.get("filters", []) or []),
             filter_errors=list(fused_data.get("filter_errors", []) or []),
             intelligence_bundle=intelligence_bundle if isinstance(intelligence_bundle, dict) else {},
+            output_stamp=output_stamp,
         )
 
     def export_pdf_excel(self, fused_data: dict[str, Any], format: str = "pdf") -> str:

@@ -21,10 +21,12 @@ import argparse
 import html
 import json
 import os
+import re
 import shlex
 import sys
 import threading
 import webbrowser
+from datetime import datetime
 from dataclasses import dataclass
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from typing import Any, Sequence
@@ -50,6 +52,21 @@ from core.extensions.control_plane import merge_scan_modes, resolve_extension_co
 from core.interface.symbols import symbol
 from core.orchestrator import Orchestrator
 from core.foundation.metadata import PROJECT_NAME, VERSION, framework_signature, utc_timestamp
+from core.foundation.output_config import (
+    DEFAULT_OUTPUT_TYPES,
+    OutputConfigError,
+    clear_output_base_dir,
+    clear_session_output_base_dir,
+    describe_output_settings,
+    get_output_settings,
+    get_session_output_base_dir,
+    parse_output_types,
+    set_session_output_base_dir,
+    set_session_output_types,
+    tokenize_output_types,
+    update_output_base_dir,
+    update_output_types,
+)
 from core.analyze.narrative import build_nano_brief
 from core.collect.network import get_network_settings
 from modules.catalog import ensure_module_catalog, query_module_catalog, summarize_module_catalog
@@ -77,7 +94,15 @@ from core.domain import BaseEntity
 from core.foundation.session_state import PromptSessionState
 from core.intelligence import IntelligenceEngine
 from core.intelligence.entity_builder import build_fusion_entities, build_profile_entities, build_surface_entities
-from core.artifacts.storage import ensure_output_tree, results_json_path, sanitize_target
+from core.artifacts.storage import (
+    cli_report_path,
+    ensure_output_tree,
+    html_report_path,
+    latest_results_json_path,
+    results_json_path,
+    run_log_path,
+    sanitize_target,
+)
 from core.utils.quicktest_data import list_quicktest_templates, pick_quicktest_template
 from core.prompt_handlers import (
     apply_prompt_defaults as _apply_prompt_defaults_impl,
@@ -310,6 +335,89 @@ def _prompt_choice(question: str, options: Sequence[str], default: str) -> str:
         print(c(f"Invalid option. Choose one of: {choice_label}", Colors.RED))
 
 
+def _explicit_toggle(args: argparse.Namespace, name: str) -> bool | None:
+    explicit = {str(flag).strip().lower() for flag in getattr(args, "_explicit_flags", ())}
+    flag = f"--{name}"
+    no_flag = f"--no-{name}"
+    if flag in explicit or no_flag in explicit:
+        return getattr(args, name, None)
+    return None
+
+
+def _resolve_output_types(
+    *,
+    html_flag: bool | None,
+    csv_flag: bool | None,
+    allow_html: bool = True,
+    allow_csv: bool = True,
+    force_json: bool = False,
+    base_types: Sequence[str] | set[str] | None = None,
+) -> set[str]:
+    settings = get_output_settings()
+    if base_types is None:
+        types = {item.lower() for item in settings.types}
+    else:
+        types = {str(item).strip().lower() for item in base_types if str(item).strip()}
+        if not types:
+            types = {item.lower() for item in settings.types}
+    if html_flag is not None:
+        if html_flag:
+            types.add("html")
+        else:
+            types.discard("html")
+    if csv_flag is not None:
+        if csv_flag:
+            types.add("csv")
+        else:
+            types.discard("csv")
+    if not allow_html:
+        types.discard("html")
+    if not allow_csv:
+        types.discard("csv")
+    if force_json:
+        types.add("json")
+    return types
+
+
+def _parse_output_type_override(raw: object) -> tuple[set[str] | None, str | None]:
+    tokens = tokenize_output_types(raw)
+    if not tokens:
+        return None, None
+    lowered = [token.lower() for token in tokens if token]
+    if any(token in {"none", "off", "disable", "disabled"} for token in lowered):
+        return None, "Output types cannot be empty. Choose at least one of: cli, html, csv, json."
+    if any(token in {"default", "reset"} for token in lowered):
+        return set(DEFAULT_OUTPUT_TYPES), None
+    types, unknown = parse_output_types(lowered)
+    if unknown:
+        return None, f"Unknown output types: {', '.join(sorted(set(unknown)))}"
+    if not types:
+        return None, "Output types cannot be empty. Choose at least one of: cli, html, csv, json."
+    return set(types), None
+
+
+def _apply_output_base_override(path_value: str | None) -> tuple[bool, str | None]:
+    text = str(path_value or "").strip()
+    if not text:
+        return False, None
+    previous = get_session_output_base_dir()
+    try:
+        set_session_output_base_dir(text)
+        return True, str(previous) if previous else None
+    except OutputConfigError as exc:
+        return False, str(exc)
+
+
+def _restore_output_base_override(previous_value: str | None) -> None:
+    if previous_value is None:
+        clear_session_output_base_dir()
+        return
+    try:
+        set_session_output_base_dir(previous_value)
+    except OutputConfigError:
+        clear_session_output_base_dir()
+
+
 def _prompt_extension_selection(
     *,
     kind: str,
@@ -473,6 +581,45 @@ def _print_filter_inventory(scope: str | None = None) -> None:
     print()
 
 
+def _sanitize_module_label(*, label: str | None = None) -> str:
+    if label:
+        return label
+    return "module"
+
+
+def _sanitize_modules_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    cleaned = dict(payload)
+    summary = cleaned.get("summary", {})
+    if isinstance(summary, dict):
+        summary = dict(summary)
+        summary.pop("framework_count", None)
+        summary.pop("frameworks", None)
+        cleaned["summary"] = summary
+
+    query = cleaned.get("query", {})
+    if isinstance(query, dict):
+        query = dict(query)
+        query.pop("frameworks", None)
+        cleaned["query"] = query
+
+    entries = []
+    offset = 0
+    if isinstance(query, dict):
+        offset = _int_from_value(query.get("offset"), 0)
+    for index, row in enumerate(cleaned.get("entries", []) or []):
+        if not isinstance(row, dict):
+            continue
+        sanitized = dict(row)
+        label = f"module-{offset + index + 1}"
+        sanitized["file"] = label
+        sanitized.pop("framework", None)
+        sanitized.pop("path", None)
+        sanitized["id"] = label
+        entries.append(sanitized)
+    cleaned["entries"] = entries
+    return cleaned
+
+
 def _print_modules_inventory(
     *,
     scope: str = "all",
@@ -481,7 +628,7 @@ def _print_modules_inventory(
     search: str = "",
     tags: list[str] | None = None,
     min_score: int = 0,
-    sort_by: str = "framework",
+    sort_by: str = "file",
     descending: bool = False,
     limit: int = 50,
     offset: int = 0,
@@ -517,7 +664,7 @@ def _print_modules_inventory(
     payload["query"]["validated"] = bool(validate_catalog)
     payload["query"]["stats_only"] = bool(stats_only)
     if as_json:
-        print(json.dumps(payload, indent=2))
+        print(json.dumps(_sanitize_modules_payload(payload), indent=2))
         return
 
     summary = payload.get("summary", {})
@@ -529,7 +676,6 @@ def _print_modules_inventory(
 
     print(c(f"\n{symbol('major')} Modules (scope={scope}, kind={kind})", Colors.BLUE))
     print(c("-" * 36, Colors.BLUE))
-    print(c(f"frameworks: {summary.get('framework_count', 0)}", Colors.CYAN))
     print(c(f"module_count: {summary.get('module_count', 0)}", Colors.CYAN))
     print(c(f"matched_total: {matched_total}", Colors.CYAN))
     print(c(f"returned_count: {returned_count}", Colors.CYAN))
@@ -576,8 +722,6 @@ def _print_modules_inventory(
             key=lambda item: (-item[1], item[0]),
         )[:6]
         print(c(f"top_capabilities: {', '.join(f'{name}:{count}' for name, count in top_capabilities)}", Colors.CYAN))
-    if framework_values:
-        print(c(f"framework_filter: {', '.join(framework_values)}", Colors.CYAN))
     if query.get("search"):
         print(c(f"search: {query.get('search')}", Colors.CYAN))
     if tag_values:
@@ -586,7 +730,7 @@ def _print_modules_inventory(
         c(
             "query_controls: "
             f"min_score={query.get('min_score', 0)} "
-            f"sort_by={query.get('sort_by', 'framework')} "
+            f"sort_by={query.get('sort_by', 'file')} "
             f"descending={query.get('descending', False)} "
             f"limit={query.get('limit', 0)} "
             f"offset={query.get('offset', 0)} "
@@ -609,8 +753,10 @@ def _print_modules_inventory(
         print()
         return
 
-    for row in rows:
-        print(c(f"{symbol('feature')} {row.get('framework')} :: {row.get('file')}", Colors.CYAN))
+    offset_value = _int_from_value(query.get("offset"), 0) if isinstance(query, dict) else 0
+    for index, row in enumerate(rows):
+        label = _sanitize_module_label(label=f"module-{offset_value + index + 1}")
+        print(c(f"{symbol('feature')} {label}", Colors.CYAN))
         print(
             c(
                 f"  kind: {row.get('kind')} | scopes: {', '.join(row.get('scopes', []))} "
@@ -643,7 +789,7 @@ def _print_scan_history(limit: int = 25) -> None:
     print(c(f"\n{symbol('major')} Scan History", Colors.BLUE))
     print(c("-" * 36, Colors.BLUE))
     if not rows:
-        print(c(f"{symbol('warn')} No scan artifacts found under output/data or output/html.", Colors.YELLOW))
+        print(c(f"{symbol('warn')} No scan artifacts found under output/json or output/html.", Colors.YELLOW))
         print()
         return
 
@@ -702,7 +848,6 @@ def _print_runtime_loaded_inventory() -> None:
     except Exception as exc:  # pragma: no cover - startup diagnostics
         platform_error = str(exc)
 
-    framework_count = 0
     module_count = 0
     module_error: str | None = None
     try:
@@ -712,8 +857,6 @@ def _print_runtime_loaded_inventory() -> None:
             verify_source_fingerprint=False,
         )
         summary = summarize_module_catalog(catalog)
-        framework_count = int(summary.get("framework_count", 0) or 0)
-        framework_list = summary.get("frameworks", []) if isinstance(summary.get("frameworks"), list) else []
         module_count = int(summary.get("module_count", 0) or 0)
     except Exception as exc:  # pragma: no cover - startup diagnostics
         module_error = str(exc)
@@ -739,11 +882,7 @@ def _print_runtime_loaded_inventory() -> None:
         )
     )
     print(c(f"{symbol('ok')} platforms={platform_count}", Colors.CYAN))
-    print(c(f"{symbol('ok')} modules={module_count} frameworks={framework_count}", Colors.CYAN))
-    if framework_list:
-        preview = ", ".join(framework_list[:8])
-        suffix = f", +{len(framework_list) - 8} more" if len(framework_list) > 8 else ""
-        print(c(f"{symbol('feature')} frameworks: {preview}{suffix}", Colors.GREY))
+    print(c(f"{symbol('ok')} modules={module_count}", Colors.CYAN))
     if plugin_errors:
         print(c(f"{symbol('warn')} plugin discovery warnings={len(plugin_errors)}", Colors.YELLOW))
     if filter_errors:
@@ -758,7 +897,6 @@ def _print_runtime_loaded_inventory() -> None:
         filter_count=len(filters),
         platform_count=platform_count,
         module_count=module_count,
-        framework_count=framework_count,
         plugin_scope_counts=plugin_scope_counts,
         filter_scope_counts=filter_scope_counts,
         plugin_error_count=len(plugin_errors),
@@ -766,8 +904,6 @@ def _print_runtime_loaded_inventory() -> None:
         platform_error=platform_error,
         module_error=module_error,
     )
-    if framework_list:
-        snapshot["inventory"]["framework_list"] = framework_list
     try:
         write_runtime_inventory_snapshot(snapshot)
     except Exception as exc:  # pragma: no cover - diagnostics-only path
@@ -783,7 +919,11 @@ def launch_live_dashboard(
     safe_target = sanitize_target(target.strip())
     if not safe_target:
         raise ValueError("Target is required for live dashboard.")
-    ensure_output_tree()
+    try:
+        ensure_output_tree()
+    except OutputConfigError as exc:
+        print(c(f"{symbol('warn')} {exc}", Colors.RED))
+        return
 
     class Handler(SimpleHTTPRequestHandler):
         def do_GET(self):  # noqa: N802 - stdlib hook
@@ -791,14 +931,14 @@ def launch_live_dashboard(
                 self.send_error(404)
                 return
 
-            file_path = results_json_path(safe_target)
-            if not file_path.exists():
+            file_path = latest_results_json_path(safe_target)
+            if file_path is None or not file_path.exists():
                 self.send_response(404)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
                 msg = (
                     f"<h2>No results found for target: {html.escape(safe_target)}</h2>"
-                    "<p>Generate a scan first. Reports are stored in output/data and output/html.</p>"
+                    "<p>Generate a scan first. Reports are stored in output/json and output/html.</p>"
                 )
                 self.wfile.write(msg.encode())
                 return
@@ -1317,6 +1457,8 @@ async def run_profile_scan(
     include_all_plugins: bool = False,
     filter_names: list[str] | None = None,
     include_all_filters: bool = False,
+    output_types: set[str] | None = None,
+    output_stamp: str | None = None,
 ) -> tuple[int, dict | None]:
     append_framework_log("profile_scan_start", f"target={username}")
     ok, error = _validate_network_settings(state, prompt_user=prompt_mode)
@@ -1438,7 +1580,12 @@ async def run_profile_scan(
         filter_errors=filter_errors,
         intelligence_bundle=intelligence_bundle,
     )
-    save_results(
+    selected_types = output_types or _resolve_output_types(html_flag=None, csv_flag=None)
+    stamp = output_stamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    write_csv = write_csv or ("csv" in selected_types)
+    write_html = write_html or ("html" in selected_types)
+
+    saved = save_results(
         username,
         results,
         correlation,
@@ -1451,27 +1598,32 @@ async def run_profile_scan(
         filter_results=filter_results,
         filter_errors=filter_errors,
         intelligence_bundle=intelligence_bundle,
+        output_types=selected_types,
+        output_stamp=stamp,
+        return_payload=write_csv,
     )
 
     if write_csv:
-        export_to_csv(username)
+        payload = saved[1] if isinstance(saved, tuple) and len(saved) > 1 else None
+        export_to_csv(username, payload=payload, stamp=stamp)
     report_path = ""
     try:
-        report_path = generate_html(
-            target=username,
-            results=results,
-            correlation=correlation,
-            issues=issues,
-            issue_summary=issue_summary,
-            narrative=narrative,
-            mode="profile",
-            plugin_results=plugin_results,
-            plugin_errors=plugin_errors,
-            filter_results=filter_results,
-            filter_errors=filter_errors,
-            intelligence_bundle=intelligence_bundle,
-        )
         if write_html:
+            report_path = generate_html(
+                target=username,
+                results=results,
+                correlation=correlation,
+                issues=issues,
+                issue_summary=issue_summary,
+                narrative=narrative,
+                mode="profile",
+                plugin_results=plugin_results,
+                plugin_errors=plugin_errors,
+                filter_results=filter_results,
+                filter_errors=filter_errors,
+                intelligence_bundle=intelligence_bundle,
+                output_stamp=stamp,
+            )
             print(c(f"HTML report generated -> {report_path}", Colors.GREEN))
     except Exception as exc:  # pragma: no cover - defensive
         append_framework_log("profile_html_failed", f"target={username} reason={exc}", level="WARN")
@@ -1511,11 +1663,14 @@ async def run_surface_scan(
     include_ct: bool,
     include_rdap: bool,
     scan_mode: str = "balanced",
+    write_csv: bool = False,
     write_html: bool = False,
     plugin_names: list[str] | None = None,
     include_all_plugins: bool = False,
     filter_names: list[str] | None = None,
     include_all_filters: bool = False,
+    output_types: set[str] | None = None,
+    output_stamp: str | None = None,
 ) -> tuple[int, dict | None]:
     normalized_domain = normalize_domain(domain)
     if not normalized_domain:
@@ -1633,7 +1788,12 @@ async def run_surface_scan(
         filter_errors=filter_errors,
         intelligence_bundle=intelligence_bundle,
     )
-    save_results(
+    selected_types = output_types or _resolve_output_types(html_flag=None, csv_flag=None)
+    stamp = output_stamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    write_csv = write_csv or ("csv" in selected_types)
+    write_html = write_html or ("html" in selected_types)
+
+    saved = save_results(
         normalized_domain,
         [],
         {},
@@ -1647,30 +1807,37 @@ async def run_surface_scan(
         filter_results=filter_results,
         filter_errors=filter_errors,
         intelligence_bundle=intelligence_bundle,
+        output_types=selected_types,
+        output_stamp=stamp,
+        return_payload=write_csv,
     )
-
     report_path = ""
     try:
-        report_path = generate_html(
-            target=normalized_domain,
-            results=[],
-            correlation={},
-            issues=issues,
-            issue_summary=issue_summary,
-            narrative=narrative,
-            domain_result=domain_result,
-            mode="surface",
-            plugin_results=plugin_results,
-            plugin_errors=plugin_errors,
-            filter_results=filter_results,
-            filter_errors=filter_errors,
-            intelligence_bundle=intelligence_bundle,
-        )
         if write_html:
+            report_path = generate_html(
+                target=normalized_domain,
+                results=[],
+                correlation={},
+                issues=issues,
+                issue_summary=issue_summary,
+                narrative=narrative,
+                domain_result=domain_result,
+                mode="surface",
+                plugin_results=plugin_results,
+                plugin_errors=plugin_errors,
+                filter_results=filter_results,
+                filter_errors=filter_errors,
+                intelligence_bundle=intelligence_bundle,
+                output_stamp=stamp,
+            )
             print(c(f"HTML report generated -> {report_path}", Colors.GREEN))
     except Exception as exc:  # pragma: no cover - defensive
         append_framework_log("surface_html_failed", f"target={normalized_domain} reason={exc}", level="WARN")
         print(c(f"{symbol('warn')} HTML report generation failed: {exc}", Colors.YELLOW))
+
+    if write_csv:
+        payload = saved[1] if isinstance(saved, tuple) and len(saved) > 1 else None
+        export_to_csv(normalized_domain, payload=payload, stamp=stamp)
 
     append_framework_log("surface_scan_done", f"target={normalized_domain} report={report_path or '-'}")
 
@@ -1736,7 +1903,7 @@ def _split_csv_tokens(values: list[str]) -> list[str]:
 
 
 def _normalize_multi_select_args(args: argparse.Namespace) -> None:
-    for field in ("plugin", "filter", "framework", "tag"):
+    for field in ("plugin", "filter", "tag"):
         value = getattr(args, field, None)
         if isinstance(value, list):
             setattr(args, field, _split_csv_tokens(value))
@@ -1755,6 +1922,12 @@ def _print_prompt_config(session: PromptSessionState, state: RunnerState) -> Non
     print(c(f"surface extension control: {session.surface_extension_control}", Colors.CYAN))
     print(c(f"fusion extension control: {session.fusion_extension_control}", Colors.CYAN))
     print(c(f"orchestrate extension control: {session.orchestrate_extension_control}", Colors.CYAN))
+    output_settings = describe_output_settings()
+    print(c(f"output root: {output_settings.get('output_root')}", Colors.CYAN))
+    print(c(f"output types: {output_settings.get('output_types')}", Colors.CYAN))
+    print(c(f"output default base: {output_settings.get('default_base_dir')}", Colors.CYAN))
+    print(c(f"output current base: {output_settings.get('current_base_dir')}", Colors.CYAN))
+    print(c(f"output config: {output_settings.get('config_path')}", Colors.CYAN))
     print(c(f"anonymity: {get_anonymity_status(state)}", Colors.CYAN))
     tor_status = probe_tor_status()
     print(c(f"tor binary: {'present' if tor_status.binary_found else 'missing'}", Colors.CYAN))
@@ -1825,34 +1998,58 @@ async def _handle_profile_command(
         return EXIT_FAILURE
 
     timeout_seconds, max_concurrency, source_profile, max_platforms = _resolve_profile_runtime(args)
+    override_types, error = _parse_output_type_override(getattr(args, "out_type", None))
+    if error:
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
+        return EXIT_USAGE
+    html_flag = _explicit_toggle(args, "html")
+    csv_flag = _explicit_toggle(args, "csv")
+    selected_types = _resolve_output_types(
+        html_flag=html_flag,
+        csv_flag=csv_flag,
+        base_types=override_types,
+        force_json=bool(getattr(args, "live", False)),
+    )
+
+    override_applied, override_prev = _apply_output_base_override(getattr(args, "out_print", None))
+    if getattr(args, "out_print", None) and not override_applied and override_prev:
+        print(c(f"{symbol('warn')} {override_prev}", Colors.RED))
+        return EXIT_FAILURE
     failures = 0
-    for username in args.usernames:
-        clean_username = username.strip()
-        if not _validate_username(clean_username):
-            print(c(f"{symbol('warn')} Invalid username: '{username}'", Colors.RED))
-            failures += 1
-            continue
-        status, _ = await run_profile_scan(
-            username=clean_username,
-            state=effective_state,
-            timeout_seconds=timeout_seconds,
-            max_concurrency=max_concurrency,
-            source_profile=source_profile,
-            max_platforms=max_platforms,
-            scan_mode=args.preset,
-            write_csv=args.csv,
-            write_html=args.html,
-            live_dashboard=args.live,
-            live_port=args.live_port,
-            open_browser=not args.no_browser,
-            prompt_mode=prompt_mode,
-            plugin_names=list(plugin_ids),
-            include_all_plugins=False,
-            filter_names=list(filter_ids),
-            include_all_filters=False,
-        )
-        if status != EXIT_SUCCESS:
-            failures += 1
+    try:
+        for username in args.usernames:
+            clean_username = username.strip()
+            if not _validate_username(clean_username):
+                print(c(f"{symbol('warn')} Invalid username: '{username}'", Colors.RED))
+                failures += 1
+                continue
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            status, _ = await run_profile_scan(
+                username=clean_username,
+                state=effective_state,
+                timeout_seconds=timeout_seconds,
+                max_concurrency=max_concurrency,
+                source_profile=source_profile,
+                max_platforms=max_platforms,
+                scan_mode=args.preset,
+                write_csv=bool(getattr(args, "csv", False)),
+                write_html=bool(getattr(args, "html", False)),
+                live_dashboard=bool(getattr(args, "live", False)),
+                live_port=args.live_port,
+                open_browser=not args.no_browser,
+                prompt_mode=prompt_mode,
+                plugin_names=list(plugin_ids),
+                include_all_plugins=False,
+                filter_names=list(filter_ids),
+                include_all_filters=False,
+                output_types=selected_types,
+                output_stamp=stamp,
+            )
+            if status != EXIT_SUCCESS:
+                failures += 1
+    finally:
+        if override_applied:
+            _restore_output_base_override(override_prev)
     return EXIT_FAILURE if failures else EXIT_SUCCESS
 
 
@@ -1885,20 +2082,45 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
     timeout_seconds, max_subdomains = _resolve_surface_runtime(args)
     include_ct = True if args.ct is None else bool(args.ct)
     include_rdap = True if args.rdap is None else bool(args.rdap)
-    status, _ = await run_surface_scan(
-        domain=args.domain,
-        state=effective_state,
-        timeout_seconds=timeout_seconds,
-        max_subdomains=max_subdomains,
-        scan_mode=args.preset,
-        include_ct=include_ct,
-        include_rdap=include_rdap,
-        write_html=args.html,
-        plugin_names=list(plugin_ids),
-        include_all_plugins=False,
-        filter_names=list(filter_ids),
-        include_all_filters=False,
+
+    override_types, error = _parse_output_type_override(getattr(args, "out_type", None))
+    if error:
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
+        return EXIT_USAGE
+    html_flag = _explicit_toggle(args, "html")
+    csv_flag = _explicit_toggle(args, "csv")
+    selected_types = _resolve_output_types(
+        html_flag=html_flag,
+        csv_flag=csv_flag,
+        base_types=override_types,
     )
+
+    override_applied, override_prev = _apply_output_base_override(getattr(args, "out_print", None))
+    if getattr(args, "out_print", None) and not override_applied and override_prev:
+        print(c(f"{symbol('warn')} {override_prev}", Colors.RED))
+        return EXIT_FAILURE
+    try:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        status, _ = await run_surface_scan(
+            domain=args.domain,
+            state=effective_state,
+            timeout_seconds=timeout_seconds,
+            max_subdomains=max_subdomains,
+            scan_mode=args.preset,
+            include_ct=include_ct,
+            include_rdap=include_rdap,
+            write_html=bool(getattr(args, "html", False)),
+            write_csv=bool(getattr(args, "csv", False)),
+            plugin_names=list(plugin_ids),
+            include_all_plugins=False,
+            filter_names=list(filter_ids),
+            include_all_filters=False,
+            output_types=selected_types,
+            output_stamp=stamp,
+        )
+    finally:
+        if override_applied:
+            _restore_output_base_override(override_prev)
     return status
 
 
@@ -1932,9 +2154,28 @@ async def _handle_fusion_command(
         print(c(f"{symbol('warn')} {error}", Colors.RED))
         return EXIT_FAILURE
 
+    override_types, error = _parse_output_type_override(getattr(args, "out_type", None))
+    if error:
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
+        return EXIT_USAGE
+    html_flag = _explicit_toggle(args, "html")
+    csv_flag = _explicit_toggle(args, "csv")
+    selected_types = _resolve_output_types(
+        html_flag=html_flag,
+        csv_flag=csv_flag,
+        base_types=override_types,
+    )
+
+    override_applied, override_prev = _apply_output_base_override(getattr(args, "out_print", None))
+    if getattr(args, "out_print", None) and not override_applied and override_prev:
+        print(c(f"{symbol('warn')} {override_prev}", Colors.RED))
+        return EXIT_FAILURE
+
     username = args.username.strip()
     if not _validate_username(username):
         print(c(f"{symbol('warn')} Invalid username: '{args.username}'", Colors.RED))
+        if override_applied:
+            _restore_output_base_override(override_prev)
         return EXIT_USAGE
 
     profile_preset = PROFILE_PRESETS[args.profile_preset]
@@ -1949,38 +2190,57 @@ async def _handle_fusion_command(
         filter_names=list(filter_ids),
     )
 
-    profile_status, profile_data = await run_profile_scan(
-        username=username,
-        state=effective_state,
-        timeout_seconds=profile_preset["timeout"],
-        max_concurrency=profile_preset["max_concurrency"],
-        source_profile=str(profile_preset.get("source_profile", "balanced")),
-        max_platforms=(
-            profile_preset["max_platforms"]
-            if isinstance(profile_preset.get("max_platforms"), int) and profile_preset["max_platforms"] > 0
-            else None
-        ),
-        scan_mode=args.profile_preset,
-        write_csv=args.csv,
-        write_html=False,
-        live_dashboard=False,
-        prompt_mode=False,
-    )
-    if profile_status != EXIT_SUCCESS or profile_data is None:
-        return EXIT_FAILURE
+    try:
+        profile_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        profile_status, profile_data = await run_profile_scan(
+            username=username,
+            state=effective_state,
+            timeout_seconds=profile_preset["timeout"],
+            max_concurrency=profile_preset["max_concurrency"],
+            source_profile=str(profile_preset.get("source_profile", "balanced")),
+            max_platforms=(
+                profile_preset["max_platforms"]
+                if isinstance(profile_preset.get("max_platforms"), int) and profile_preset["max_platforms"] > 0
+                else None
+            ),
+            scan_mode=args.profile_preset,
+            write_csv=bool(getattr(args, "csv", False)),
+            write_html=bool(getattr(args, "html", False)),
+            live_dashboard=False,
+            prompt_mode=False,
+            output_types=selected_types,
+            output_stamp=profile_stamp,
+        )
+        if profile_status != EXIT_SUCCESS or profile_data is None:
+            return EXIT_FAILURE
 
-    surface_status, surface_data = await run_surface_scan(
-        domain=args.domain,
-        state=effective_state,
-        timeout_seconds=surface_preset["timeout"],
-        max_subdomains=surface_preset["max_subdomains"],
-        scan_mode=args.surface_preset,
-        include_ct=True,
-        include_rdap=True,
-        write_html=False,
-    )
-    if surface_status != EXIT_SUCCESS or surface_data is None:
-        return EXIT_FAILURE
+        surface_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        surface_status, surface_data = await run_surface_scan(
+            domain=args.domain,
+            state=effective_state,
+            timeout_seconds=surface_preset["timeout"],
+            max_subdomains=surface_preset["max_subdomains"],
+            scan_mode=args.surface_preset,
+            include_ct=True,
+            include_rdap=True,
+            write_html=bool(getattr(args, "html", False)),
+            write_csv=bool(getattr(args, "csv", False)),
+            output_types=selected_types,
+            output_stamp=surface_stamp,
+        )
+        if surface_status != EXIT_SUCCESS or surface_data is None:
+            return EXIT_FAILURE
+    finally:
+        if override_applied:
+            _restore_output_base_override(override_prev)
+
+    fusion_override_applied = False
+    fusion_override_prev: str | None = None
+    if getattr(args, "out_print", None):
+        fusion_override_applied, fusion_override_prev = _apply_output_base_override(getattr(args, "out_print", None))
+        if not fusion_override_applied and fusion_override_prev:
+            print(c(f"{symbol('warn')} {fusion_override_prev}", Colors.RED))
+            return EXIT_FAILURE
 
     combined_target = safe_path_component(f"{username}_fusion_{normalize_domain(args.domain)}")
     combined_issues = list(profile_data.get("issues", [])) + list(surface_data.get("issues", []))
@@ -2062,7 +2322,8 @@ async def _handle_fusion_command(
         },
     )
 
-    save_results(
+    fusion_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    saved = save_results(
         combined_target,
         profile_data.get("results", []),
         profile_data.get("correlation", {}),
@@ -2078,6 +2339,9 @@ async def _handle_fusion_command(
         fused_intel=fused_intel,
         fusion_graph=fusion_graph,
         intelligence_bundle=intelligence_bundle,
+        output_types=selected_types,
+        output_stamp=fusion_stamp,
+        return_payload=("csv" in selected_types),
     )
     guidance_actions = (
         intelligence_bundle.get("execution_guidance", {}).get("actions", [])
@@ -2094,35 +2358,42 @@ async def _handle_fusion_command(
             print(c(f"  {symbol('bullet')} why: {action.get('rationale', '-')}", Colors.GREY))
             print(c(f"  {symbol('tip')} hint: {action.get('command_hint', '-')}", Colors.GREY))
 
+    if "csv" in selected_types or getattr(args, "csv", False):
+        payload = saved[1] if isinstance(saved, tuple) and len(saved) > 1 else None
+        export_to_csv(combined_target, payload=payload, stamp=fusion_stamp)
+
     report_path = ""
     try:
-        report_path = REPORT_GENERATOR.generate_html_dashboard(
-            {
-                "target": combined_target,
-                "results": profile_data.get("results", []),
-                "correlation": profile_data.get("correlation", {}),
-                "issues": combined_issues,
-                "issue_summary": combined_issue_summary,
-                "narrative": combined_narrative,
-                "domain_result": surface_data.get("domain_result"),
-                "mode": "fusion",
-                "plugins": plugin_results,
-                "plugin_errors": plugin_errors,
-                "filters": filter_results,
-                "filter_errors": filter_errors,
-                "fused_intel": fused_intel,
-                "fusion_graph": fusion_graph,
-                "intelligence_bundle": intelligence_bundle,
-            }
-        )
-        if args.html:
+        if "html" in selected_types or getattr(args, "html", False):
+            report_path = REPORT_GENERATOR.generate_html_dashboard(
+                {
+                    "target": combined_target,
+                    "results": profile_data.get("results", []),
+                    "correlation": profile_data.get("correlation", {}),
+                    "issues": combined_issues,
+                    "issue_summary": combined_issue_summary,
+                    "narrative": combined_narrative,
+                    "domain_result": surface_data.get("domain_result"),
+                    "mode": "fusion",
+                    "plugins": plugin_results,
+                    "plugin_errors": plugin_errors,
+                    "filters": filter_results,
+                    "filter_errors": filter_errors,
+                    "fused_intel": fused_intel,
+                    "fusion_graph": fusion_graph,
+                    "intelligence_bundle": intelligence_bundle,
+                    "output_stamp": fusion_stamp,
+                }
+            )
             print(c(f"Fusion HTML report generated -> {report_path}", Colors.GREEN))
     except Exception as exc:  # pragma: no cover - defensive
         append_framework_log("fusion_html_failed", f"target={combined_target} reason={exc}", level="WARN")
         print(c(f"{symbol('warn')} Fusion HTML report generation failed: {exc}", Colors.YELLOW))
 
-    print(c(f"{symbol('ok')} Fusion bundle saved under output/data/{combined_target}/", Colors.GREEN))
+    print(c(f"{symbol('ok')} Fusion bundle saved under output/json/", Colors.GREEN))
     append_framework_log("fusion_scan_done", f"target={combined_target} report={report_path or '-'}")
+    if fusion_override_applied:
+        _restore_output_base_override(fusion_override_prev)
     return EXIT_SUCCESS
 
 
@@ -2190,6 +2461,23 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         print(c(f"{symbol('warn')} Unsupported mode: {mode}", Colors.RED))
         return EXIT_USAGE
 
+    override_types, error = _parse_output_type_override(getattr(args, "out_type", None))
+    if error:
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
+        return EXIT_USAGE
+    html_flag = _explicit_toggle(args, "html")
+    csv_flag = _explicit_toggle(args, "csv")
+    selected_types = _resolve_output_types(
+        html_flag=html_flag,
+        csv_flag=csv_flag,
+        base_types=override_types,
+    )
+
+    override_applied, override_prev = _apply_output_base_override(getattr(args, "out_print", None))
+    if getattr(args, "out_print", None) and not override_applied and override_prev:
+        print(c(f"{symbol('warn')} {override_prev}", Colors.RED))
+        return EXIT_FAILURE
+
     profile_preset = PROFILE_PRESETS[args.profile]
     timeout_seconds = _int_from_value(args.timeout, profile_preset["timeout"])
     max_workers = _int_from_value(args.max_workers, profile_preset["max_concurrency"])
@@ -2217,6 +2505,8 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
     min_confidence_value = _float_from_value(args.min_confidence, 0.0)
     if min_confidence_value < 0.0 or min_confidence_value > 1.0:
         print(c(f"{symbol('warn')} --min-confidence must be between 0.0 and 1.0.", Colors.RED))
+        if override_applied:
+            _restore_output_base_override(override_prev)
         return EXIT_USAGE
     min_confidence = min_confidence_value
 
@@ -2261,6 +2551,8 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
     except Exception as exc:
         append_framework_log("orchestrator_scan_failed", f"target={target_label} reason={exc}", level="WARN")
         print(c(f"{symbol('warn')} Orchestration failed: {exc}", Colors.RED))
+        if override_applied:
+            _restore_output_base_override(override_prev)
         return EXIT_FAILURE
 
     anomalies = payload.get("fused", {}).get("anomalies", [])
@@ -2322,32 +2614,122 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
     for item in filter_errors:
         print(c(f"{symbol('feature')} filter: {item}", Colors.YELLOW))
 
-    data_dir = os.path.join("output", "data", storage_target)
-    os.makedirs(data_dir, exist_ok=True)
-    json_path = os.path.join(data_dir, "orchestrator.json")
-    with open(json_path, "w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2)
+    output_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    try:
+        ensure_output_tree(types=selected_types)
+    except OutputConfigError as exc:
+        print(c(f"{symbol('warn')} {exc}", Colors.RED))
+        return EXIT_FAILURE
+    json_path: str | None = None
+    if "json" in selected_types:
+        json_file = results_json_path(storage_target, stamp=output_stamp)
+        try:
+            with json_file.open("w", encoding="utf-8") as handle:
+                json.dump(payload, handle, indent=2)
+            json_path = str(json_file)
+        except OSError as exc:
+            append_framework_log(
+                "orchestrator_output_failed",
+                f"json_write_failed target={target_label} reason={exc}",
+                level="WARN",
+            )
+            print(c(f"{symbol('warn')} Failed to write orchestration JSON: {exc}", Colors.YELLOW))
 
     summary = str(payload.get("cli_summary", "")).strip()
     if summary:
         print(c(summary, Colors.CYAN))
 
-    html_path = ""
-    if args.html:
-        html_path = os.path.join("output", "html", f"{storage_target}_orchestrator.html")
-        with open(html_path, "w", encoding="utf-8") as handle:
-            handle.write(str(payload.get("html_report", "")))
-        print(c(f"Orchestration HTML report generated -> {html_path}", Colors.GREEN))
+    cli_path: str | None = None
+    if "cli" in selected_types:
+        cli_text = str(payload.get("txt_report") or payload.get("cli_summary") or "").strip()
+        if not cli_text:
+            cli_text = f"Orchestration bundle saved for {target_label}."
+        cli_file = cli_report_path(storage_target, stamp=output_stamp)
+        try:
+            cli_file.write_text(cli_text, encoding="utf-8")
+            cli_path = str(cli_file)
+        except OSError as exc:
+            append_framework_log(
+                "orchestrator_output_failed",
+                f"cli_write_failed target={target_label} reason={exc}",
+                level="WARN",
+            )
+            print(c(f"{symbol('warn')} Failed to write orchestration CLI report: {exc}", Colors.YELLOW))
 
-    print(c(f"{symbol('ok')} Orchestration bundle saved -> {json_path}", Colors.GREEN))
+    html_path = ""
+    if "html" in selected_types or args.html:
+        html_text = str(payload.get("html_report", "") or "")
+        if html_text:
+            html_file = html_report_path(storage_target, stamp=output_stamp)
+            try:
+                html_file.write_text(html_text, encoding="utf-8")
+                html_path = str(html_file)
+                print(c(f"Orchestration HTML report generated -> {html_path}", Colors.GREEN))
+            except OSError as exc:
+                append_framework_log(
+                    "orchestrator_output_failed",
+                    f"html_write_failed target={target_label} reason={exc}",
+                    level="WARN",
+                )
+                print(c(f"{symbol('warn')} Failed to write orchestration HTML report: {exc}", Colors.YELLOW))
+        else:
+            print(c(f"{symbol('warn')} Orchestration HTML payload was empty.", Colors.YELLOW))
+
+    if "csv" in selected_types:
+        csv_payload = {
+            "metadata": {"mode": mode},
+            "target": target_label,
+            "results": [],
+            "issues": payload.get("fused", {}).get("anomalies", []) if isinstance(payload.get("fused"), dict) else [],
+            "plugins": plugin_results,
+            "filters": filter_results,
+            "intelligence_bundle": (
+                payload.get("fused", {}).get("intelligence_bundle", {})
+                if isinstance(payload.get("fused"), dict)
+                else {}
+            ),
+        }
+        export_to_csv(storage_target, payload=csv_payload, stamp=output_stamp)
+
+    run_log: str | None = None
+    try:
+        log_file = run_log_path(storage_target, stamp=output_stamp)
+        log_file.write_text(
+            (
+                f"timestamp={utc_timestamp()}\n"
+                f"target={target_label}\n"
+                f"mode=orchestrate:{mode}\n"
+                f"plugins={len(plugin_results)}\n"
+                f"filters={len(filter_results)}\n"
+                f"anomalies={len(anomalies) if isinstance(anomalies, list) else 0}\n"
+            ),
+            encoding="utf-8",
+        )
+        run_log = str(log_file)
+    except OSError as exc:
+        append_framework_log(
+            "orchestrator_output_failed",
+            f"log_write_failed target={target_label} reason={exc}",
+            level="WARN",
+        )
+        print(c(f"{symbol('warn')} Failed to write orchestration run log: {exc}", Colors.YELLOW))
+
+    if json_path:
+        print(c(f"{symbol('ok')} Orchestration bundle saved -> {json_path}", Colors.GREEN))
+    if cli_path:
+        print(c(f"{symbol('ok')} Orchestration CLI report saved -> {cli_path}", Colors.GREEN))
+    if run_log:
+        print(c(f"{symbol('ok')} Orchestration run log saved -> {run_log}", Colors.GREEN))
 
     if args.json:
         print(json.dumps(payload, indent=2))
 
     append_framework_log(
         "orchestrator_scan_done",
-        f"target={target_label} mode={mode} json={json_path} html={html_path or '-'}",
+        f"target={target_label} mode={mode} json={json_path or '-'} html={html_path or '-'}",
     )
+    if override_applied:
+        _restore_output_base_override(override_prev)
     return EXIT_SUCCESS
 
 
@@ -2410,12 +2792,102 @@ async def _handle_filters_command(args: argparse.Namespace) -> int:
     return EXIT_SUCCESS
 
 
+async def _handle_out_type_command(args: argparse.Namespace) -> int:
+    raw = getattr(args, "types", None)
+    if isinstance(raw, list):
+        raw_value = ",".join(str(item) for item in raw)
+    else:
+        raw_value = str(raw or "").strip()
+    tokens = tokenize_output_types(raw_value)
+    if not tokens:
+        settings = describe_output_settings()
+        print(c(f"{symbol('tip')} Current output types: {settings.get('output_types')}", Colors.CYAN))
+        print(c(f"{symbol('tip')} Allowed types: cli, html, csv, json", Colors.GREY))
+        print(c(f"{symbol('tip')} Example: out-type cli,html,csv,json", Colors.GREY))
+        return EXIT_SUCCESS
+    types_override, error = _parse_output_type_override(tokens)
+    if error:
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
+        print(c(f"{symbol('tip')} Allowed types: cli, html, csv, json", Colors.YELLOW))
+        return EXIT_USAGE
+    desired = types_override or set(DEFAULT_OUTPUT_TYPES)
+    try:
+        types = update_output_types(desired)
+        config_saved = True
+    except OutputConfigError as exc:
+        types = set_session_output_types(desired)
+        config_saved = False
+        print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+    try:
+        ensure_output_tree(types=types)
+    except OutputConfigError as exc:
+        print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+        return EXIT_FAILURE
+    print(c(f"{symbol('ok')} Output types set: {', '.join(types)}", Colors.GREEN))
+    if not config_saved:
+        print(c(f"{symbol('tip')} Output types applied for this session only (config not saved).", Colors.GREY))
+    if "json" not in types:
+        print(c(f"{symbol('tip')} JSON output is disabled; live dashboards require JSON results.", Colors.GREY))
+    return EXIT_SUCCESS
+
+
+async def _handle_out_print_command(args: argparse.Namespace, *, make_default: bool = False) -> int:
+    path_value = getattr(args, "path", None)
+    text = str(path_value or "").strip()
+    if not text:
+        settings = describe_output_settings()
+        print(c(f"{symbol('tip')} output root: {settings.get('output_root')}", Colors.CYAN))
+        print(c(f"{symbol('tip')} output types: {settings.get('output_types')}", Colors.CYAN))
+        print(c(f"{symbol('tip')} default base: {settings.get('default_base_dir')}", Colors.CYAN))
+        print(c(f"{symbol('tip')} current base: {settings.get('current_base_dir')}", Colors.CYAN))
+        print(c(f"{symbol('tip')} config: {settings.get('config_path')}", Colors.CYAN))
+        return EXIT_SUCCESS
+    lowered = text.lower()
+    if lowered in {"reset", "clear"}:
+        try:
+            clear_output_base_dir(clear_default=make_default)
+            clear_session_output_base_dir()
+        except OutputConfigError as exc:
+            print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+            return EXIT_FAILURE
+        try:
+            ensure_output_tree(types=get_output_settings().types)
+        except OutputConfigError as exc:
+            print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+            return EXIT_FAILURE
+        label = "default" if make_default else "current"
+        print(c(f"{symbol('ok')} Output {label} base directory reset to working-dir.", Colors.GREEN))
+        return EXIT_SUCCESS
+    try:
+        base_dir = update_output_base_dir(text, make_default=make_default)
+        config_saved = True
+    except OutputConfigError as exc:
+        try:
+            base_dir = set_session_output_base_dir(text)
+            config_saved = False
+            print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+        except OutputConfigError as session_exc:
+            print(c(f"{symbol('warn')} {session_exc}", Colors.RED))
+            return EXIT_FAILURE
+    try:
+        ensure_output_tree(types=get_output_settings().types)
+    except OutputConfigError as exc:
+        print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+        return EXIT_FAILURE
+    label = "default" if make_default else "current"
+    print(c(f"{symbol('ok')} Output {label} base directory: {base_dir}", Colors.GREEN))
+    print(c(f"{symbol('tip')} Output root will be {base_dir / 'output'}", Colors.GREY))
+    if not config_saved:
+        print(c(f"{symbol('tip')} Output base applied for this session only (config not saved).", Colors.GREY))
+    return EXIT_SUCCESS
+
+
 async def _handle_modules_command(args: argparse.Namespace) -> int:
     try:
         _print_modules_inventory(
             scope=args.scope,
             kind=args.kind,
-            frameworks=args.framework,
+            frameworks=getattr(args, "framework", None),
             search=args.search,
             tags=args.tag,
             min_score=args.min_score,
@@ -2536,7 +3008,17 @@ async def _handle_quicktest_command(args: argparse.Namespace) -> int:
         intelligence_bundle=intelligence_bundle,
     )
 
-    json_path = save_results(
+    override_types, error = _parse_output_type_override(getattr(args, "out_type", None))
+    if error:
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
+        return EXIT_USAGE
+    selected_types = _resolve_output_types(html_flag=None, csv_flag=None, base_types=override_types)
+    output_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    override_applied, override_prev = _apply_output_base_override(getattr(args, "out_print", None))
+    if getattr(args, "out_print", None) and not override_applied and override_prev:
+        print(c(f"{symbol('warn')} {override_prev}", Colors.RED))
+        return EXIT_FAILURE
+    saved = save_results(
         storage_target,
         profile_results,
         correlation,
@@ -2552,29 +3034,40 @@ async def _handle_quicktest_command(args: argparse.Namespace) -> int:
         fused_intel=fused_intel,
         fusion_graph=fusion_graph,
         intelligence_bundle=intelligence_bundle,
+        output_types=selected_types,
+        output_stamp=output_stamp,
+        return_payload=("csv" in selected_types),
     )
+    json_path = saved[0] if isinstance(saved, tuple) else saved
 
-    report_path = generate_html(
-        target=storage_target,
-        results=profile_results,
-        correlation=correlation,
-        issues=issues,
-        issue_summary=issue_summary,
-        narrative=narrative,
-        domain_result=domain_result,
-        mode="quicktest",
-        plugin_results=[],
-        plugin_errors=[],
-        filter_results=[],
-        filter_errors=[],
-        intelligence_bundle=intelligence_bundle,
-    )
-    csv_path = export_to_csv(storage_target) or ""
-
-    print(c(f"{symbol('ok')} Quicktest HTML report generated -> {report_path}", Colors.GREEN))
-    if csv_path:
-        print(c(f"{symbol('ok')} Quicktest CSV export generated -> {csv_path}", Colors.GREEN))
+    report_path = ""
+    if "html" in selected_types:
+        report_path = generate_html(
+            target=storage_target,
+            results=profile_results,
+            correlation=correlation,
+            issues=issues,
+            issue_summary=issue_summary,
+            narrative=narrative,
+            domain_result=domain_result,
+            mode="quicktest",
+            plugin_results=[],
+            plugin_errors=[],
+            filter_results=[],
+            filter_errors=[],
+            intelligence_bundle=intelligence_bundle,
+            output_stamp=output_stamp,
+        )
+        print(c(f"{symbol('ok')} Quicktest HTML report generated -> {report_path}", Colors.GREEN))
+    csv_path = ""
+    if "csv" in selected_types:
+        payload = saved[1] if isinstance(saved, tuple) and len(saved) > 1 else None
+        csv_path = export_to_csv(storage_target, payload=payload, stamp=output_stamp) or ""
+        if csv_path:
+            print(c(f"{symbol('ok')} Quicktest CSV export generated -> {csv_path}", Colors.GREEN))
     print(c(f"{symbol('ok')} Quicktest artifacts key -> {storage_target}", Colors.GREEN))
+    if override_applied:
+        _restore_output_base_override(override_prev)
 
     payload = {
         "template": {
@@ -2651,6 +3144,8 @@ async def _handle_wizard_command(
         "--rdap",
         "--no-rdap",
         "--sync-modules",
+        "--out-type",
+        "--out-print",
     }
     seeded_wizard = bool(explicit_flags & wizard_seed_flags)
 
@@ -2686,8 +3181,7 @@ async def _handle_wizard_command(
             print(
                 c(
                     f"{symbol('ok')} Module catalog refreshed "
-                    f"(frameworks={module_summary.get('framework_count', 0)} "
-                    f"modules={module_summary.get('module_count', 0)}).",
+                    f"(modules={module_summary.get('module_count', 0)}).",
                     Colors.GREEN,
                 )
             )
@@ -2898,6 +3392,16 @@ async def _handle_wizard_command(
         return EXIT_USAGE
 
     failures = 0
+    explicit_output_flags: list[str] = []
+    if write_html:
+        explicit_output_flags.append("--html")
+    else:
+        explicit_output_flags.append("--no-html")
+    if write_csv:
+        explicit_output_flags.append("--csv")
+    else:
+        explicit_output_flags.append("--no-csv")
+
     if run_profile:
         profile_args = argparse.Namespace(
             usernames=profile_usernames,
@@ -2918,6 +3422,9 @@ async def _handle_wizard_command(
             filter=filter_names,
             all_filters=filter_all,
             list_filters=False,
+            out_type=str(getattr(args, "out_type", "") or ""),
+            out_print=str(getattr(args, "out_print", "") or ""),
+            _explicit_flags=tuple(explicit_output_flags),
         )
         if await _handle_profile_command(profile_args, state=state, prompt_mode=prompt_mode) != EXIT_SUCCESS:
             failures += 1
@@ -2934,12 +3441,16 @@ async def _handle_wizard_command(
             ct=include_ct,
             rdap=include_rdap,
             html=write_html,
+            csv=write_csv,
             plugin=plugin_names,
             all_plugins=plugin_all,
             list_plugins=False,
             filter=filter_names,
             all_filters=filter_all,
             list_filters=False,
+            out_type=str(getattr(args, "out_type", "") or ""),
+            out_print=str(getattr(args, "out_print", "") or ""),
+            _explicit_flags=tuple(explicit_output_flags),
         )
         if await _handle_surface_command(surface_args, state=state) != EXIT_SUCCESS:
             failures += 1
@@ -2961,6 +3472,9 @@ async def _handle_wizard_command(
             filter=filter_names,
             all_filters=filter_all,
             list_filters=False,
+            out_type=str(getattr(args, "out_type", "") or ""),
+            out_print=str(getattr(args, "out_print", "") or ""),
+            _explicit_flags=tuple(explicit_output_flags),
         )
         if await _handle_fusion_command(fusion_args, state=state) != EXIT_SUCCESS:
             failures += 1
@@ -3016,6 +3530,12 @@ async def _dispatch(args: argparse.Namespace, state: RunnerState, prompt_mode: b
         return await _handle_plugins_command(args)
     if args.command == "filters":
         return await _handle_filters_command(args)
+    if args.command == "out-type":
+        return await _handle_out_type_command(args)
+    if args.command == "out-print":
+        return await _handle_out_print_command(args)
+    if args.command == "default-out-print":
+        return await _handle_out_print_command(args, make_default=True)
     if args.command == "modules":
         return await _handle_modules_command(args)
     if args.command in {"history", "targets", "scans"}:
@@ -3202,7 +3722,10 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
 
 
 async def run(argv: Sequence[str] | None = None) -> int:
-    ensure_output_tree()
+    try:
+        ensure_output_tree()
+    except OutputConfigError as exc:
+        print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
     parser = build_root_parser()
     _set_non_exiting_parser(parser)
     argv_tokens = list(argv) if argv is not None else sys.argv[1:]

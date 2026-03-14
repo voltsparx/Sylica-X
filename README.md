@@ -97,7 +97,7 @@ For full command reference, see [Usage Guide](docs/Usage.txt).
 * 🌌 Signal fusion connector layer (`core/collect/source_fusion.py` + `signal_*` plugin/filter pair)
 * 🖥️ Prompt mode with keyword shortcuts, metasploit-style context prompt, and session defaults
 * 📖 Explain system (`--explain`, `explain`) for command/plugin/filter onboarding
-* 📦 Prompt startup inventory shows loaded plugin/filter/platform/module/framework counts
+* 📦 Prompt startup inventory shows loaded plugin/filter/platform/module counts
 * 📊 HTML, JSON, CLI, CSV, and run-log outputs
 * 🕵️ Optional Tor/proxy routing with diagnostics and guided startup
 
@@ -175,7 +175,7 @@ For full command reference, see [Usage Guide](docs/Usage.txt).
   * keyword/flag parity verified
 * Platform manifests loaded: **70**
 * Runtime plugin/filter discovery: **20 plugins, 17 filters**
-* Runtime module catalog: **567 modules across 7 frameworks**
+* Runtime module catalog: **567 modules**
 * Runtime inventory snapshot (2026-03-14): `intel/runtime-inventory.json`
 
 ### Scope Compatibility Inventory
@@ -301,12 +301,12 @@ python silica-x.py filters --scope all
     </tr>
   </thead>
   <tbody>
-    <tr><td>Primary JSON</td><td><code>output/data/&lt;target&gt;/results.json</code></td><td>Structured run payload (results, issues, plugins/filters, intelligence, summary).</td></tr>
-    <tr><td>HTML Report</td><td><code>output/html/&lt;target&gt;.html</code></td><td>Visual dashboard report with tables/cards/correlation/guidance.</td></tr>
-    <tr><td>CLI Report</td><td><code>output/cli/&lt;target&gt;.txt</code></td><td>Readable text report with scoring and extension summaries.</td></tr>
-    <tr><td>CSV Main</td><td><code>output/cli/&lt;target&gt;.csv</code></td><td>Core flattened rows.</td></tr>
-    <tr><td>CSV Companions</td><td><code>*.issues.csv</code>, <code>*.plugins.csv</code>, <code>*.filters.csv</code>, <code>*.intel-entities.csv</code>, <code>*.intel-contacts.csv</code></td><td>Detailed slices for downstream analysis.</td></tr>
-    <tr><td>Run Logs</td><td><code>output/logs/&lt;target&gt;_&lt;timestamp&gt;.txt</code>, <code>output/logs/framework.log.txt</code></td><td>Per-run and framework lifecycle logs.</td></tr>
+    <tr><td>Primary JSON</td><td><code>output/json/&lt;target&gt;-info-&lt;timestamp&gt;.json</code></td><td>Structured run payload (results, issues, plugins/filters, intelligence, summary).</td></tr>
+    <tr><td>HTML Report</td><td><code>output/html/&lt;target&gt;-info-&lt;timestamp&gt;.html</code></td><td>Visual dashboard report with tables/cards/correlation/guidance.</td></tr>
+    <tr><td>CLI Report</td><td><code>output/cli/&lt;target&gt;-info-&lt;timestamp&gt;.txt</code></td><td>Readable text report with scoring and extension summaries.</td></tr>
+    <tr><td>CSV Main</td><td><code>output/csv/&lt;target&gt;-info-&lt;timestamp&gt;.csv</code></td><td>Core flattened rows.</td></tr>
+    <tr><td>CSV Companions</td><td><code>output/csv/&lt;target&gt;-info-&lt;timestamp&gt;.*.csv</code></td><td>Detailed slices for downstream analysis.</td></tr>
+    <tr><td>Run Logs</td><td><code>output/logs/&lt;target&gt;-info-&lt;timestamp&gt;.log</code>, <code>output/logs/framework.log.txt</code></td><td>Per-run and framework lifecycle logs.</td></tr>
   </tbody>
 </table>
 
@@ -523,16 +523,16 @@ Behance • Bitbucket • Blogger • BuyMeACoffee • Codeforces • CodePen �
 ## 📁 Output Structure
 
 ```
-output/data/<target>/results.json
-output/html/<target>.html
-output/cli/<target>.txt
-output/cli/<target>.csv (when --csv)
-output/cli/<target>.issues.csv (when --csv)
-output/cli/<target>.plugins.csv (when --csv)
-output/cli/<target>.filters.csv (when --csv)
-output/cli/<target>.intel-entities.csv (when --csv)
-output/cli/<target>.intel-contacts.csv (when --csv)
-output/logs/<target>_<timestamp>.txt
+output/json/<target>-info-<timestamp>.json
+output/html/<target>-info-<timestamp>.html
+output/cli/<target>-info-<timestamp>.txt
+output/csv/<target>-info-<timestamp>.csv (when csv enabled)
+output/csv/<target>-info-<timestamp>.issues.csv (when csv enabled)
+output/csv/<target>-info-<timestamp>.plugins.csv (when csv enabled)
+output/csv/<target>-info-<timestamp>.filters.csv (when csv enabled)
+output/csv/<target>-info-<timestamp>.intel-entities.csv (when csv enabled)
+output/csv/<target>-info-<timestamp>.intel-contacts.csv (when csv enabled)
+output/logs/<target>-info-<timestamp>.log
 output/logs/framework.log.txt
 ```
 
