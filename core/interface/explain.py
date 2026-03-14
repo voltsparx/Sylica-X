@@ -34,6 +34,7 @@ COMMAND_EXPLANATIONS: dict[str, str] = {
     "keywords": "Lists prompt keyword aliases that map casual words to core commands.",
     "plugins": "Lists available internal plugins and their compatible workflow scopes.",
     "filters": "Lists available internal filters and their compatible workflow scopes.",
+    "templates": "Lists bundled info-templates (curated plugin/filter/module arrangements; consent-only targets).",
     "modules": (
         "Builds/lists the source-intel module catalog from intel-sources with "
         "scope/kind/search/tag/score controls, plus pagination and integrity validation."
@@ -111,7 +112,9 @@ def build_explain_text() -> str:
     lines.append(f"{symbol('bullet')} use profile|surface|fusion: switch active module context.")
     lines.append(f"{symbol('bullet')} select module <name>: alias for use command module switch.")
     lines.append(f"{symbol('bullet')} set plugins ... / set filters ...: module-compatible defaults, supports aliases, comma-separated.")
+    lines.append(f"{symbol('bullet')} set template <id>: apply a bundled info-template to plugin/filter defaults.")
     lines.append(f"{symbol('bullet')} select plugins ... / select filters ...: name-based aliases for set controls.")
+    lines.append(f"{symbol('bullet')} select template <id>: alias for set template.")
     lines.append(f"{symbol('bullet')} add/remove plugins ...: incremental plugin control by selector name.")
     lines.append(f"{symbol('bullet')} add/remove filters ...: incremental filter control by selector name.")
     lines.append(f"{symbol('bullet')} set extension_control ...: module default for --extension-control auto|manual|hybrid.")
@@ -119,8 +122,9 @@ def build_explain_text() -> str:
     lines.append(f"{symbol('bullet')} Prompt format: (console <module> ec=<mode> plugins=<set> filters=<set>)>>")
     lines.append("")
     lines.append(f"{symbol('major')} Flag parity notes")
-    lines.append(f"{symbol('bullet')} profile/surface/fusion share plugin/filter flags: --plugin, --all-plugins, --list-plugins.")
-    lines.append(f"{symbol('bullet')} profile/surface/fusion share filter flags: --filter, --all-filters, --list-filters.")
+    lines.append(f"{symbol('bullet')} profile/surface/fusion share plugin/filter flags: --plugin, --list-plugins.")
+    lines.append(f"{symbol('bullet')} profile/surface/fusion share filter flags: --filter, --list-filters.")
+    lines.append(f"{symbol('bullet')} --info-template applies a curated plugin/filter/module arrangement.")
     lines.append(f"{symbol('bullet')} extension controls: --extension-control auto|manual|hybrid with conflict validation.")
     lines.append(f"{symbol('bullet')} explain command and --explain flag produce the same explain output.")
     lines.append(

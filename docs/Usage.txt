@@ -56,7 +56,7 @@ Execution mode aliases (v9.2.0):
     <tr><td>Flag/Prompt</td><td><code>fusion &lt;username&gt; &lt;domain&gt;</code></td><td><code>full</code>, <code>combo</code></td><td>Combined profile + surface workflow</td><td><code>--profile-preset</code>, <code>--surface-preset</code>, <code>--plugin</code>, <code>--filter</code>, <code>--html</code>, <code>--csv</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>orchestrate &lt;mode&gt; &lt;target&gt;</code></td><td><code>orch</code></td><td>Policy-driven orchestration</td><td><code>--profile</code>, <code>--source-profile</code>, <code>--min-confidence</code>, <code>--json</code>, <code>--html</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>quicktest</code></td><td><code>qtest</code>, <code>smoke</code></td><td>Offline synthetic smoke run with reports</td><td><code>--template</code>, <code>--seed</code>, <code>--list-templates</code>, <code>--json</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>plugins</code>, <code>filters</code>, <code>modules</code>, <code>history</code></td><td>-</td><td>Inventory and catalog workflows</td><td><code>--scope</code>, <code>--kind</code>, <code>--search</code>, <code>--stats-only</code>, <code>--limit</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>plugins</code>, <code>filters</code>, <code>templates</code>, <code>modules</code>, <code>history</code></td><td>-</td><td>Inventory and catalog workflows</td><td><code>--scope</code>, <code>--kind</code>, <code>--search</code>, <code>--stats-only</code>, <code>--limit</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>anonymity</code></td><td>-</td><td>Routing diagnostics and updates</td><td><code>--tor</code>, <code>--proxy</code>, <code>--check</code>, <code>--prompt</code></td></tr>
     <tr><td>Flag</td><td><code>live &lt;target&gt;</code></td><td>-</td><td>Open local dashboard for saved run</td><td><code>--port</code>, <code>--no-browser</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>wizard</code></td><td>-</td><td>Guided multi-phase scan launcher</td><td><code>--profile-preset</code>, <code>--surface-preset</code>, <code>--extension-control</code>, <code>--plugin</code>, <code>--filter</code>, <code>--tor</code>, <code>--proxy</code></td></tr>
@@ -157,9 +157,10 @@ profile <username...>
   --live-port <1-65535>
   --no-browser
   --plugin <selector> (repeatable or comma-separated)
-  --all-plugins / --list-plugins
+  --list-plugins
   --filter <selector> (repeatable or comma-separated)
-  --all-filters / --list-filters
+  --list-filters
+  --info-template <id>
   --extension-control auto|manual|hybrid
   --tor|--no-tor, --proxy|--no-proxy
 
@@ -173,9 +174,10 @@ surface <domain>
   --rdap|--no-rdap
   --html
   --plugin <selector> (repeatable or comma-separated)
-  --all-plugins / --list-plugins
+  --list-plugins
   --filter <selector> (repeatable or comma-separated)
-  --all-filters / --list-filters
+  --list-filters
+  --info-template <id>
   --extension-control auto|manual|hybrid
   --tor|--no-tor, --proxy|--no-proxy
 
@@ -187,9 +189,10 @@ fusion <username> <domain>
   --csv
   --html
   --plugin <selector> (repeatable or comma-separated)
-  --all-plugins / --list-plugins
+  --list-plugins
   --filter <selector> (repeatable or comma-separated)
-  --all-filters / --list-filters
+  --list-filters
+  --info-template <id>
   --extension-control auto|manual|hybrid
   --tor|--no-tor, --proxy|--no-proxy
 
@@ -203,20 +206,22 @@ orchestrate <profile|surface|fusion> <target>
   --max-platforms
   --max-subdomains
   --min-confidence
-  --plugin/--all-plugins/--list-plugins
-  --filter/--all-filters/--list-filters
+  --plugin / --list-plugins
+  --filter / --list-filters
+  --info-template <id>
   --extension-control auto|manual|hybrid
   --json / --html
 
 Inventory and utility:
 plugins [--scope all|profile|surface|fusion]
 filters [--scope all|profile|surface|fusion]
-modules [--scope ... --kind ... --tag ... --search ...]
+templates [--json]
+modules [--scope ... --kind ... --tag ... --search ... --info-template ...]
 history [--limit N]
 quicktest [--template <id>] [--seed N] [--list-templates] [--json]
 live <target> [--port PORT] [--no-browser]
 anonymity [--tor|--no-tor] [--proxy|--no-proxy] [--check] [--prompt]
-wizard [--profile-phase|--no-profile-phase] [--surface-phase|--no-surface-phase] [--fusion-phase|--no-fusion-phase] [--profile-preset ...] [--surface-preset ...] [--extension-control ...] [--plugin ...] [--filter ...] [--html|--no-html] [--csv|--no-csv] [--ct|--no-ct] [--rdap|--no-rdap] [--sync-modules]
+wizard [--profile-phase|--no-profile-phase] [--surface-phase|--no-surface-phase] [--fusion-phase|--no-fusion-phase] [--profile-preset ...] [--surface-preset ...] [--extension-control ...] [--plugin ...] [--filter ...] [--info-template ...] [--html|--no-html] [--csv|--no-csv] [--ct|--no-ct] [--rdap|--no-rdap] [--sync-modules]
 keywords
 about
 explain
@@ -241,8 +246,9 @@ Wizard capability flags:
   --surface-preset <quick|balanced|deep>
   --extension-control <auto|manual|hybrid>
 - Selection:
-  --plugin / --all-plugins / --list-plugins
-  --filter / --all-filters / --list-filters
+  --plugin / --list-plugins
+  --filter / --list-filters
+  --info-template <id>
 - Output + surface toggles:
   --html|--no-html
   --csv|--no-csv
@@ -264,6 +270,7 @@ quicktest [--template <id>] [--seed N] [--list-templates] [--json]
 anonymity [--check|--prompt|--tor|--no-tor|--proxy|--no-proxy]
 plugins [--scope ...]
 filters [--scope ...]
+templates [--json]
 modules [query flags]
 about
 explain
@@ -271,10 +278,12 @@ banner
 
 use <profile|surface|fusion>
 select module <profile|surface|fusion>
-set plugins <none|all|selector1,selector2>
-set filters <none|all|selector1,selector2>
+set plugins <none|selector1,selector2>
+set filters <none|selector1,selector2>
+set template <id>
 select plugins <selector1,selector2>
 select filters <selector1,selector2>
+select template <id>
 add plugins <selector1,selector2>
 remove plugins <selector1,selector2>
 add filters <selector1,selector2>

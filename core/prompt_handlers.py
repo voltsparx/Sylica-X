@@ -27,6 +27,7 @@ from core.extensions.selector_keys import selector_keys
 from core.foundation.session_state import PromptSessionState
 from core.extensions.signal_forge import list_plugin_descriptors
 from core.extensions.signal_sieve import list_filter_descriptors
+from core.utils.info_templates import get_info_template
 
 
 VALID_MODULES = {"profile", "surface", "fusion"}
@@ -131,8 +132,6 @@ def _validate_extension_combo(
     session: PromptSessionState,
     plugins: list[str],
     filters: list[str],
-    all_plugins: bool,
-    all_filters: bool,
 ) -> list[str]:
     plan = resolve_extension_control(
         scope=scope,
@@ -140,8 +139,8 @@ def _validate_extension_combo(
         control_mode="manual",
         requested_plugins=plugins,
         requested_filters=filters,
-        include_all_plugins=all_plugins,
-        include_all_filters=all_filters,
+        include_all_plugins=False,
+        include_all_filters=False,
     )
     return list(plan.errors)
 
@@ -238,9 +237,6 @@ def _mutate_selection(
             )
             emit("Use `plugins --scope ...` to inspect compatible selectors.", Colors.YELLOW)
             return True
-        if session.all_plugins:
-            emit("Cannot mutate plugins while current selection is `all`. Use `set plugins none` first.", Colors.RED)
-            return True
         current = _dedupe_names(session.plugin_names)
         if action == "add":
             updated = _dedupe_names([*current, *selected])
@@ -252,14 +248,11 @@ def _mutate_selection(
             session=session,
             plugins=updated,
             filters=session.filter_names,
-            all_plugins=False,
-            all_filters=session.all_filters,
         )
         if errors:
             for item in errors:
                 emit(f"Plugin selection blocked: {item}", Colors.RED)
             return True
-        session.all_plugins = False
         session.plugin_names = updated
         emit(f"Plugins set to: {session.plugins_label()} (module={scope})", Colors.GREEN)
         return True
@@ -273,9 +266,6 @@ def _mutate_selection(
         )
         emit("Use `filters --scope ...` to inspect compatible selectors.", Colors.YELLOW)
         return True
-    if session.all_filters:
-        emit("Cannot mutate filters while current selection is `all`. Use `set filters none` first.", Colors.RED)
-        return True
     current = _dedupe_names(session.filter_names)
     if action == "add":
         updated = _dedupe_names([*current, *selected])
@@ -287,14 +277,11 @@ def _mutate_selection(
         session=session,
         plugins=session.plugin_names,
         filters=updated,
-        all_plugins=session.all_plugins,
-        all_filters=False,
     )
     if errors:
         for item in errors:
             emit(f"Filter selection blocked: {item}", Colors.RED)
         return True
-    session.all_filters = False
     session.filter_names = updated
     emit(f"Filters set to: {session.filters_label()} (module={scope})", Colors.GREEN)
     return True
@@ -308,21 +295,11 @@ def apply_prompt_defaults(args: argparse.Namespace, session: PromptSessionState)
 
     explicit_flags = _prompt_explicit_flags(args)
 
-    if not getattr(args, "plugin", None) and not getattr(args, "all_plugins", False):
-        if session.all_plugins:
-            args.all_plugins = True
-            args.plugin = []
-        else:
-            args.plugin, _ = _resolve_plugins_for_scope(session.plugin_names, scope)
-            args.all_plugins = False
+    if not getattr(args, "plugin", None):
+        args.plugin, _ = _resolve_plugins_for_scope(session.plugin_names, scope)
 
-    if not getattr(args, "filter", None) and not getattr(args, "all_filters", False):
-        if session.all_filters:
-            args.all_filters = True
-            args.filter = []
-        else:
-            args.filter, _ = _resolve_filters_for_scope(session.filter_names, scope)
-            args.all_filters = False
+    if not getattr(args, "filter", None):
+        args.filter, _ = _resolve_filters_for_scope(session.filter_names, scope)
 
     if hasattr(args, "extension_control") and "--extension-control" not in explicit_flags:
         if command in ORCHESTRATE_ALIASES:
@@ -368,7 +345,7 @@ def handle_prompt_set_command(
     tokens = command_text.strip().split(maxsplit=2)
     if len(tokens) != 3:
         _emit(
-            "Usage: set <plugins|filters|profile_preset|surface_preset|extension_control|orchestrate_extension_control> <value>",
+            "Usage: set <template|plugins|filters|profile_preset|surface_preset|extension_control|orchestrate_extension_control> <value>",
             Colors.YELLOW,
         )
         return True
@@ -382,6 +359,50 @@ def handle_prompt_set_command(
     value = value.strip()
     scope = _normalize_module(session.module)
 
+    if key in {"template", "info_template"}:
+        if session.extension_control_for_module(scope) == "auto":
+            _emit(
+                f"Cannot set template for module '{scope}' while extension_control=auto. "
+                "Use `set extension_control manual` or `set extension_control hybrid` first.",
+                Colors.RED,
+            )
+            return True
+        lower = value.lower()
+        if lower in {"none", "off"}:
+            session.plugin_names = []
+            session.filter_names = []
+            _emit(f"Template cleared; plugins/filters reset (module={scope}).", Colors.GREEN)
+            return True
+        try:
+            template = get_info_template(value, scope=scope)
+        except ValueError as exc:
+            _emit(str(exc), Colors.RED)
+            return True
+        template_plugins = list(template.get("plugins", ()))
+        template_filters = list(template.get("filters", ()))
+        errors = _validate_extension_combo(
+            scope=scope,
+            session=session,
+            plugins=template_plugins,
+            filters=template_filters,
+        )
+        if errors:
+            for item in errors:
+                _emit(f"Template selection blocked: {item}", Colors.RED)
+            return True
+        session.plugin_names = template_plugins
+        session.filter_names = template_filters
+        _emit(
+            f"Template applied: {template.get('id')} "
+            f"(plugins={len(template_plugins)} filters={len(template_filters)}) (module={scope})",
+            Colors.GREEN,
+        )
+        module_tags = template.get("module_tags", ())
+        if module_tags:
+            _emit(f"Module tags: {', '.join(module_tags)}", Colors.YELLOW)
+        _emit(str(template.get("notes", "")), Colors.GREY)
+        return True
+
     if key == "plugins":
         if session.extension_control_for_module(scope) == "auto":
             _emit(
@@ -392,24 +413,12 @@ def handle_prompt_set_command(
             return True
         lower = value.lower()
         if lower == "all":
-            errors = _validate_extension_combo(
-                scope=scope,
-                session=session,
-                plugins=[],
-                filters=session.filter_names,
-                all_plugins=True,
-                all_filters=session.all_filters,
+            _emit(
+                "Bulk plugin selection is disabled. Use explicit selectors or `set template <id>` instead.",
+                Colors.RED,
             )
-            if errors:
-                for item in errors:
-                    _emit(f"Plugin selection blocked: {item}", Colors.RED)
-                return True
-            session.all_plugins = True
-            session.plugin_names = []
-            _emit(f"Plugins set to: {session.plugins_label()} (module={scope})", Colors.GREEN)
             return True
         if lower in {"none", "off"}:
-            session.all_plugins = False
             session.plugin_names = []
             _emit(f"Plugins set to: {session.plugins_label()} (module={scope})", Colors.GREEN)
             return True
@@ -434,14 +443,11 @@ def handle_prompt_set_command(
             session=session,
             plugins=selected,
             filters=session.filter_names,
-            all_plugins=False,
-            all_filters=session.all_filters,
         )
         if errors:
             for item in errors:
                 _emit(f"Plugin selection blocked: {item}", Colors.RED)
             return True
-        session.all_plugins = False
         session.plugin_names = selected
         _emit(f"Plugins set to: {session.plugins_label()} (module={scope})", Colors.GREEN)
         return True
@@ -456,24 +462,12 @@ def handle_prompt_set_command(
             return True
         lower = value.lower()
         if lower == "all":
-            errors = _validate_extension_combo(
-                scope=scope,
-                session=session,
-                plugins=session.plugin_names,
-                filters=[],
-                all_plugins=session.all_plugins,
-                all_filters=True,
+            _emit(
+                "Bulk filter selection is disabled. Use explicit selectors or `set template <id>` instead.",
+                Colors.RED,
             )
-            if errors:
-                for item in errors:
-                    _emit(f"Filter selection blocked: {item}", Colors.RED)
-                return True
-            session.all_filters = True
-            session.filter_names = []
-            _emit(f"Filters set to: {session.filters_label()} (module={scope})", Colors.GREEN)
             return True
         if lower in {"none", "off"}:
-            session.all_filters = False
             session.filter_names = []
             _emit(f"Filters set to: {session.filters_label()} (module={scope})", Colors.GREEN)
             return True
@@ -498,14 +492,11 @@ def handle_prompt_set_command(
             session=session,
             plugins=session.plugin_names,
             filters=selected,
-            all_plugins=session.all_plugins,
-            all_filters=False,
         )
         if errors:
             for item in errors:
                 _emit(f"Filter selection blocked: {item}", Colors.RED)
             return True
-        session.all_filters = False
         session.filter_names = selected
         _emit(f"Filters set to: {session.filters_label()} (module={scope})", Colors.GREEN)
         return True
@@ -533,12 +524,7 @@ def handle_prompt_set_command(
         if normalized_value not in EXTENSION_CONTROL_MODES:
             _emit(f"Invalid extension control mode: {value}", Colors.RED)
             return True
-        if normalized_value == "auto" and (
-            session.all_plugins
-            or session.all_filters
-            or bool(session.plugin_names)
-            or bool(session.filter_names)
-        ):
+        if normalized_value == "auto" and (bool(session.plugin_names) or bool(session.filter_names)):
             _emit(
                 f"Cannot set extension_control=auto for module '{scope}' while plugins/filters are configured. "
                 "Reset them first with `set plugins none` and `set filters none`.",
@@ -554,12 +540,7 @@ def handle_prompt_set_command(
         if normalized_value not in EXTENSION_CONTROL_MODES:
             _emit(f"Invalid orchestrate extension control mode: {value}", Colors.RED)
             return True
-        if normalized_value == "auto" and (
-            session.all_plugins
-            or session.all_filters
-            or bool(session.plugin_names)
-            or bool(session.filter_names)
-        ):
+        if normalized_value == "auto" and (bool(session.plugin_names) or bool(session.filter_names)):
             _emit(
                 "Cannot set orchestrate_extension_control=auto while plugins/filters are configured. "
                 "Reset them first with `set plugins none` and `set filters none`.",
@@ -606,6 +587,12 @@ def handle_prompt_control_command(
             _emit("Only `select module <profile|surface|fusion>` is supported for module controls.", Colors.YELLOW)
             return True
         return handle_prompt_use_command(f"use {value}", session, on_message=on_message)
+
+    if target in {"template", "info_template", "info-template"}:
+        if verb != "select":
+            _emit("Only `select template <id>` is supported for template controls.", Colors.YELLOW)
+            return True
+        return handle_prompt_set_command(f"set template {value}", session, on_message=on_message)
 
     if target in {"plugins", "plugin"}:
         if verb == "select":
@@ -660,23 +647,21 @@ def handle_prompt_use_command(
     session.module = module
     _emit(f"Active module: {module}", Colors.GREEN)
 
-    if not session.all_plugins:
-        selected_plugins, rejected_plugins = _resolve_plugins_for_scope(session.plugin_names, module)
-        session.plugin_names = selected_plugins
-        if rejected_plugins:
-            _emit(
-                f"Removed incompatible plugins for module '{module}': {', '.join(rejected_plugins)}",
-                Colors.YELLOW,
-            )
+    selected_plugins, rejected_plugins = _resolve_plugins_for_scope(session.plugin_names, module)
+    session.plugin_names = selected_plugins
+    if rejected_plugins:
+        _emit(
+            f"Removed incompatible plugins for module '{module}': {', '.join(rejected_plugins)}",
+            Colors.YELLOW,
+        )
 
-    if not session.all_filters:
-        selected_filters, rejected_filters = _resolve_filters_for_scope(session.filter_names, module)
-        session.filter_names = selected_filters
-        if rejected_filters:
-            _emit(
-                f"Removed incompatible filters for module '{module}': {', '.join(rejected_filters)}",
-                Colors.YELLOW,
-            )
+    selected_filters, rejected_filters = _resolve_filters_for_scope(session.filter_names, module)
+    session.filter_names = selected_filters
+    if rejected_filters:
+        _emit(
+            f"Removed incompatible filters for module '{module}': {', '.join(rejected_filters)}",
+            Colors.YELLOW,
+        )
 
     return True
 

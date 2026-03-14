@@ -104,6 +104,7 @@ from core.artifacts.storage import (
     sanitize_target,
 )
 from core.utils.quicktest_data import list_quicktest_templates, pick_quicktest_template
+from core.utils.info_templates import get_info_template, list_info_templates, merge_selectors
 from core.prompt_handlers import (
     apply_prompt_defaults as _apply_prompt_defaults_impl,
     handle_prompt_control_command as _handle_prompt_control_command_impl,
@@ -118,7 +119,7 @@ DEFAULT_DASHBOARD_PORT = 8000
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
 EXIT_USAGE = 2
-PROMPT_SHOW_COMMANDS = {"plugins", "filters", "modules", "history", "keywords", "config"}
+PROMPT_SHOW_COMMANDS = {"plugins", "filters", "modules", "history", "keywords", "config", "templates"}
 
 
 def _print_prompt_help_hint() -> None:
@@ -158,6 +159,17 @@ def clear_screen() -> None:
 
 def ask(message: str) -> str:
     return input(c(message, Colors.YELLOW)).strip()
+
+
+def _configure_console_output() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if not callable(reconfigure):
+            continue
+        try:
+            reconfigure(errors="replace")
+        except Exception:
+            continue
 
 
 def get_anonymity_status(state: RunnerState) -> str:
@@ -422,19 +434,16 @@ def _prompt_extension_selection(
     *,
     kind: str,
     scopes: Sequence[str],
-    default_all: bool = False,
-) -> tuple[list[str], bool]:
-    default_label = "all" if default_all else "none"
+) -> list[str]:
+    default_label = "none"
     unique_scopes = list(dict.fromkeys(str(scope).strip().lower() for scope in scopes if str(scope).strip()))
     while True:
-        raw = ask(f"{kind} [none|all|list|selector1,selector2] [{default_label}]: ").strip()
+        raw = ask(f"{kind} [none|list|selector1,selector2] [{default_label}]: ").strip()
         lowered = raw.lower()
         if not raw:
-            return ([], True) if default_all else ([], False)
+            return []
         if lowered in {"none", "off"}:
-            return [], False
-        if lowered == "all":
-            return [], True
+            return []
         if lowered in {"list", "ls", "?"}:
             if kind.lower().startswith("plugin"):
                 for scope in unique_scopes or ["all"]:
@@ -445,8 +454,8 @@ def _prompt_extension_selection(
             continue
         selectors = _split_csv_tokens([raw])
         if selectors:
-            return selectors, False
-        print(c("Provide selectors separated by commas, or use none/all/list.", Colors.RED))
+            return selectors
+        print(c("Provide selectors separated by commas, or use none/list.", Colors.RED))
 
 
 def set_anonymity_interactive(state: RunnerState) -> bool:
@@ -817,6 +826,37 @@ def _print_quicktest_templates() -> None:
         )
         print()
     print(c(f"{symbol('tip')} Run `quicktest` to pick one randomly.", Colors.GREY))
+    print()
+
+
+def _print_info_templates(*, as_json: bool = False) -> None:
+    rows = list_info_templates()
+    if as_json:
+        print(json.dumps(rows, indent=2))
+        return
+    print(c(f"\n{symbol('major')} Info-Templates", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
+    for row in rows:
+        scopes = ", ".join(row.get("scopes", [])) or "-"
+        tags = ", ".join(row.get("module_tags", [])) or "-"
+        plugins = row.get("plugins", [])
+        filters = row.get("filters", [])
+        print(
+            c(
+                f"{symbol('feature')} {row.get('id')} :: {row.get('label')} "
+                f"(scopes={scopes})",
+                Colors.CYAN,
+            )
+        )
+        print(c(f"  {row.get('description')}", Colors.GREY))
+        print(c(f"  plugins: {', '.join(plugins)}", Colors.WHITE))
+        print(c(f"  filters: {', '.join(filters)}", Colors.WHITE))
+        print(c(f"  module tags: {tags}", Colors.WHITE))
+        note = str(row.get("notes", "")).strip()
+        if note:
+            print(c(f"  note: {note}", Colors.YELLOW))
+        print()
+    print(c(f"{symbol('tip')} Apply with --info-template <id> or `set template <id>` in prompt mode.", Colors.GREY))
     print()
 
 
@@ -1377,8 +1417,8 @@ def _print_runtime_guidance_checks(
 ) -> None:
     selected_plugins = list(plugin_names or [])
     selected_filters = list(filter_names or [])
-    plugin_label = "all" if include_all_plugins else (", ".join(selected_plugins) if selected_plugins else "none")
-    filter_label = "all" if include_all_filters else (", ".join(selected_filters) if selected_filters else "none")
+    plugin_label = ", ".join(selected_plugins) if selected_plugins else "none"
+    filter_label = ", ".join(selected_filters) if selected_filters else "none"
 
     print(c(f"\n{symbol('major')} Execution Guidance Checks", Colors.BLUE))
     print(c("-" * 36, Colors.BLUE))
@@ -1387,9 +1427,9 @@ def _print_runtime_guidance_checks(
     print(c(f"{symbol('action')} timeout_seconds={timeout_seconds} worker_budget={worker_budget}", Colors.CYAN))
     print(c(f"{symbol('feature')} plugins={plugin_label}", Colors.CYAN))
     print(c(f"{symbol('feature')} filters={filter_label}", Colors.CYAN))
-    if not include_all_plugins and not selected_plugins:
+    if not selected_plugins:
         print(c(f"{symbol('tip')} enable focused plugins for richer enrichment.", Colors.GREY))
-    if not include_all_filters and not selected_filters:
+    if not selected_filters:
         print(c(f"{symbol('tip')} enable filters to reduce low-signal noise.", Colors.GREY))
 
 
@@ -1909,6 +1949,41 @@ def _normalize_multi_select_args(args: argparse.Namespace) -> None:
             setattr(args, field, _split_csv_tokens(value))
 
 
+def _apply_info_template(
+    *,
+    scope: str,
+    template_id: str | None,
+    plugin_names: list[str],
+    filter_names: list[str],
+    emit: bool = True,
+) -> tuple[list[str], list[str], tuple[str, ...], bool]:
+    template_value = str(template_id or "").strip()
+    if not template_value:
+        return plugin_names, filter_names, (), True
+    try:
+        template = get_info_template(template_value, scope=scope)
+    except ValueError as exc:
+        if emit:
+            print(c(f"{symbol('warn')} {exc}", Colors.RED))
+        return plugin_names, filter_names, (), False
+
+    merged_plugins = merge_selectors(plugin_names, template.get("plugins", ()))
+    merged_filters = merge_selectors(filter_names, template.get("filters", ()))
+    module_tags = tuple(template.get("module_tags", ()))
+
+    if emit:
+        print(
+            c(
+                f"{symbol('ok')} info-template={template.get('id')} "
+                f"plugins={len(merged_plugins)} filters={len(merged_filters)}",
+                Colors.CYAN,
+            )
+        )
+        if module_tags:
+            print(c(f"{symbol('tip')} module tags: {', '.join(module_tags)}", Colors.GREY))
+    return merged_plugins, merged_filters, module_tags, True
+
+
 def _print_prompt_config(session: PromptSessionState, state: RunnerState) -> None:
     print(c(f"\n{symbol('major')} Prompt Configuration", Colors.BLUE))
     print(c("-" * 36, Colors.BLUE))
@@ -1979,14 +2054,26 @@ async def _handle_profile_command(
         print(c(f"{symbol('warn')} --live supports a single username at a time.", Colors.RED))
         return EXIT_USAGE
 
+    plugin_names = list(getattr(args, "plugin", []) or [])
+    filter_names = list(getattr(args, "filter", []) or [])
+    plugin_names, filter_names, _, ok_template = _apply_info_template(
+        scope="profile",
+        template_id=getattr(args, "info_template", ""),
+        plugin_names=plugin_names,
+        filter_names=filter_names,
+        emit=True,
+    )
+    if not ok_template:
+        return EXIT_USAGE
+
     plugin_ids, filter_ids, _, ok_plan = _resolve_extension_plan_or_fail(
         scope="profile",
         scan_mode=args.preset,
         control_mode=getattr(args, "extension_control", "manual"),
-        requested_plugins=args.plugin,
-        requested_filters=args.filter,
-        include_all_plugins=args.all_plugins,
-        include_all_filters=args.all_filters,
+        requested_plugins=plugin_names,
+        requested_filters=filter_names,
+        include_all_plugins=False,
+        include_all_filters=False,
     )
     if not ok_plan:
         return EXIT_USAGE
@@ -2061,14 +2148,26 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
         _print_filter_inventory(scope="surface")
         return EXIT_SUCCESS
 
+    plugin_names = list(getattr(args, "plugin", []) or [])
+    filter_names = list(getattr(args, "filter", []) or [])
+    plugin_names, filter_names, _, ok_template = _apply_info_template(
+        scope="surface",
+        template_id=getattr(args, "info_template", ""),
+        plugin_names=plugin_names,
+        filter_names=filter_names,
+        emit=True,
+    )
+    if not ok_template:
+        return EXIT_USAGE
+
     plugin_ids, filter_ids, _, ok_plan = _resolve_extension_plan_or_fail(
         scope="surface",
         scan_mode=args.preset,
         control_mode=getattr(args, "extension_control", "manual"),
-        requested_plugins=args.plugin,
-        requested_filters=args.filter,
-        include_all_plugins=args.all_plugins,
-        include_all_filters=args.all_filters,
+        requested_plugins=plugin_names,
+        requested_filters=filter_names,
+        include_all_plugins=False,
+        include_all_filters=False,
     )
     if not ok_plan:
         return EXIT_USAGE
@@ -2136,14 +2235,26 @@ async def _handle_fusion_command(
         return EXIT_SUCCESS
 
     fusion_mode = merge_scan_modes(args.profile_preset, args.surface_preset)
+    plugin_names = list(getattr(args, "plugin", []) or [])
+    filter_names = list(getattr(args, "filter", []) or [])
+    plugin_names, filter_names, _, ok_template = _apply_info_template(
+        scope="fusion",
+        template_id=getattr(args, "info_template", ""),
+        plugin_names=plugin_names,
+        filter_names=filter_names,
+        emit=True,
+    )
+    if not ok_template:
+        return EXIT_USAGE
+
     plugin_ids, filter_ids, _, ok_plan = _resolve_extension_plan_or_fail(
         scope="fusion",
         scan_mode=fusion_mode,
         control_mode=getattr(args, "extension_control", "manual"),
-        requested_plugins=args.plugin,
-        requested_filters=args.filter,
-        include_all_plugins=args.all_plugins,
-        include_all_filters=args.all_filters,
+        requested_plugins=plugin_names,
+        requested_filters=filter_names,
+        include_all_plugins=False,
+        include_all_filters=False,
     )
     if not ok_plan:
         return EXIT_USAGE
@@ -2406,14 +2517,26 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         _print_filter_inventory(scope=mode)
         return EXIT_SUCCESS
 
+    plugin_names = list(getattr(args, "plugin", []) or [])
+    filter_names = list(getattr(args, "filter", []) or [])
+    plugin_names, filter_names, _, ok_template = _apply_info_template(
+        scope=mode,
+        template_id=getattr(args, "info_template", ""),
+        plugin_names=plugin_names,
+        filter_names=filter_names,
+        emit=True,
+    )
+    if not ok_template:
+        return EXIT_USAGE
+
     plugin_ids, filter_ids, _, ok_plan = _resolve_extension_plan_or_fail(
         scope=mode,
         scan_mode=args.profile,
         control_mode=getattr(args, "extension_control", "auto"),
-        requested_plugins=args.plugin,
-        requested_filters=args.filter,
-        include_all_plugins=args.all_plugins,
-        include_all_filters=args.all_filters,
+        requested_plugins=plugin_names,
+        requested_filters=filter_names,
+        include_all_plugins=False,
+        include_all_filters=False,
     )
     if not ok_plan:
         return EXIT_USAGE
@@ -2792,6 +2915,11 @@ async def _handle_filters_command(args: argparse.Namespace) -> int:
     return EXIT_SUCCESS
 
 
+async def _handle_templates_command(args: argparse.Namespace) -> int:
+    _print_info_templates(as_json=bool(getattr(args, "json", False)))
+    return EXIT_SUCCESS
+
+
 async def _handle_out_type_command(args: argparse.Namespace) -> int:
     raw = getattr(args, "types", None)
     if isinstance(raw, list):
@@ -2884,6 +3012,23 @@ async def _handle_out_print_command(args: argparse.Namespace, *, make_default: b
 
 async def _handle_modules_command(args: argparse.Namespace) -> int:
     try:
+        template_id = str(getattr(args, "info_template", "") or "").strip()
+        if template_id:
+            scope_hint = args.scope if str(args.scope).strip().lower() != "all" else None
+            try:
+                template = get_info_template(template_id, scope=scope_hint)
+            except ValueError as exc:
+                print(c(f"{symbol('warn')} {exc}", Colors.RED))
+                return EXIT_USAGE
+            args.tag = merge_selectors(args.tag or [], template.get("module_tags", ()))
+            if not args.json:
+                print(
+                    c(
+                        f"{symbol('ok')} info-template={template.get('id')} "
+                        f"module tags={', '.join(template.get('module_tags', ())) or '-'}",
+                        Colors.CYAN,
+                    )
+                )
         _print_modules_inventory(
             scope=args.scope,
             kind=args.kind,
@@ -3132,9 +3277,8 @@ async def _handle_wizard_command(
         "--surface-preset",
         "--extension-control",
         "--plugin",
-        "--all-plugins",
         "--filter",
-        "--all-filters",
+        "--info-template",
         "--html",
         "--no-html",
         "--csv",
@@ -3311,25 +3455,7 @@ async def _handle_wizard_command(
         )
 
     plugin_names = list(getattr(args, "plugin", []) or [])
-    plugin_all = bool(getattr(args, "all_plugins", False))
-    if plugin_all and plugin_names:
-        print(
-            c(
-                f"{symbol('warn')} Ignoring explicit plugin selectors because --all-plugins is enabled.",
-                Colors.YELLOW,
-            )
-        )
-        plugin_names = []
     filter_names = list(getattr(args, "filter", []) or [])
-    filter_all = bool(getattr(args, "all_filters", False))
-    if filter_all and filter_names:
-        print(
-            c(
-                f"{symbol('warn')} Ignoring explicit filter selectors because --all-filters is enabled.",
-                Colors.YELLOW,
-            )
-        )
-        filter_names = []
 
     selected_scopes: list[str] = []
     if run_profile:
@@ -3339,12 +3465,38 @@ async def _handle_wizard_command(
     if run_fusion:
         selected_scopes.append("fusion")
 
-    if (
-        not seeded_wizard
-        and not plugin_all
-        and not plugin_names
-        and _prompt_yes_no("Configure plugin selectors now?", False)
-    ):
+    template_id = str(getattr(args, "info_template", "") or "").strip()
+    if template_id:
+        try:
+            template = get_info_template(template_id)
+        except ValueError as exc:
+            print(c(f"{symbol('warn')} {exc}", Colors.RED))
+            return EXIT_USAGE
+        template_scopes = set(template.get("scopes", ()))
+        incompatible = [scope for scope in selected_scopes if scope not in template_scopes]
+        if incompatible:
+            print(
+                c(
+                    f"{symbol('warn')} Info-template '{template.get('id')}' is not compatible with "
+                    f"wizard scopes: {', '.join(incompatible)}.",
+                    Colors.RED,
+                )
+            )
+            return EXIT_USAGE
+        plugin_names = merge_selectors(plugin_names, template.get("plugins", ()))
+        filter_names = merge_selectors(filter_names, template.get("filters", ()))
+        print(
+            c(
+                f"{symbol('ok')} info-template={template.get('id')} "
+                f"plugins={len(plugin_names)} filters={len(filter_names)}",
+                Colors.CYAN,
+            )
+        )
+        module_tags = template.get("module_tags", ())
+        if module_tags:
+            print(c(f"{symbol('tip')} module tags: {', '.join(module_tags)}", Colors.GREY))
+
+    if not seeded_wizard and not plugin_names and _prompt_yes_no("Configure plugin selectors now?", False):
         if len(selected_scopes) > 1:
             print(
                 c(
@@ -3353,18 +3505,12 @@ async def _handle_wizard_command(
                     Colors.GREY,
                 )
             )
-        plugin_names, plugin_all = _prompt_extension_selection(
+        plugin_names = _prompt_extension_selection(
             kind="Plugins",
             scopes=selected_scopes,
-            default_all=False,
         )
 
-    if (
-        not seeded_wizard
-        and not filter_all
-        and not filter_names
-        and _prompt_yes_no("Configure filter selectors now?", False)
-    ):
+    if not seeded_wizard and not filter_names and _prompt_yes_no("Configure filter selectors now?", False):
         if len(selected_scopes) > 1:
             print(
                 c(
@@ -3373,10 +3519,9 @@ async def _handle_wizard_command(
                     Colors.GREY,
                 )
             )
-        filter_names, filter_all = _prompt_extension_selection(
+        filter_names = _prompt_extension_selection(
             kind="Filters",
             scopes=selected_scopes,
-            default_all=False,
         )
 
     if selected_scopes and not _wizard_preflight_extension_plan(
@@ -3386,8 +3531,8 @@ async def _handle_wizard_command(
         extension_control=extension_control,
         plugin_names=plugin_names,
         filter_names=filter_names,
-        include_all_plugins=plugin_all,
-        include_all_filters=filter_all,
+        include_all_plugins=False,
+        include_all_filters=False,
     ):
         return EXIT_USAGE
 
@@ -3417,11 +3562,10 @@ async def _handle_wizard_command(
             live_port=DEFAULT_DASHBOARD_PORT,
             no_browser=False,
             plugin=plugin_names,
-            all_plugins=plugin_all,
             list_plugins=False,
             filter=filter_names,
-            all_filters=filter_all,
             list_filters=False,
+            info_template="",
             out_type=str(getattr(args, "out_type", "") or ""),
             out_print=str(getattr(args, "out_print", "") or ""),
             _explicit_flags=tuple(explicit_output_flags),
@@ -3443,11 +3587,10 @@ async def _handle_wizard_command(
             html=write_html,
             csv=write_csv,
             plugin=plugin_names,
-            all_plugins=plugin_all,
             list_plugins=False,
             filter=filter_names,
-            all_filters=filter_all,
             list_filters=False,
+            info_template="",
             out_type=str(getattr(args, "out_type", "") or ""),
             out_print=str(getattr(args, "out_print", "") or ""),
             _explicit_flags=tuple(explicit_output_flags),
@@ -3467,11 +3610,10 @@ async def _handle_wizard_command(
             csv=write_csv,
             html=write_html,
             plugin=plugin_names,
-            all_plugins=plugin_all,
             list_plugins=False,
             filter=filter_names,
-            all_filters=filter_all,
             list_filters=False,
+            info_template="",
             out_type=str(getattr(args, "out_type", "") or ""),
             out_print=str(getattr(args, "out_print", "") or ""),
             _explicit_flags=tuple(explicit_output_flags),
@@ -3530,6 +3672,8 @@ async def _dispatch(args: argparse.Namespace, state: RunnerState, prompt_mode: b
         return await _handle_plugins_command(args)
     if args.command == "filters":
         return await _handle_filters_command(args)
+    if args.command in {"templates", "info-templates"}:
+        return await _handle_templates_command(args)
     if args.command == "out-type":
         return await _handle_out_type_command(args)
     if args.command == "out-print":
@@ -3634,6 +3778,9 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         if keyword_match == "filters":
             _print_filter_inventory(scope="all")
             continue
+        if keyword_match == "templates":
+            _print_info_templates(as_json=False)
+            continue
         if keyword_match == "modules":
             _print_modules_inventory(scope="all", kind="all", frameworks=[], limit=25, sync=False, as_json=False)
             continue
@@ -3722,6 +3869,7 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
 
 
 async def run(argv: Sequence[str] | None = None) -> int:
+    _configure_console_output()
     try:
         ensure_output_tree()
     except OutputConfigError as exc:

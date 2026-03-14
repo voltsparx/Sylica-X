@@ -46,15 +46,11 @@ class PromptSessionState:
     orchestrate_extension_control: str = "auto"
 
     def plugins_label(self) -> str:
-        if self.all_plugins:
-            return "all"
         if not self.plugin_names:
             return "none"
         return ",".join(self.plugin_names)
 
     def filters_label(self) -> str:
-        if self.all_filters:
-            return "all"
         if not self.filter_names:
             return "none"
         return ",".join(self.filter_names)
@@ -80,6 +76,6 @@ class PromptSessionState:
 
     def module_prompt(self) -> str:
         control_label = self.extension_control_for_module(self.module)
-        plugin_label = "all" if self.all_plugins else _compact_prompt_values(self.plugin_names)
-        filter_label = "all" if self.all_filters else _compact_prompt_values(self.filter_names)
+        plugin_label = _compact_prompt_values(self.plugin_names)
+        filter_label = _compact_prompt_values(self.filter_names)
         return f"(console {self.module} ec={control_label} plugins={plugin_label} filters={filter_label})>>"

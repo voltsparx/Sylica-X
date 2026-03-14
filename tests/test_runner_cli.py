@@ -53,6 +53,7 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(_keyword_to_command("addonS"), "plugins")
         self.assertEqual(_keyword_to_command("filters"), "filters")
         self.assertEqual(_keyword_to_command("pii"), "filters")
+        self.assertEqual(_keyword_to_command("template"), "templates")
         self.assertEqual(_keyword_to_command("modules"), "modules")
         self.assertEqual(_keyword_to_command("catalog"), "modules")
         self.assertEqual(_keyword_to_command("quicktest"), "quicktest")
@@ -120,8 +121,8 @@ class TestRunnerCli(unittest.TestCase):
                 "100",
                 "--no-ct",
                 "--html",
-                "--all-plugins",
-                "--all-filters",
+                "--info-template",
+                "surface-risk",
             ]
         )
         self.assertEqual(args.command, "surface")
@@ -130,8 +131,7 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.max_subdomains, 100)
         self.assertFalse(args.ct)
         self.assertTrue(args.html)
-        self.assertTrue(args.all_plugins)
-        self.assertTrue(args.all_filters)
+        self.assertEqual(args.info_template, "surface-risk")
         self.assertEqual(args.extension_control, "manual")
 
     def test_root_fusion_parser_parses_flags(self):
@@ -449,8 +449,8 @@ class TestRunnerCli(unittest.TestCase):
                 "quick",
                 "--extension-control",
                 "manual",
-                "--all-plugins",
-                "--all-filters",
+                "--info-template",
+                "surface-risk",
                 "--no-html",
                 "--no-csv",
                 "--no-ct",
@@ -463,12 +463,17 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.domain, "example.com")
         self.assertEqual(args.surface_preset, "quick")
         self.assertEqual(args.extension_control, "manual")
-        self.assertTrue(args.all_plugins)
-        self.assertTrue(args.all_filters)
+        self.assertEqual(args.info_template, "surface-risk")
         self.assertFalse(args.html)
         self.assertFalse(args.csv)
         self.assertFalse(args.ct)
         self.assertTrue(args.rdap)
+
+    def test_templates_parser_parses_json_flag(self):
+        parser = build_root_parser()
+        args = parser.parse_args(["templates", "--json"])
+        self.assertEqual(args.command, "templates")
+        self.assertTrue(args.json)
 
 
 if __name__ == "__main__":

@@ -404,6 +404,13 @@ def resolve_extension_control(
         errors.append(f"Unsupported extension scope: {scope}")
     if normalized_control not in VALID_CONTROL_MODES:
         errors.append(f"Unsupported extension control mode: {control_mode}")
+    if include_all_plugins or include_all_filters:
+        errors.append(
+            "Bulk selection for plugins/filters is disabled. "
+            "Use explicit selectors or --info-template instead."
+        )
+        include_all_plugins = False
+        include_all_filters = False
 
     scoped_plugin_descriptors = list_plugin_descriptors(
         scope=normalized_scope if normalized_scope in VALID_SCOPES else None
@@ -423,9 +430,9 @@ def resolve_extension_control(
     requested_filter_names = [item for item in (requested_filters or []) if str(item).strip()]
 
     if include_all_plugins and requested_plugin_names:
-        errors.append("Cannot combine --all-plugins with --plugin selectors.")
+        errors.append("Cannot combine bulk plugin selection with explicit plugin selectors.")
     if include_all_filters and requested_filter_names:
-        errors.append("Cannot combine --all-filters with --filter selectors.")
+        errors.append("Cannot combine bulk filter selection with explicit filter selectors.")
 
     if normalized_control == "auto" and (
         include_all_plugins or include_all_filters or requested_plugin_names or requested_filter_names

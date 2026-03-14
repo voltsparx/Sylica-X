@@ -89,6 +89,7 @@ def show_flag_help() -> None:
         (
             ("plugins [--scope ...]:", "List available plugins."),
             ("filters [--scope ...]:", "List available filters."),
+            ("templates [--json]:", "List bundled info-templates for focused arrangements."),
             ("modules [query flags]:", "List/sync/query source-intel module catalog."),
             ("history [--limit N]:", "List previously scanned targets."),
             ("live <target> [--port]:", "Open local live dashboard."),
@@ -102,12 +103,16 @@ def show_flag_help() -> None:
     _render_items(
         (
             (
-                "--plugin / --all-plugins:",
-                "Enable one or all plugins (repeatable/comma-separated selectors).",
+                "--plugin:",
+                "Enable explicit plugins (repeatable/comma-separated selectors).",
             ),
             (
-                "--filter / --all-filters:",
-                "Enable one or all filters (repeatable/comma-separated selectors).",
+                "--filter:",
+                "Enable explicit filters (repeatable/comma-separated selectors).",
+            ),
+            (
+                "--info-template <id>:",
+                "Apply a curated plugin/filter/module arrangement (consent-only targets).",
             ),
             (
                 "--extension-control <mode>:",
@@ -165,6 +170,7 @@ def show_prompt_help() -> None:
     _render_items(
         (
             ("show plugins | show filters | show modules:", "Inventory and module intelligence catalog."),
+            ("show templates:", "List bundled info-templates."),
             ("show history [--limit N]:", "List previously scanned targets."),
             ("show config:", "Show prompt defaults and active module."),
             ("out-type <types>:", "Set persisted output formats (cli, html, csv, json)."),
@@ -182,15 +188,17 @@ def show_prompt_help() -> None:
             ("use <profile|surface|fusion>:", "Switch active module context."),
             ("select module <profile|surface|fusion>:", "Alias for `use` module switch by name."),
             (
-                "set plugins <none|all|a,b>:",
+                "set plugins <none|a,b>:",
                 "Set module-compatible plugins (strict compatibility checks).",
             ),
             (
-                "set filters <none|all|a,b>:",
+                "set filters <none|a,b>:",
                 "Set module-compatible filters (strict compatibility checks).",
             ),
+            ("set template <id>:", "Apply a bundled info-template to plugin/filter defaults."),
             ("select plugins <a,b>:", "Alias for `set plugins` (name-based selectors)."),
             ("select filters <a,b>:", "Alias for `set filters` (name-based selectors)."),
+            ("select template <id>:", "Alias for `set template`."),
             ("add plugins <a,b> / remove plugins <a,b>:", "Incremental plugin control by name."),
             ("add filters <a,b> / remove filters <a,b>:", "Incremental filter control by name."),
         )

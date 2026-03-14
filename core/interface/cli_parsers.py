@@ -122,11 +122,6 @@ def _add_plugin_args(parser: argparse.ArgumentParser) -> None:
         help="Plugin selector (id/alias/name), repeatable or comma-separated.",
     )
     parser.add_argument(
-        "--all-plugins",
-        action="store_true",
-        help="Run all plugins compatible with this command scope.",
-    )
-    parser.add_argument(
         "--list-plugins",
         action="store_true",
         help="List compatible plugins for this scope and exit.",
@@ -141,14 +136,17 @@ def _add_filter_args(parser: argparse.ArgumentParser) -> None:
         help="Filter selector (id/alias/name), repeatable or comma-separated.",
     )
     parser.add_argument(
-        "--all-filters",
-        action="store_true",
-        help="Run all filters compatible with this command scope.",
-    )
-    parser.add_argument(
         "--list-filters",
         action="store_true",
         help="List compatible filters for this scope and exit.",
+    )
+
+
+def _add_info_template_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--info-template",
+        default="",
+        help="Apply a bundled info-template (curated plugin/filter/module arrangement; consent-only targets).",
     )
 
 
@@ -237,6 +235,7 @@ def _add_modules_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Rebuild module catalog from intel-sources before listing.",
     )
+    _add_info_template_args(parser)
     parser.add_argument(
         "--validate",
         action="store_true",
@@ -385,6 +384,7 @@ def _add_profile_args(parser: argparse.ArgumentParser, *, default_dashboard_port
         default="",
         help="Override output base directory for this run only (non-persistent).",
     )
+    _add_info_template_args(parser)
     _add_plugin_args(parser)
     _add_filter_args(parser)
     _add_extension_control_args(parser, default_mode="manual")
@@ -434,6 +434,7 @@ def _add_surface_args(parser: argparse.ArgumentParser) -> None:
         default="",
         help="Override output base directory for this run only (non-persistent).",
     )
+    _add_info_template_args(parser)
     _add_plugin_args(parser)
     _add_filter_args(parser)
     _add_extension_control_args(parser, default_mode="manual")
@@ -476,6 +477,7 @@ def _add_fusion_args(parser: argparse.ArgumentParser) -> None:
         default="",
         help="Override output base directory for this run only (non-persistent).",
     )
+    _add_info_template_args(parser)
     _add_plugin_args(parser)
     _add_filter_args(parser)
     _add_extension_control_args(parser, default_mode="manual")
@@ -567,6 +569,7 @@ def _add_orchestrate_args(parser: argparse.ArgumentParser) -> None:
         default="",
         help="Override output base directory for this run only (non-persistent).",
     )
+    _add_info_template_args(parser)
     _add_plugin_args(parser)
     _add_filter_args(parser)
     _add_extension_control_args(parser, default_mode="auto")
@@ -625,6 +628,7 @@ def _add_wizard_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Refresh module catalog before wizard execution.",
     )
+    _add_info_template_args(parser)
     _add_plugin_args(parser)
     _add_filter_args(parser)
 
@@ -695,6 +699,16 @@ def build_root_parser(
     _add_plugins_args(plugins_parser)
     filters_parser = subparsers.add_parser("filters", help="List discovered filters from filters/ directory.")
     _add_filters_args(filters_parser)
+    templates_parser = subparsers.add_parser(
+        "templates",
+        aliases=["info-templates"],
+        help="List bundled info-templates for plugin/filter/module arrangements.",
+    )
+    templates_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print info-templates as JSON payload.",
+    )
     out_type_parser = subparsers.add_parser("out-type", help="Set output formats (cli, html, csv, json).")
     out_type_parser.add_argument(
         "types",
@@ -804,6 +818,8 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
     _add_plugins_args(plugins_parser)
     filters_parser = subparsers.add_parser("filters", add_help=False)
     _add_filters_args(filters_parser)
+    templates_parser = subparsers.add_parser("templates", aliases=["info-templates"], add_help=False)
+    templates_parser.add_argument("--json", action="store_true")
     out_type_parser = subparsers.add_parser("out-type", add_help=False)
     out_type_parser.add_argument("types", nargs="*", default=[])
     out_print_parser = subparsers.add_parser("out-print", add_help=False)

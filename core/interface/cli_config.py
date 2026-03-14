@@ -68,6 +68,7 @@ PROMPT_KEYWORDS = {
     "plugins": {"plugins", "plugin", "addons", "extensions"},
     "filters": {"filters", "filter", "sanitize", "pii", "redact"},
     "modules": {"modules", "module-catalog", "catalog", "source-intel"},
+    "templates": {"templates", "template", "info-templates", "info-template", "blueprints", "playbooks"},
     "quicktest": {"quicktest", "qtest", "smoke", "smoketest", "demo"},
     "history": {"history", "targets", "recent", "scans", "scanned"},
     "config": {"config", "settings", "options"},

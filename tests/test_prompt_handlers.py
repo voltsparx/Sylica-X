@@ -50,6 +50,7 @@ class TestPromptHandlers(unittest.TestCase):
         self.assertEqual(keyword_to_command("info"), "about")
         self.assertEqual(keyword_to_command("explain"), "explain")
         self.assertEqual(keyword_to_command("banner"), "banner")
+        self.assertEqual(keyword_to_command("template"), "templates")
         self.assertEqual(keyword_to_command("modules"), "modules")
         self.assertIsNone(keyword_to_command("unknown"))
 
@@ -92,9 +93,8 @@ class TestPromptHandlers(unittest.TestCase):
             session,
             on_message=lambda message, color: events.append((message, color)),
         )
-        self.assertFalse(session.all_plugins)
         self.assertEqual(session.plugin_names, [])
-        self.assertTrue(any("Plugin selection blocked" in message for message, _ in events))
+        self.assertTrue(any("Bulk plugin selection is disabled" in message for message, _ in events))
 
         handle_prompt_set_command(
             "set filters contact_canonicalizer,entity_name_resolver",
@@ -156,6 +156,32 @@ class TestPromptHandlers(unittest.TestCase):
             on_message=lambda _message, _color: None,
         )
         self.assertEqual(session.profile_preset, "max")
+
+    def test_handle_prompt_set_command_applies_template(self):
+        session = PromptSessionState(module="profile")
+        handle_prompt_set_command(
+            "set template contact-discovery",
+            session,
+            on_message=lambda _message, _color: None,
+        )
+        self.assertEqual(
+            session.plugin_names,
+            [
+                "contact_lattice",
+                "orbit_link_matrix",
+                "link_outbound_risk_profiler",
+                "account_recovery_exposure_probe",
+            ],
+        )
+        self.assertEqual(
+            session.filter_names,
+            [
+                "contact_canonicalizer",
+                "contact_quality_filter",
+                "mailbox_provider_profiler",
+                "link_hygiene_filter",
+            ],
+        )
 
     def test_apply_prompt_defaults_filters_incompatible_selection_by_scope(self):
         session = PromptSessionState(

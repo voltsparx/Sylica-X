@@ -258,11 +258,12 @@ python silica-x.py filters --scope all
     <tr><td>Flag/Prompt</td><td><code>quicktest</code></td><td><code>qtest</code>, <code>smoke</code></td><td>Offline synthetic victim test run with full artifact generation</td><td><code>--template</code>, <code>--seed</code>, <code>--list-templates</code>, <code>--json</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>plugins</code></td><td>-</td><td>List plugin inventory</td><td><code>--scope all|profile|surface|fusion</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>filters</code></td><td>-</td><td>List filter inventory</td><td><code>--scope all|profile|surface|fusion</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>templates</code></td><td><code>info-templates</code></td><td>List curated info-templates</td><td><code>--json</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>modules</code></td><td>-</td><td>List/sync/query module catalog</td><td><code>--sync</code>, <code>--kind</code>, <code>--search</code>, <code>--tag</code>, <code>--stats-only</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>history</code></td><td><code>targets</code>, <code>scans</code></td><td>Show local scan history</td><td><code>--limit</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>anonymity</code></td><td>-</td><td>Inspect/configure routing state</td><td><code>--tor</code>, <code>--proxy</code>, <code>--check</code>, <code>--prompt</code></td></tr>
     <tr><td>Flag</td><td><code>live &lt;target&gt;</code></td><td>-</td><td>Launch local dashboard for a saved target</td><td><code>--port</code>, <code>--no-browser</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>wizard</code></td><td>-</td><td>Guided interactive workflow</td><td><code>--profile-preset</code>, <code>--surface-preset</code>, <code>--extension-control</code>, <code>--plugin</code>, <code>--filter</code>, <code>--tor</code>, <code>--proxy</code></td></tr>
+    <tr><td>Flag/Prompt</td><td><code>wizard</code></td><td>-</td><td>Guided interactive workflow</td><td><code>--profile-preset</code>, <code>--surface-preset</code>, <code>--extension-control</code>, <code>--plugin</code>, <code>--filter</code>, <code>--info-template</code>, <code>--tor</code>, <code>--proxy</code></td></tr>
     <tr><td>Flag/Prompt</td><td><code>keywords</code></td><td>-</td><td>Show keyword-to-command map</td><td>-</td></tr>
     <tr><td>Flag/Prompt</td><td><code>about</code>, <code>explain</code>, <code>help</code></td><td>-</td><td>Documentation and metadata</td><td><code>--about</code>, <code>--explain</code> (global)</td></tr>
   </tbody>
@@ -282,6 +283,7 @@ python silica-x.py filters --scope all
     <tr><td>Module switch</td><td><code>use fusion</code> or <code>select module fusion</code></td><td>Changes active prompt context.</td></tr>
     <tr><td>Plugin set</td><td><code>set plugins threat_conductor,signal_fusion_core</code></td><td>Sets module-compatible plugins by id/alias/title.</td></tr>
     <tr><td>Filter set</td><td><code>set filters triage_priority_filter,link_hygiene_filter</code></td><td>Sets module-compatible filters by id/alias/title.</td></tr>
+    <tr><td>Template set</td><td><code>set template contact-discovery</code></td><td>Applies a bundled info-template to plugin/filter defaults.</td></tr>
     <tr><td>Incremental plugin edits</td><td><code>add plugins x</code> / <code>remove plugins x</code></td><td>Adds/removes specific plugins while preserving compatibility checks.</td></tr>
     <tr><td>Incremental filter edits</td><td><code>add filters x</code> / <code>remove filters x</code></td><td>Adds/removes specific filters while preserving compatibility checks.</td></tr>
     <tr><td>Preset defaults</td><td><code>set profile_preset deep</code>, <code>set surface_preset quick</code></td><td>Updates prompt defaults for later commands.</td></tr>
@@ -400,8 +402,9 @@ python silica-x.py filters --scope all
 
 ### Plugin / Filter
 
-* `--plugin`, `--all-plugins`, `--list-plugins`
-* `--filter`, `--all-filters`, `--list-filters`
+* `--plugin`, `--list-plugins`
+* `--filter`, `--list-filters`
+* `--info-template <id>` (curated plugin/filter/module arrangement; consent-only targets)
 * `--extension-control auto|manual|hybrid`
 * Plugin inventory lists cryptography plugins in a separate `Cryptography Plugin Set` section
 
@@ -419,7 +422,7 @@ Wizard supports:
 * Phase toggles: `--profile-phase|--no-profile-phase`, `--surface-phase|--no-surface-phase`, `--fusion-phase|--no-fusion-phase`
 * Targets: `--usernames <a,b,c>`, `--domain <domain>`
 * Runtime control: `--profile-preset`, `--surface-preset`, `--extension-control auto|manual|hybrid`
-* Extension selection: `--plugin`, `--all-plugins`, `--list-plugins`, `--filter`, `--all-filters`, `--list-filters`
+* Extension selection: `--plugin`, `--list-plugins`, `--filter`, `--list-filters`, `--info-template`
 * Output toggles: `--html|--no-html`, `--csv|--no-csv`
 * Surface toggles: `--ct|--no-ct`, `--rdap|--no-rdap`
 * Catalog refresh: `--sync-modules`
@@ -544,12 +547,14 @@ output/logs/framework.log.txt
 python silica-x.py --about
 python silica-x.py --explain
 python silica-x.py anonymity --check
+python silica-x.py templates
 python silica-x.py plugins --scope all
 python silica-x.py filters --scope all
 python silica-x.py modules --sync --kind plugin --scope profile --limit 30
+python silica-x.py profile alice --info-template contact-discovery --html
 python silica-x.py profile alice --tor --plugin orbit_link_matrix --filter contact_canonicalizer --html
 python silica-x.py surface example.com --plugin header_hardening_probe --filter exposure_tier_matrix --html
-python silica-x.py fusion alice example.com --all-plugins --all-filters --html
+python silica-x.py fusion alice example.com --info-template fusion-coverage --html
 python silica-x.py fusion alice example.com --plugin signal_fusion_core --filter signal_lane_fusion --html
 python silica-x.py history --limit 20
 ```
