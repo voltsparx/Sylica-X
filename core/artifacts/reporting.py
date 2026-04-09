@@ -17,12 +17,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from core.artifacts.html_report import generate_html as _generate_html
 from core.artifacts.storage import sanitize_target
 from core.reporting.report_generator import ReportGenerator as _BaseReportGenerator
 
 
-def generate_html(*args: object, **kwargs: object) -> str:
+def generate_html(*args: Any, **kwargs: Any) -> str:
     """Proxy to HTML generator (patchable in tests)."""
 
     return _generate_html(*args, **kwargs)
@@ -31,7 +33,7 @@ def generate_html(*args: object, **kwargs: object) -> str:
 class ReportGenerator(_BaseReportGenerator):
     """Compat wrapper that routes HTML generation through this module."""
 
-    def generate_html_dashboard(self, fused_data: dict[str, object]) -> str:
+    def generate_html_dashboard(self, fused_data: dict[str, Any]) -> str:
         target_data = fused_data.get("target")
         if isinstance(target_data, dict):
             username = str(target_data.get("username") or "").strip()

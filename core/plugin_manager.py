@@ -223,7 +223,7 @@ class PluginManager:
                 errors.append(f"Plugin '{plugin.plugin_id}' returned non-dict payload.")
                 continue
 
-            result = {
+            result: dict[str, Any] = {
                 "id": plugin.plugin_id,
                 "title": plugin.title,
                 "description": plugin.description,
@@ -237,5 +237,4 @@ class PluginManager:
             previous_plugin_data[plugin.plugin_id] = result["data"]
 
         return results, errors
-
 

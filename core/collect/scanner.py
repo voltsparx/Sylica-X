@@ -38,6 +38,9 @@ DEFAULT_MAX_CONCURRENCY = 25
 _MAX_RESPONSE_BYTES = 140_000
 _CACHE_TTL_SECONDS = 300
 _REGEX_CACHE: dict[str, re.Pattern[str] | None] = {}
+ContactExtract = dict[str, list[str]]
+ProbePayload = dict[str, Any] | Exception
+FollowupPayload = dict[str, Any] | Exception
 
 _PROFILE_ALIASES = {
     "safe": "fast",
@@ -382,7 +385,7 @@ async def _probe_platform(
     elif verdict == "UNKNOWN":
         confidence = 5
 
-    contacts = {"emails": [], "phones": []}
+    contacts: ContactExtract = {"emails": [], "phones": []}
     links: list[str] = []
     mentions: list[str] = []
     bio = ""
@@ -484,6 +487,7 @@ async def scan_username(
 
         async def _probe_with_limit(index: int, platform: PlatformConfig) -> tuple[int, PlatformConfig, Any]:
             async with semaphore:
+                payload: ProbePayload
                 try:
                     payload = await _probe_platform(
                         session,
@@ -499,6 +503,7 @@ async def scan_username(
 
         async def _follow_with_limit(index: int, platform: PlatformConfig) -> tuple[int, Any]:
             async with semaphore:
+                payload: FollowupPayload
                 try:
                     payload = await _fetch_profile_content(
                         session,
@@ -558,8 +563,8 @@ async def scan_username(
             rows[index] = payload
 
         if follow_tasks:
-            for future in asyncio.as_completed(follow_tasks):
-                row_index, payload = await future
+            for follow_future in asyncio.as_completed(follow_tasks):
+                row_index, payload = await follow_future
                 if isinstance(payload, Exception) or not isinstance(payload, dict):
                     continue
                 rows[row_index].update(payload)

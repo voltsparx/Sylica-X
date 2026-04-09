@@ -18,10 +18,10 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Iterable, Sequence
 import html
 import json
 import os
-import re
 import shlex
 import sys
 import threading
@@ -29,7 +29,7 @@ import webbrowser
 from datetime import datetime
 from dataclasses import dataclass
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-from typing import Any, Sequence
+from typing import Any
 
 from core.interface.banner import show_banner
 from core.collect.anonymity import TOR_HOST, TOR_SOCKS_PORT, install_tor, probe_tor_status, start_tor
@@ -392,7 +392,14 @@ def _resolve_output_types(
 
 
 def _parse_output_type_override(raw: object) -> tuple[set[str] | None, str | None]:
-    tokens = tokenize_output_types(raw)
+    if raw is None:
+        tokens: list[str] = []
+    elif isinstance(raw, str):
+        tokens = tokenize_output_types(raw)
+    elif isinstance(raw, Iterable):
+        tokens = tokenize_output_types(str(item) for item in raw)
+    else:
+        tokens = tokenize_output_types(str(raw))
     if not tokens:
         return None, None
     lowered = [token.lower() for token in tokens if token]
@@ -3918,5 +3925,4 @@ async def run(argv: Sequence[str] | None = None) -> int:
     status = await _dispatch(args, state=state, prompt_mode=False)
     append_framework_log("framework_exit", f"status={status}")
     return status
-
 
