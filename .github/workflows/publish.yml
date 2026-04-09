@@ -1,4 +1,4 @@
-name: Publish
+name: Release Build
 
 on:
   release:
@@ -7,10 +7,9 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  publish:
+  build-dist:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,8 +26,3 @@ jobs:
           python -m pip install build "twine>=6,<7"
           python -m build
           python -m twine check dist/*
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
