@@ -8,6 +8,7 @@ self-structuring/
 intel-sources/
 release-assets/
 self-assessment/
+temp/
 
 # =========================================
 # Python cache and virtual environments

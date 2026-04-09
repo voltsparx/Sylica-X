@@ -14,3 +14,15 @@
 # ──────────────────────────────────────────────────────────────
 
 """Intel modules for recommendation, capability mapping, and planning."""
+
+from core.intel.hybrid_architecture import (
+    build_hybrid_architecture_snapshot,
+    hybrid_inventory_metrics,
+    render_hybrid_inventory_lines,
+)
+
+__all__ = [
+    "build_hybrid_architecture_snapshot",
+    "hybrid_inventory_metrics",
+    "render_hybrid_inventory_lines",
+]

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Iterable, Sequence
+import difflib
 import html
 import json
 import os
@@ -45,9 +46,11 @@ from core.collect.domain_intel import normalize_domain, scan_domain_surface
 from core.analyze.exposure import assess_domain_exposure, assess_profile_exposure, summarize_issues
 from core.extensions.signal_sieve import execute_filters, list_filter_descriptors, list_filter_discovery_errors
 from core.interface.help_menu import show_flag_help, show_prompt_help
+from core.interface.loading import run_with_spinner
 from core.artifacts.html_report import generate_html
 from core.engines.fusion_engine import FusionEngine
 from core.intel.advisor import IntelligenceAdvisor
+from core.intel.hybrid_architecture import build_hybrid_architecture_snapshot, render_hybrid_inventory_lines
 from core.extensions.control_plane import merge_scan_modes, resolve_extension_control
 from core.interface.symbols import symbol
 from core.orchestrator import Orchestrator
@@ -122,8 +125,64 @@ EXIT_USAGE = 2
 PROMPT_SHOW_COMMANDS = {"plugins", "filters", "modules", "history", "keywords", "config", "templates"}
 
 
-def _print_prompt_help_hint() -> None:
-    print(c(f"{symbol('tip')} Invalid command. Use `help` command.", Colors.YELLOW))
+def _prompt_command_catalog() -> list[str]:
+    commands = {
+        "about",
+        "add",
+        "anonymity",
+        "banner",
+        "capability-pack",
+        "clear",
+        "default-out-print",
+        "exit",
+        "explain",
+        "filters",
+        "fusion",
+        "help",
+        "history",
+        "intel",
+        "keywords",
+        "live",
+        "modules",
+        "orchestrate",
+        "out-print",
+        "out-type",
+        "profile",
+        "quicktest",
+        "remove",
+        "scan",
+        "select",
+        "set",
+        "show",
+        "surface",
+        "templates",
+        "use",
+        "version",
+        "wizard",
+    }
+    for keywords in PROMPT_KEYWORDS.values():
+        commands.update(keywords)
+    return sorted(commands)
+
+
+def _print_prompt_help_hint(command_text: str | None = None) -> None:
+    normalized = str(command_text or "").strip().lower()
+    if normalized.startswith("show "):
+        requested = normalized.split(maxsplit=1)[1].strip()
+        suggestion = difflib.get_close_matches(requested, sorted(PROMPT_SHOW_COMMANDS), n=1)
+        if suggestion:
+            print(c(f"{symbol('tip')} Unknown `show` target: {requested}. Try `show {suggestion[0]}`.", Colors.YELLOW))
+            return
+        print(c(f"{symbol('tip')} Use `show` with: {', '.join(sorted(PROMPT_SHOW_COMMANDS))}.", Colors.YELLOW))
+        return
+
+    first = normalized.split(maxsplit=1)[0] if normalized else ""
+    if first:
+        suggestion = difflib.get_close_matches(first, _prompt_command_catalog(), n=1)
+        if suggestion:
+            print(c(f"{symbol('tip')} Unknown command: {first}. Try `{suggestion[0]}` or `help`.", Colors.YELLOW))
+            return
+    print(c(f"{symbol('tip')} Invalid command. Use `help` to list commands.", Colors.YELLOW))
 
 
 def _set_non_exiting_parser(parser: argparse.ArgumentParser) -> None:
@@ -144,6 +203,21 @@ INTELLIGENCE_ENGINE = IntelligenceEngine()
 class RunnerState:
     use_tor: bool = False
     use_proxy: bool = False
+
+
+@dataclass(frozen=True)
+class RuntimeInventorySummary:
+    plugin_count: int
+    filter_count: int
+    platform_count: int
+    module_count: int
+    plugin_scope_counts: dict[str, int]
+    filter_scope_counts: dict[str, int]
+    plugin_errors: tuple[str, ...]
+    filter_errors: tuple[str, ...]
+    platform_error: str | None
+    module_error: str | None
+    hybrid_architecture: dict[str, object]
 
 
 def safe_path_component(value: str) -> str:
@@ -871,81 +945,104 @@ def _count_scope_coverage(rows: list[dict]) -> dict[str, int]:
     return counts
 
 
+def _collect_runtime_inventory() -> RuntimeInventorySummary:
+    def _build() -> RuntimeInventorySummary:
+        plugins = list_plugin_descriptors(scope=None)
+        filters = list_filter_descriptors(scope=None)
+        plugin_errors = tuple(list_plugin_discovery_errors(scope=None))
+        filter_errors = tuple(list_filter_discovery_errors(scope=None))
+        plugin_scope_counts = _count_scope_coverage(plugins)
+        filter_scope_counts = _count_scope_coverage(filters)
+
+        platform_count = 0
+        platform_error: str | None = None
+        try:
+            platform_count = len(load_platforms())
+        except Exception as exc:  # pragma: no cover - startup diagnostics
+            platform_error = str(exc)
+
+        module_count = 0
+        module_error: str | None = None
+        try:
+            catalog = ensure_module_catalog(
+                refresh=False,
+                validate_catalog=True,
+                verify_source_fingerprint=False,
+            )
+            summary = summarize_module_catalog(catalog)
+            module_count = int(summary.get("module_count", 0) or 0)
+        except Exception as exc:  # pragma: no cover - startup diagnostics
+            module_error = str(exc)
+
+        return RuntimeInventorySummary(
+            plugin_count=len(plugins),
+            filter_count=len(filters),
+            platform_count=platform_count,
+            module_count=module_count,
+            plugin_scope_counts=plugin_scope_counts,
+            filter_scope_counts=filter_scope_counts,
+            plugin_errors=plugin_errors,
+            filter_errors=filter_errors,
+            platform_error=platform_error,
+            module_error=module_error,
+            hybrid_architecture=build_hybrid_architecture_snapshot(),
+        )
+
+    return run_with_spinner("[*] Loading Silica-X runtime inventory... ", _build)
+
+
 def _print_runtime_loaded_inventory() -> None:
-    plugins = list_plugin_descriptors(scope=None)
-    filters = list_filter_descriptors(scope=None)
-    plugin_errors = list_plugin_discovery_errors(scope=None)
-    filter_errors = list_filter_discovery_errors(scope=None)
-    plugin_scope_counts = _count_scope_coverage(plugins)
-    filter_scope_counts = _count_scope_coverage(filters)
+    inventory = _collect_runtime_inventory()
 
-    platform_count = 0
-    platform_error: str | None = None
-    try:
-        platform_count = len(load_platforms())
-    except Exception as exc:  # pragma: no cover - startup diagnostics
-        platform_error = str(exc)
-
-    module_count = 0
-    module_error: str | None = None
-    try:
-        catalog = ensure_module_catalog(
-            refresh=False,
-            validate_catalog=True,
-            verify_source_fingerprint=False,
-        )
-        summary = summarize_module_catalog(catalog)
-        module_count = int(summary.get("module_count", 0) or 0)
-    except Exception as exc:  # pragma: no cover - startup diagnostics
-        module_error = str(exc)
-
-    print(c(f"\n{symbol('major')} Runtime Inventory Loaded", Colors.BLUE))
-    print(c("-" * 36, Colors.BLUE))
     print(
         c(
-            f"{symbol('ok')} plugins={len(plugins)} "
-            f"(profile={plugin_scope_counts['profile']} "
-            f"surface={plugin_scope_counts['surface']} "
-            f"fusion={plugin_scope_counts['fusion']})",
+            "Loaded: "
+            f"plugins={inventory.plugin_count} "
+            f"filters={inventory.filter_count} "
+            f"platforms={inventory.platform_count} "
+            f"modules={inventory.module_count}",
             Colors.CYAN,
         )
     )
     print(
         c(
-            f"{symbol('ok')} filters={len(filters)} "
-            f"(profile={filter_scope_counts['profile']} "
-            f"surface={filter_scope_counts['surface']} "
-            f"fusion={filter_scope_counts['fusion']})",
-            Colors.CYAN,
+            "Coverage: "
+            f"plugins={inventory.plugin_scope_counts['profile']}/{inventory.plugin_scope_counts['surface']}/{inventory.plugin_scope_counts['fusion']} "
+            f"filters={inventory.filter_scope_counts['profile']}/{inventory.filter_scope_counts['surface']}/{inventory.filter_scope_counts['fusion']}",
+            Colors.GREY,
         )
     )
-    print(c(f"{symbol('ok')} platforms={platform_count}", Colors.CYAN))
-    print(c(f"{symbol('ok')} modules={module_count}", Colors.CYAN))
-    if plugin_errors:
-        print(c(f"{symbol('warn')} plugin discovery warnings={len(plugin_errors)}", Colors.YELLOW))
-    if filter_errors:
-        print(c(f"{symbol('warn')} filter discovery warnings={len(filter_errors)}", Colors.YELLOW))
-    if platform_error:
-        print(c(f"{symbol('warn')} platform inventory unavailable: {platform_error}", Colors.YELLOW))
-    if module_error:
-        print(c(f"{symbol('warn')} module catalog unavailable: {module_error}", Colors.YELLOW))
+    hybrid_lines = render_hybrid_inventory_lines(inventory.hybrid_architecture)
+    print(c(hybrid_lines[0], Colors.YELLOW))
+    print(c(hybrid_lines[1], Colors.GREY))
+    print(c(hybrid_lines[2], Colors.GREY))
+    if inventory.plugin_errors:
+        print(c(f"{symbol('warn')} plugin discovery warnings={len(inventory.plugin_errors)}", Colors.YELLOW))
+    if inventory.filter_errors:
+        print(c(f"{symbol('warn')} filter discovery warnings={len(inventory.filter_errors)}", Colors.YELLOW))
+    if inventory.platform_error:
+        print(c(f"{symbol('warn')} platform inventory unavailable: {inventory.platform_error}", Colors.YELLOW))
+    if inventory.module_error:
+        print(c(f"{symbol('warn')} module catalog unavailable: {inventory.module_error}", Colors.YELLOW))
 
     snapshot = build_runtime_inventory_snapshot(
-        plugin_count=len(plugins),
-        filter_count=len(filters),
-        platform_count=platform_count,
-        module_count=module_count,
-        plugin_scope_counts=plugin_scope_counts,
-        filter_scope_counts=filter_scope_counts,
-        plugin_error_count=len(plugin_errors),
-        filter_error_count=len(filter_errors),
-        platform_error=platform_error,
-        module_error=module_error,
+        plugin_count=inventory.plugin_count,
+        filter_count=inventory.filter_count,
+        platform_count=inventory.platform_count,
+        module_count=inventory.module_count,
+        plugin_scope_counts=inventory.plugin_scope_counts,
+        filter_scope_counts=inventory.filter_scope_counts,
+        plugin_error_count=len(inventory.plugin_errors),
+        filter_error_count=len(inventory.filter_errors),
+        platform_error=inventory.platform_error,
+        module_error=inventory.module_error,
+        hybrid_architecture=inventory.hybrid_architecture,
     )
     try:
         write_runtime_inventory_snapshot(snapshot)
     except Exception as exc:  # pragma: no cover - diagnostics-only path
         print(c(f"{symbol('warn')} runtime inventory snapshot failed: {exc}", Colors.YELLOW))
+    print()
 
 
 def launch_live_dashboard(
@@ -1986,7 +2083,7 @@ def _print_prompt_config(session: PromptSessionState, state: RunnerState) -> Non
     print(c(f"\n{symbol('major')} Prompt Configuration", Colors.BLUE))
     print(c("-" * 36, Colors.BLUE))
     print(c(f"prompt: {session.module_prompt()}", Colors.CYAN))
-    print(c(f"module: {session.module}", Colors.CYAN))
+    print(c(f"context: {session.context_summary()}", Colors.CYAN))
     print(c(f"plugins: {session.plugins_label()}", Colors.CYAN))
     print(c(f"filters: {session.filters_label()}", Colors.CYAN))
     print(c(f"profile preset: {session.profile_preset}", Colors.CYAN))
@@ -3722,7 +3819,7 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         try:
             raw_tokens = shlex.split(command_text)
         except ValueError:
-            _print_prompt_help_hint()
+            _print_prompt_help_hint(command_text)
             continue
         if not raw_tokens:
             continue
@@ -3730,11 +3827,11 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         first_token = raw_tokens[0].strip().lower()
         if first_token == "show":
             if len(raw_tokens) < 2:
-                _print_prompt_help_hint()
+                _print_prompt_help_hint(command_text)
                 continue
             show_target = _keyword_to_command(raw_tokens[1]) or raw_tokens[1].strip().lower()
             if show_target not in PROMPT_SHOW_COMMANDS:
-                _print_prompt_help_hint()
+                _print_prompt_help_hint(command_text)
                 continue
             raw_tokens = [show_target, *raw_tokens[2:]]
         else:
@@ -3757,6 +3854,7 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         if keyword_match == "banner" or lowered == "banner":
             clear_screen()
             show_banner(get_anonymity_status(state))
+            _print_runtime_loaded_inventory()
             continue
         if lowered == "version":
             print(c(framework_signature(), Colors.CYAN))
@@ -3850,7 +3948,7 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         try:
             args = prompt_parser.parse_args(tokens)
         except ValueError:
-            _print_prompt_help_hint()
+            _print_prompt_help_hint(command_text)
             continue
 
         setattr(args, "_explicit_flags", explicit_flags)
@@ -3925,4 +4023,3 @@ async def run(argv: Sequence[str] | None = None) -> int:
     status = await _dispatch(args, state=state, prompt_mode=False)
     append_framework_log("framework_exit", f"status={status}")
     return status
-

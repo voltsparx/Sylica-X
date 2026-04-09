@@ -13,10 +13,8 @@
 # and conditions defined in the LICENSE file.
 # ──────────────────────────────────────────────────────────────
 
-# core/interface/banner.py
-
 from core.foundation.colors import Colors, c
-from core.foundation.metadata import AUTHOR, VERSION
+from core.foundation.metadata import AUTHOR, PROJECT_NAME, VERSION, VERSION_THEME
 
 
 def show_banner(anonymity_status: str = "No Anonymization") -> None:
@@ -31,9 +29,10 @@ def show_banner(anonymity_status: str = "No Anonymization") -> None:
     for left, right in left_right_lines:
         print(c(left, Colors.GREY) + c(right, Colors.YELLOW))
 
-    print(c(f"                                                                          v{VERSION}", Colors.GREY))
-    print("_________________________________________________________________________________")
-    print(c(f"    Automated Multi-OSINT Tool - Developed by {AUTHOR} (github.com/{AUTHOR})", Colors.CYAN))
-    print(c(f"                      Current Anonymity: {anonymity_status}", Colors.CYAN))
+    print(c(f"                                                                          v{VERSION} [{VERSION_THEME}]", Colors.GREY))
+    print("_" * 89)
+    print(c(f"    {PROJECT_NAME} hybrid console by {AUTHOR} (github.com/{AUTHOR})", Colors.CYAN))
+    print(c("    Hybrid console lanes: dispatch | registry | event-flow | fusion", Colors.GREY))
+    print(c(f"    Current anonymity: {anonymity_status}", Colors.CYAN))
+    print(c("    Type `help` for commands, `show config` for context, `exit` to quit.", Colors.GREY))
     print()
-

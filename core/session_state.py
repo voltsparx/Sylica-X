@@ -45,6 +45,15 @@ class PromptSessionState:
     fusion_extension_control: str = "manual"
     orchestrate_extension_control: str = "auto"
 
+    def has_custom_context(self) -> bool:
+        return bool(
+            self.plugin_names
+            or self.filter_names
+            or self.all_plugins
+            or self.all_filters
+            or self.extension_control_for_module(self.module) != "manual"
+        )
+
     def plugins_label(self) -> str:
         if not self.plugin_names:
             return "none"
@@ -74,8 +83,23 @@ class PromptSessionState:
             return
         self.profile_extension_control = lowered_value
 
+    def active_preset_label(self) -> str:
+        normalized = str(self.module or "").strip().lower()
+        if normalized == "surface":
+            return self.surface_preset
+        if normalized == "fusion":
+            return f"{self.profile_preset}/{self.surface_preset}"
+        return self.profile_preset
+
+    def context_summary(self) -> str:
+        return (
+            f"module={self.module} "
+            f"preset={self.active_preset_label()} "
+            f"ext={self.extension_control_for_module(self.module)} "
+            f"plugins={len(self.plugin_names)} "
+            f"filters={len(self.filter_names)}"
+        )
+
     def module_prompt(self) -> str:
-        control_label = self.extension_control_for_module(self.module)
-        plugin_label = _compact_prompt_values(self.plugin_names)
-        filter_label = _compact_prompt_values(self.filter_names)
-        return f"(console {self.module} ec={control_label} plugins={plugin_label} filters={filter_label})>>"
+        marker = "*" if self.has_custom_context() else ""
+        return f"sx({self.module}{marker})>"

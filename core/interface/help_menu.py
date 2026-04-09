@@ -215,8 +215,9 @@ def show_prompt_help() -> None:
     )
 
     _section("Prompt Format")
-    print(c(f"  {symbol('feature')} (console <module> ec=<mode> plugins=<set> filters=<set>)>>", Colors.CYAN))
-    print(c(f"  {symbol('tip')} Run 'keywords' to inspect all alias mappings.", Colors.GREY))
+    print(c(f"  {symbol('feature')} sx(<module>)>", Colors.CYAN))
+    print(c(f"  {symbol('tip')} A trailing `*` means the current module has custom selectors or control settings.", Colors.GREY))
+    print(c(f"  {symbol('tip')} Run `show config` for the full session context.", Colors.GREY))
 
     _section("Prompt Examples", icon="tip")
     _example("show plugins:", "List plugin inventory.")

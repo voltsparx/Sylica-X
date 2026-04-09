@@ -35,11 +35,22 @@ class TestPromptHandlers(unittest.TestCase):
             filter_names=["delta"],
         )
         prompt = session.module_prompt()
-        self.assertTrue(prompt.startswith("(console fusion"))
-        self.assertIn("ec=manual", prompt)
-        self.assertIn("plugins=alpha,beta,+1", prompt)
-        self.assertIn("filters=delta", prompt)
-        self.assertTrue(prompt.endswith(")>>"))
+        self.assertEqual(prompt, "sx(fusion*)>")
+
+    def test_context_summary_format(self):
+        session = PromptSessionState(
+            module="surface",
+            plugin_names=["alpha"],
+            filter_names=["delta", "epsilon"],
+            surface_preset="deep",
+            surface_extension_control="hybrid",
+        )
+        summary = session.context_summary()
+        self.assertIn("module=surface", summary)
+        self.assertIn("preset=deep", summary)
+        self.assertIn("ext=hybrid", summary)
+        self.assertIn("plugins=1", summary)
+        self.assertIn("filters=2", summary)
 
     def test_keyword_mapping(self):
         self.assertEqual(keyword_to_command("social"), "profile")
@@ -395,4 +406,3 @@ class TestPromptHandlers(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -26,6 +26,7 @@ import re
 from typing import Sequence
 
 from core.foundation.metadata import PROJECT_NAME, VERSION, VERSION_THEME
+from core.intel.hybrid_architecture import build_hybrid_architecture_snapshot
 
 
 DEFAULT_SOURCE_SCAN_ROOT = Path("intel-sources")
@@ -486,6 +487,7 @@ def build_runtime_inventory_snapshot(
     filter_error_count: int = 0,
     platform_error: str | None = None,
     module_error: str | None = None,
+    hybrid_architecture: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Build a numeric snapshot of runtime inventory counts."""
 
@@ -508,6 +510,7 @@ def build_runtime_inventory_snapshot(
                 "module_error": int(bool(module_error)),
             },
         },
+        "hybrid_architecture": hybrid_architecture or build_hybrid_architecture_snapshot(),
     }
 
 
@@ -858,4 +861,3 @@ def recommend_capability_priorities(
         action = str(feature_data.get("action") or _feature_action(feature_key))
         hints.append(f"Capability priority ({feature_key}, {priority}): {action}")
     return hints[:3]
-
