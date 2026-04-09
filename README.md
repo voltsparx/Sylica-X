@@ -24,7 +24,7 @@ Multi-engine OSINT orchestration for profile intelligence, domain-surface reconn
 >  
 > It combines policy-driven execution, plugin/filter control, and explainable scoring into one operator flow, with rich outputs across CLI, JSON, CSV, HTML, and logs. <br>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/images/silica-x-menu-v9.2.png" alt="Silica-X Menu" width="600px"><br>
+  <img src="https://raw.githubusercontent.com/voltsparx/Silica-X/refs/heads/main/docs/images/ui/silica-x-menu-v9.2.png" alt="Silica-X Menu" width="600px"><br>
 </p>
 
 > I doubt the pic not looking perfect...also gotta fix the version
