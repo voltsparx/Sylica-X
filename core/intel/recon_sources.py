@@ -126,14 +126,14 @@ _PARTIAL_CAPABILITIES: dict[str, str] = {
     "spider": "Recursive web discovery is represented as follow-up guidance, not crawler parity",
     "web-screenshots": "Sylica-X validates web targets but does not capture screenshots natively",
     "baddns": "DNS takeover review is represented as prioritization hints, not dedicated takeover modules",
+    "portscan": "Packet-crafting engines exist for ARP, SYN, TCP connect, UDP, FIN, NULL, XMAS, and OS fingerprint research, but live execution parity is still being integrated",
+    "service-enum": "Read-only packet crafting and banner-intelligence controls exist, but full protocol fingerprint execution remains an incremental buildout",
 }
 
 _UNSUPPORTED_CAPABILITIES: dict[str, str] = {
     "code-enum": "Repository mining and code-search modules are not native in the surface engine",
     "email-enum": "Dedicated email enumeration is outside the current surface lane",
     "web-paramminer": "Parameter mining and fuzzing are not implemented",
-    "portscan": "Port scan and service fingerprint parity are not implemented",
-    "service-enum": "Protocol fingerprint modules are not implemented",
     "deadly": "Highly intrusive modules are intentionally not mirrored",
     "aggressive": "High-noise brute-force and fuzz lanes are intentionally not mirrored",
     "download": "File and repository download workflows are not mirrored",

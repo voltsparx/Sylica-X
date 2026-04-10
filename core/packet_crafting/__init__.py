@@ -15,7 +15,10 @@
 
 """Packet-crafting engines for read-only, authorized reconnaissance."""
 
-from core.packet_crafting.combination_engine import PacketCraftingCombinationEngine
+from core.packet_crafting.combination_engine import (
+    PacketCraftingCombinationEngine,
+    list_packet_crafting_profiles,
+)
 from core.packet_crafting.models import (
     CraftedPacketArtifact,
     PacketCraftingBundle,
@@ -39,4 +42,5 @@ __all__ = [
     "craft_packet_bundle",
     "create_packet_crafting_engine",
     "list_packet_crafting_engines",
+    "list_packet_crafting_profiles",
 ]

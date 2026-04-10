@@ -25,6 +25,7 @@ from core.packet_crafting.models import (
     PacketCraftingRequest,
 )
 from core.packet_crafting.null_engine import NullPacketCraftingEngine
+from core.packet_crafting.os_fingerprint_engine import OsFingerprintPacketCraftingEngine
 from core.packet_crafting.syn_engine import SynPacketCraftingEngine
 from core.packet_crafting.tcp_connect_engine import TcpConnectPacketCraftingEngine
 from core.packet_crafting.udp_engine import UdpPacketCraftingEngine
@@ -39,6 +40,7 @@ _ENGINE_TYPES: dict[str, type] = {
     "fin": FinPacketCraftingEngine,
     "null": NullPacketCraftingEngine,
     "xmas": XmasPacketCraftingEngine,
+    "os-fingerprint": OsFingerprintPacketCraftingEngine,
 }
 
 

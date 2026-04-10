@@ -25,6 +25,7 @@ classifiers = [
 dependencies = [
   "aiohttp",
   "cryptography>=42.0.0",
+  "scapy>=2.5.0",
   "rich",
 ]
 
@@ -53,7 +54,7 @@ version = { attr = "core.foundation.metadata.VERSION" }
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["core*", "filters*", "modules*", "plugins*", "sylica_x*", "platforms*"]
+include = ["core*", "filters*", "modules*", "plugins*", "sylica_x*", "platforms*", "wordlists*"]
 exclude = ["tests*", "docs*", "output*", "release-assets*", "self-structuring*", "docker*", "docker-scripts*"]
 
 [tool.setuptools.package-data]
@@ -61,6 +62,7 @@ modules = ["*.json", "*.md"]
 platforms = ["*.json"]
 plugins = ["_intel/*.json", "_intel/*.md", "_intel/*/*.json", "_intel/*/*.md"]
 filters = ["_intel/*.json", "_intel/*.md", "_intel/*/*.json", "_intel/*/*.md"]
+wordlists = ["attack_surface/*.txt"]
 
 [tool.ruff]
 line-length = 100

@@ -56,7 +56,7 @@ _PACKET_CRAFTING_PROFILES: dict[str, PacketCraftingProfile] = {
         profile_id="os-fingerprint-research",
         title="OS Fingerprint Research",
         purpose="Craft comparative TCP templates whose TTL and window responses can support read-only OS inference.",
-        scan_types=("syn", "fin", "null", "xmas"),
+        scan_types=("os-fingerprint", "syn", "fin", "null", "xmas"),
         notes=(
             "Supports passive TTL and window-size interpretation after responses are observed.",
             "Actual response analysis stays separate from packet crafting and remains scope-gated.",
@@ -101,3 +101,9 @@ class PacketCraftingCombinationEngine:
             artifacts=artifacts,
             notes=profile.notes + nested_notes,
         )
+
+
+def list_packet_crafting_profiles() -> tuple[PacketCraftingProfile, ...]:
+    """List curated read-only packet-crafting profiles exposed by the framework."""
+
+    return PacketCraftingCombinationEngine().list_profiles()
