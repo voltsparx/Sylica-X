@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from core.foundation.surface_wordlists import (
     SURFACE_COMMON_WEB_PATHS,
@@ -11,6 +12,12 @@ from core.foundation.surface_wordlists import (
 
 
 class TestSurfaceWordlists(unittest.TestCase):
+    def test_framework_attack_surface_wordlist_files_exist(self):
+        wordlist_root = Path(__file__).resolve().parents[1] / "wordlists" / "attack_surface"
+        self.assertTrue((wordlist_root / "subdomains_small.txt").exists())
+        self.assertTrue((wordlist_root / "paths_common.txt").exists())
+        self.assertTrue((wordlist_root / "ports_top100.txt").exists())
+
     def test_prioritize_surface_subdomains_prefers_curated_labels(self):
         hosts = ["misc.example.com", "portal.example.com", "api.example.com"]
         prioritized = prioritize_surface_subdomains(hosts)

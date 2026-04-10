@@ -1,0 +1,91 @@
+# SPDX-License-Identifier: Proprietary
+#
+# Sylica-X: Intelligence Framework
+# Copyright (c) 2026 voltsparx
+#
+# Author: voltsparx
+# Repository: https://github.com/voltsparx/Sylica-X
+# Contact: voltsparx@gmail.com
+# License: See LICENSE file in the project root
+#
+# This file is part of Sylica-X and is subject to the terms
+# and conditions defined in the LICENSE file.
+# Wordlist taken from: https://github.com/voltsparx/ASRFacet-Rb
+/
+robots.txt
+sitemap.xml
+security.txt
+.well-known/security.txt
+.git/HEAD
+.env
+.env.example
+.svn/entries
+.hg/branch
+admin
+admin/
+admin/login
+administrator
+dashboard
+dashboard/
+login
+signin
+auth
+oauth
+logout
+register
+signup
+user
+users
+profile
+account
+accounts
+settings
+config
+config.php
+config.json
+backup
+backup.zip
+backup.tar.gz
+backup.sql
+db.sql
+dump.sql
+swagger
+swagger-ui
+swagger-ui.html
+api-docs
+openapi.json
+graphql
+graphiql
+actuator
+actuator/health
+health
+metrics
+status
+server-status
+phpinfo.php
+info.php
+debug
+debug/
+test
+dev
+staging
+uploads
+files
+downloads
+archive
+old
+old.zip
+logs
+log
+error.log
+access.log
+console
+shell
+jenkins
+gitlab
+nexus
+registry
+kibana
+grafana
+prometheus
+elasticsearch

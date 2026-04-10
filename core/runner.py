@@ -37,6 +37,12 @@ from core.collect.anonymity import TOR_HOST, TOR_SOCKS_PORT, install_tor, probe_
 from core.interface.about import build_about_text
 from core.interface.explain import build_explain_text
 from core.interface.cli_config import EXTENSION_CONTROL_MODES, PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
+from core.interface.command_spec import (
+    SurfaceScanDirectives,
+    invalid_surface_scan_types,
+    resolve_surface_scan_directives,
+    surface_scan_type_specs,
+)
 from core.interface.cli_parsers import build_prompt_parser as _build_prompt_parser
 from core.interface.cli_parsers import build_root_parser as _build_root_parser
 from core.foundation.colors import Colors, c
@@ -1472,12 +1478,40 @@ def _resolve_profile_runtime(args: argparse.Namespace) -> tuple[int, int, str, i
     return timeout_seconds, max_concurrency, source_profile, max_platform_limit
 
 
-def _resolve_surface_runtime(args: argparse.Namespace) -> tuple[int, int, str]:
+def _resolve_surface_runtime(args: argparse.Namespace) -> tuple[int, int, SurfaceScanDirectives]:
     preset = SURFACE_PRESETS[args.preset]
     timeout_seconds = _int_from_value(args.timeout, preset["timeout"])
     max_subdomains = _int_from_value(args.max_subdomains, preset["max_subdomains"])
-    recon_mode = str(getattr(args, "recon_mode", None) or preset.get("recon_mode", "hybrid"))
-    return timeout_seconds, max_subdomains, recon_mode
+    directives = _resolve_surface_scan_directives_from_args(
+        args,
+        default_recon_mode=str(getattr(args, "recon_mode", None) or preset.get("recon_mode", "hybrid")),
+    )
+    return timeout_seconds, max_subdomains, directives
+
+
+def _resolve_surface_scan_directives_from_args(
+    args: argparse.Namespace,
+    *,
+    default_recon_mode: str,
+) -> SurfaceScanDirectives:
+    requested_scan_types = list(getattr(args, "scan_type", []) or [])
+    invalid_scan_types = invalid_surface_scan_types(requested_scan_types)
+    if invalid_scan_types:
+        joined = ", ".join(invalid_scan_types)
+        raise ValueError(f"Unsupported scan types: {joined}")
+
+    requested_recon_mode = str(
+        getattr(args, "surface_recon_mode", None)
+        or getattr(args, "recon_mode", None)
+        or default_recon_mode
+    )
+    return resolve_surface_scan_directives(
+        recon_mode=requested_recon_mode,
+        requested_scan_types=requested_scan_types,
+        os_fingerprint_enabled=bool(getattr(args, "os_fingerprint", False)),
+        scan_verbosity=getattr(args, "scan_verbosity", None),
+        delay_seconds=getattr(args, "scan_delay", None),
+    )
 
 
 def _print_extension_control_feedback(
@@ -1498,6 +1532,21 @@ def _print_extension_control_feedback(
     )
     for warning in warnings:
         print(c(f"{symbol('warn')} {warning}", Colors.YELLOW))
+
+
+def _print_surface_scan_type_inventory() -> None:
+    print(c(f"\n{symbol('major')} Surface Scan Directives", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
+    for spec in surface_scan_type_specs():
+        aliases = ", ".join(spec.aliases) or "-"
+        short_flag = spec.short_flag or "-"
+        print(c(f"{symbol('feature')} {spec.identifier} [{short_flag}]", Colors.CYAN))
+        print(c(f"  title: {spec.title}", Colors.WHITE))
+        print(c(f"  aliases: {aliases}", Colors.WHITE))
+        print(c(f"  summary: {spec.summary}", Colors.GREY))
+        print()
+    print(c(f"{symbol('tip')} Use with `--scan-type`, repeated flags, or prompt-mode command flags.", Colors.GREY))
+    print()
 
 
 def _resolve_extension_plan_or_fail(
@@ -1744,6 +1793,7 @@ def _print_runtime_guidance_checks(
     filter_names: Sequence[str] | None = None,
     include_all_plugins: bool = False,
     include_all_filters: bool = False,
+    surface_scan_directives: SurfaceScanDirectives | None = None,
 ) -> None:
     selected_plugins = list(plugin_names or [])
     selected_filters = list(filter_names or [])
@@ -1757,6 +1807,19 @@ def _print_runtime_guidance_checks(
     print(c(f"{symbol('action')} timeout_seconds={timeout_seconds} worker_budget={worker_budget}", Colors.CYAN))
     print(c(f"{symbol('feature')} plugins={plugin_label}", Colors.CYAN))
     print(c(f"{symbol('feature')} filters={filter_label}", Colors.CYAN))
+    if surface_scan_directives is not None:
+        directive_label = ", ".join(surface_scan_directives.scan_types) or "default-http-dns"
+        print(c(f"{symbol('feature')} scan_types={directive_label}", Colors.CYAN))
+        print(
+            c(
+                f"{symbol('feature')} scan_verbosity={surface_scan_directives.scan_verbosity} "
+                f"os_fingerprint={surface_scan_directives.os_fingerprint_enabled} "
+                f"scan_delay={surface_scan_directives.delay_seconds:.2f}s",
+                Colors.CYAN,
+            )
+        )
+        for note in surface_scan_directives.notes:
+            print(c(f"{symbol('tip')} {note}", Colors.GREY))
     if not selected_plugins:
         print(c(f"{symbol('tip')} enable focused plugins for richer enrichment.", Colors.GREY))
     if not selected_filters:
@@ -2034,6 +2097,7 @@ async def run_surface_scan(
     include_ct: bool,
     include_rdap: bool,
     recon_mode: str = "hybrid",
+    scan_directives: SurfaceScanDirectives | None = None,
     scan_mode: str = "balanced",
     write_csv: bool = False,
     write_html: bool = False,
@@ -2048,6 +2112,9 @@ async def run_surface_scan(
     if not normalized_domain:
         print(c(f"{symbol('warn')} Invalid domain.", Colors.RED))
         return EXIT_USAGE, None
+
+    resolved_scan_directives = scan_directives or resolve_surface_scan_directives(recon_mode=recon_mode)
+    recon_mode = resolved_scan_directives.recon_mode
 
     append_framework_log("surface_scan_start", f"target={normalized_domain}")
     ok, error = _validate_network_settings(state, prompt_user=False)
@@ -2077,6 +2144,7 @@ async def run_surface_scan(
         filter_names=filter_names,
         include_all_plugins=include_all_plugins,
         include_all_filters=include_all_filters,
+        surface_scan_directives=resolved_scan_directives,
     )
     try:
         domain_result = await scan_domain_surface(
@@ -2100,6 +2168,7 @@ async def run_surface_scan(
         active_http_observed=str(domain_result.get("recon_mode", "hybrid")).lower() in {"active", "hybrid"},
     )
     issue_summary = summarize_issues(issues)
+    domain_result["scan_controls"] = resolved_scan_directives.as_dict()
     domain_result["surface_map"] = build_surface_map(domain_result)
     domain_result["next_steps"] = build_surface_next_steps(domain_result, issue_summary=issue_summary)
     narrative = build_nano_brief(
@@ -2281,7 +2350,7 @@ def _split_csv_tokens(values: list[str]) -> list[str]:
 
 
 def _normalize_multi_select_args(args: argparse.Namespace) -> None:
-    for field in ("plugin", "filter", "tag"):
+    for field in ("plugin", "filter", "tag", "scan_type"):
         value = getattr(args, field, None)
         if isinstance(value, list):
             setattr(args, field, _split_csv_tokens(value))
@@ -2479,6 +2548,9 @@ async def _handle_profile_command(
 
 
 async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) -> int:
+    if args.list_scan_types:
+        _print_surface_scan_type_inventory()
+        return EXIT_SUCCESS
     if args.list_plugins:
         _print_plugin_inventory(scope="surface")
         return EXIT_SUCCESS
@@ -2516,7 +2588,11 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
         print(c(f"{symbol('warn')} {error}", Colors.RED))
         return EXIT_FAILURE
 
-    timeout_seconds, max_subdomains, recon_mode = _resolve_surface_runtime(args)
+    try:
+        timeout_seconds, max_subdomains, scan_directives = _resolve_surface_runtime(args)
+    except ValueError as exc:
+        print(c(f"{symbol('warn')} {exc}", Colors.RED))
+        return EXIT_USAGE
     include_ct = True if args.ct is None else bool(args.ct)
     include_rdap = True if args.rdap is None else bool(args.rdap)
 
@@ -2543,7 +2619,8 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
             state=effective_state,
             timeout_seconds=timeout_seconds,
             max_subdomains=max_subdomains,
-            recon_mode=recon_mode,
+            recon_mode=scan_directives.recon_mode,
+            scan_directives=scan_directives,
             scan_mode=args.preset,
             include_ct=include_ct,
             include_rdap=include_rdap,
@@ -2566,6 +2643,9 @@ async def _handle_fusion_command(
     args: argparse.Namespace,
     state: RunnerState,
 ) -> int:
+    if args.list_scan_types:
+        _print_surface_scan_type_inventory()
+        return EXIT_SUCCESS
     if args.list_plugins:
         _print_plugin_inventory(scope="fusion")
         return EXIT_SUCCESS
@@ -2630,6 +2710,17 @@ async def _handle_fusion_command(
 
     profile_preset = PROFILE_PRESETS[args.profile_preset]
     surface_preset = SURFACE_PRESETS[args.surface_preset]
+    try:
+        surface_scan_directives = _resolve_surface_scan_directives_from_args(
+            args,
+            default_recon_mode=str(
+                getattr(args, "surface_recon_mode", None)
+                or surface_preset.get("recon_mode", "hybrid")
+            ),
+        )
+    except ValueError as exc:
+        print(c(f"{symbol('warn')} {exc}", Colors.RED))
+        return EXIT_USAGE
     _print_runtime_guidance_checks(
         mode="fusion",
         target=f"{username} + {normalize_domain(args.domain)}",
@@ -2638,6 +2729,7 @@ async def _handle_fusion_command(
         worker_budget=max(profile_preset["max_concurrency"], surface_preset["max_subdomains"]),
         plugin_names=list(plugin_ids),
         filter_names=list(filter_ids),
+        surface_scan_directives=surface_scan_directives,
     )
 
     try:
@@ -2670,7 +2762,8 @@ async def _handle_fusion_command(
             state=effective_state,
             timeout_seconds=surface_preset["timeout"],
             max_subdomains=surface_preset["max_subdomains"],
-            recon_mode=str(getattr(args, "surface_recon_mode", None) or surface_preset.get("recon_mode", "hybrid")),
+            recon_mode=surface_scan_directives.recon_mode,
+            scan_directives=surface_scan_directives,
             scan_mode=args.surface_preset,
             include_ct=True,
             include_rdap=True,
@@ -2852,6 +2945,9 @@ async def _handle_fusion_command(
 
 async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerState) -> int:
     mode = str(args.mode).strip().lower()
+    if args.list_scan_types:
+        _print_surface_scan_type_inventory()
+        return EXIT_SUCCESS
     if args.list_plugins:
         _print_plugin_inventory(scope=mode)
         return EXIT_SUCCESS
@@ -2965,7 +3061,20 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         if args.max_subdomains is not None
         else SURFACE_PRESETS["balanced"]["max_subdomains"]
     )
-    recon_mode = str(getattr(args, "recon_mode", None) or SURFACE_PRESETS["balanced"].get("recon_mode", "hybrid"))
+    try:
+        surface_scan_directives = _resolve_surface_scan_directives_from_args(
+            args,
+            default_recon_mode=str(
+                getattr(args, "recon_mode", None)
+                or SURFACE_PRESETS["balanced"].get("recon_mode", "hybrid")
+            ),
+        )
+    except ValueError as exc:
+        print(c(f"{symbol('warn')} {exc}", Colors.RED))
+        if override_applied:
+            _restore_output_base_override(override_prev)
+        return EXIT_USAGE
+    recon_mode = surface_scan_directives.recon_mode
     include_ct = True if args.ct is None else bool(args.ct)
     include_rdap = True if args.rdap is None else bool(args.rdap)
     min_confidence_value = _float_from_value(args.min_confidence, 0.0)
@@ -2989,6 +3098,7 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         "min_confidence": min_confidence,
         "use_proxy": effective_state.use_proxy,
         "use_tor": effective_state.use_tor,
+        "scan_controls": surface_scan_directives.as_dict(),
     }
 
     if mode == "fusion":
@@ -3004,6 +3114,7 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         worker_budget=max_workers,
         plugin_names=list(plugin_ids),
         filter_names=list(filter_ids),
+        surface_scan_directives=surface_scan_directives if mode in {"surface", "fusion"} else None,
     )
 
     print(c(f"\n{symbol('action')} Orchestration mode: {mode} | target: {target_label}\n", Colors.CYAN))
@@ -3735,6 +3846,9 @@ async def _handle_wizard_command(
     state: RunnerState,
     prompt_mode: bool,
 ) -> int:
+    if getattr(args, "list_scan_types", False):
+        _print_surface_scan_type_inventory()
+        return EXIT_SUCCESS
     explicit_flags_raw = getattr(args, "_explicit_flags", ())
     explicit_flags = {
         str(flag).strip().lower()
@@ -4060,6 +4174,11 @@ async def _handle_wizard_command(
             timeout=None,
             max_subdomains=None,
             recon_mode=str(getattr(args, "surface_recon_mode", None) or SURFACE_PRESETS[surface_preset].get("recon_mode", "hybrid")),
+            scan_type=list(getattr(args, "scan_type", []) or []),
+            scan_verbosity=getattr(args, "scan_verbosity", None),
+            scan_delay=getattr(args, "scan_delay", None),
+            os_fingerprint=getattr(args, "os_fingerprint", None),
+            list_scan_types=False,
             ct=include_ct,
             rdap=include_rdap,
             html=write_html,
@@ -4085,6 +4204,11 @@ async def _handle_wizard_command(
             profile_preset=profile_preset,
             surface_preset=surface_preset,
             surface_recon_mode=str(getattr(args, "surface_recon_mode", None) or SURFACE_PRESETS[surface_preset].get("recon_mode", "hybrid")),
+            scan_type=list(getattr(args, "scan_type", []) or []),
+            scan_verbosity=getattr(args, "scan_verbosity", None),
+            scan_delay=getattr(args, "scan_delay", None),
+            os_fingerprint=getattr(args, "os_fingerprint", None),
+            list_scan_types=False,
             extension_control=extension_control,
             csv=write_csv,
             html=write_html,

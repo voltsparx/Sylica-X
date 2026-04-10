@@ -21,6 +21,12 @@ import argparse
 from typing import Callable
 
 from core.interface.cli_config import EXTENSION_CONTROL_MODES, PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
+from core.interface.command_spec import (
+    FUSION_COMMAND_ALIASES,
+    ORCHESTRATE_COMMAND_ALIASES,
+    PROFILE_COMMAND_ALIASES,
+    SURFACE_COMMAND_ALIASES,
+)
 from core.foundation.colors import Colors, c
 from core.extensions.control_plane import merge_scan_modes, resolve_extension_control
 from core.extensions.selector_keys import selector_keys
@@ -31,10 +37,10 @@ from core.utils.info_templates import get_info_template
 
 
 VALID_MODULES = {"profile", "surface", "fusion"}
-PROFILE_ALIASES = {"profile", "scan", "persona", "social"}
-SURFACE_ALIASES = {"surface", "domain", "asset"}
-FUSION_ALIASES = {"fusion", "full", "combo"}
-ORCHESTRATE_ALIASES = {"orchestrate", "orch"}
+PROFILE_ALIASES = set(PROFILE_COMMAND_ALIASES)
+SURFACE_ALIASES = set(SURFACE_COMMAND_ALIASES)
+FUSION_ALIASES = set(FUSION_COMMAND_ALIASES)
+ORCHESTRATE_ALIASES = set(ORCHESTRATE_COMMAND_ALIASES)
 
 
 def keyword_to_command(value: str) -> str | None:
@@ -664,4 +670,3 @@ def handle_prompt_use_command(
         )
 
     return True
-

@@ -308,6 +308,7 @@ def _render_domain_section(domain_result: dict | None) -> str:
         if isinstance(value, dict)
     ) or "<li>None</li>"
     surface_map = domain_result.get("surface_map", {}) if isinstance(domain_result.get("surface_map"), dict) else {}
+    scan_controls = domain_result.get("scan_controls", {}) if isinstance(domain_result.get("scan_controls"), dict) else {}
     source_summary = surface_map.get("source_summary", {}) if isinstance(surface_map.get("source_summary"), dict) else {}
     priority_summary = surface_map.get("priority_summary", {}) if isinstance(surface_map.get("priority_summary"), dict) else {}
     probe_plan = surface_map.get("probe_plan", {}) if isinstance(surface_map.get("probe_plan"), dict) else {}
@@ -335,6 +336,11 @@ def _render_domain_section(domain_result: dict | None) -> str:
         f"final={html.escape(str(http_data.get('final_url')))} "
         f"redirects_to_https={html.escape(str(http_data.get('redirects_to_https')))}</p>"
         f"<p><strong>RDAP Handle:</strong> {html.escape(str(rdap.get('handle') or '-'))}</p>"
+        f"<p><strong>Scan Controls:</strong> "
+        f"types={html.escape(', '.join(scan_controls.get('scan_types', []) or []) or 'none')} | "
+        f"verbosity={html.escape(str(scan_controls.get('scan_verbosity', 'standard')))} | "
+        f"os_fingerprint={html.escape(str(scan_controls.get('os_fingerprint_enabled', False)))} | "
+        f"delay_seconds={html.escape(str(scan_controls.get('delay_seconds', 0.0)))}</p>"
         f"<p><strong>Attack Surface Score:</strong> {html.escape(str(surface_map.get('attack_surface_score', 0)))} "
         f"| <strong>Source Summary:</strong> {html.escape(str(source_summary))}</p>"
         "<h4>Subdomain Candidates</h4>"

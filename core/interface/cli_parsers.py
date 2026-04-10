@@ -21,6 +21,12 @@ import argparse
 from typing import NoReturn
 
 from core.interface.cli_config import EXTENSION_CONTROL_MODES, PROFILE_PRESETS, SURFACE_PRESETS, SURFACE_RECON_MODES
+from core.interface.command_spec import (
+    FUSION_COMMAND_ALIASES,
+    ORCHESTRATE_COMMAND_ALIASES,
+    PROFILE_COMMAND_ALIASES,
+    SURFACE_COMMAND_ALIASES,
+)
 
 MODULE_SORT_FIELDS = [
     "file",
@@ -58,6 +64,16 @@ def non_negative_int(value: str) -> int:
         parsed = int(value)
     except ValueError as exc:
         raise argparse.ArgumentTypeError("Value must be an integer.") from exc
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("Value must be zero or greater.")
+    return parsed
+
+
+def non_negative_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Value must be a number.") from exc
     if parsed < 0:
         raise argparse.ArgumentTypeError("Value must be zero or greater.")
     return parsed
@@ -467,6 +483,66 @@ def _add_anonymity_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_surface_scan_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--scan-type",
+        "--scan-types",
+        dest="scan_type",
+        action="append",
+        default=[],
+        help=(
+            "Attack-surface scan directives (repeatable or comma-separated): "
+            "arp, syn, tcp-connect, udp, fin, null, xmas, service, tls."
+        ),
+    )
+    parser.add_argument("-aS", dest="scan_type", action="append_const", const="arp", help="Add ARP discovery intent.")
+    parser.add_argument("-sS", dest="scan_type", action="append_const", const="syn", help="Add SYN scan intent.")
+    parser.add_argument("-sT", dest="scan_type", action="append_const", const="tcp-connect", help="Add TCP connect scan intent.")
+    parser.add_argument("-sU", dest="scan_type", action="append_const", const="udp", help="Add UDP scan intent.")
+    parser.add_argument("-sF", dest="scan_type", action="append_const", const="fin", help="Add FIN scan intent.")
+    parser.add_argument("-sN", dest="scan_type", action="append_const", const="null", help="Add NULL scan intent.")
+    parser.add_argument("-sX", dest="scan_type", action="append_const", const="xmas", help="Add XMAS scan intent.")
+    parser.add_argument("-sV", dest="scan_type", action="append_const", const="service", help="Add service version inquiry intent.")
+    parser.add_argument(
+        "--scan-verbosity",
+        choices=["standard", "verbose"],
+        default=None,
+        help="Surface scan-plan verbosity for CLI, prompt, and report rendering.",
+    )
+    parser.add_argument(
+        "-vS",
+        dest="scan_verbosity",
+        action="store_const",
+        const="verbose",
+        help="Enable verbose scan-plan rendering.",
+    )
+    parser.add_argument(
+        "--scan-delay",
+        type=non_negative_float,
+        default=None,
+        help="Delay between active service inquiries in seconds.",
+    )
+    _add_phase_toggle(
+        parser,
+        flag_name="os-fingerprint",
+        dest="os_fingerprint",
+        label="read-only OS fingerprint inference",
+    )
+    parser.add_argument(
+        "-O",
+        dest="os_fingerprint",
+        action="store_const",
+        const=True,
+        default=None,
+        help="Enable OS fingerprint inference controls.",
+    )
+    parser.add_argument(
+        "--list-scan-types",
+        action="store_true",
+        help="List supported attack-surface scan directives and exit.",
+    )
+
+
 def _add_profile_args(parser: argparse.ArgumentParser, *, default_dashboard_port: int) -> None:
     parser.add_argument("usernames", nargs="+", help="One or more usernames to scan.")
     _add_toggle_flags(parser, "tor", "Tor routing")
@@ -559,6 +635,7 @@ def _add_surface_args(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="Surface reconnaissance lane: passive, active, or hybrid.",
     )
+    _add_surface_scan_args(parser)
     _add_toggle_flags(parser, "ct", "Certificate Transparency lookup")
     _add_toggle_flags(parser, "rdap", "RDAP ownership lookup")
     _add_toggle_flags(
@@ -610,6 +687,7 @@ def _add_fusion_args(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="Recon lane for the fusion surface phase: passive, active, or hybrid.",
     )
+    _add_surface_scan_args(parser)
     _add_toggle_flags(
         parser,
         "csv",
@@ -697,6 +775,7 @@ def _add_orchestrate_args(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="Surface reconnaissance lane for surface/fusion orchestration.",
     )
+    _add_surface_scan_args(parser)
     parser.add_argument(
         "--min-confidence",
         type=float,
@@ -768,6 +847,7 @@ def _add_wizard_args(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="Default reconnaissance lane for wizard surface workflows.",
     )
+    _add_surface_scan_args(parser)
     parser.add_argument(
         "--out-type",
         default="",
@@ -823,29 +903,29 @@ def build_root_parser(
     subparsers = parser.add_subparsers(dest="command")
 
     profile_parser = subparsers.add_parser(
-        "profile",
-        aliases=["scan", "persona", "social"],
+        PROFILE_COMMAND_ALIASES[0],
+        aliases=list(PROFILE_COMMAND_ALIASES[1:]),
         help="Run profile/social username intelligence scan.",
     )
     _add_profile_args(profile_parser, default_dashboard_port=default_dashboard_port)
 
     surface_parser = subparsers.add_parser(
-        "surface",
-        aliases=["domain", "asset"],
+        SURFACE_COMMAND_ALIASES[0],
+        aliases=list(SURFACE_COMMAND_ALIASES[1:]),
         help="Run domain attack-surface intelligence scan.",
     )
     _add_surface_args(surface_parser)
 
     fusion_parser = subparsers.add_parser(
-        "fusion",
-        aliases=["full", "combo"],
+        FUSION_COMMAND_ALIASES[0],
+        aliases=list(FUSION_COMMAND_ALIASES[1:]),
         help="Run profile + surface intelligence as one workflow.",
     )
     _add_fusion_args(fusion_parser)
 
     orchestrate_parser = subparsers.add_parser(
-        "orchestrate",
-        aliases=["orch"],
+        ORCHESTRATE_COMMAND_ALIASES[0],
+        aliases=list(ORCHESTRATE_COMMAND_ALIASES[1:]),
         help="Run policy-driven layered orchestration pipeline.",
     )
     _add_orchestrate_args(orchestrate_parser)
@@ -957,29 +1037,29 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
     subparsers.required = True
 
     profile_parser = subparsers.add_parser(
-        "profile",
-        aliases=["scan", "persona", "social"],
+        PROFILE_COMMAND_ALIASES[0],
+        aliases=list(PROFILE_COMMAND_ALIASES[1:]),
         add_help=False,
     )
     _add_profile_args(profile_parser, default_dashboard_port=default_dashboard_port)
 
     surface_parser = subparsers.add_parser(
-        "surface",
-        aliases=["domain", "asset"],
+        SURFACE_COMMAND_ALIASES[0],
+        aliases=list(SURFACE_COMMAND_ALIASES[1:]),
         add_help=False,
     )
     _add_surface_args(surface_parser)
 
     fusion_parser = subparsers.add_parser(
-        "fusion",
-        aliases=["full", "combo"],
+        FUSION_COMMAND_ALIASES[0],
+        aliases=list(FUSION_COMMAND_ALIASES[1:]),
         add_help=False,
     )
     _add_fusion_args(fusion_parser)
 
     orchestrate_parser = subparsers.add_parser(
-        "orchestrate",
-        aliases=["orch"],
+        ORCHESTRATE_COMMAND_ALIASES[0],
+        aliases=list(ORCHESTRATE_COMMAND_ALIASES[1:]),
         add_help=False,
     )
     _add_orchestrate_args(orchestrate_parser)

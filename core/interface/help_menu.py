@@ -124,6 +124,7 @@ def show_flag_help() -> None:
             ("--tor / --proxy:", "Enable Tor/proxy routing."),
             ("--no-tor / --no-proxy:", "Disable Tor/proxy routing."),
             ("--check / --prompt:", "Run diagnostics or guided anonymity setup."),
+            ("--scan-type / -sS / -aS / -sV / -O / -vS:", "Surface scan controls shared by flag mode and prompt mode."),
         )
     )
 
@@ -162,6 +163,7 @@ def show_prompt_help() -> None:
             ("profile <username...>:", "Run profile workflow with digital footprint mapping."),
             ("surface <domain>:", "Run surface workflow."),
             ("surface <domain> --recon-mode <...>:", "Choose passive, active, or hybrid reconnaissance."),
+            ("surface <domain> -sS -sV -O --scan-delay 0.25:", "Apply shared scan directives with nmap-style aliases."),
             ("fusion <username> <domain>:", "Run fusion workflow with profile, web, and surface linkage summary."),
             ("orchestrate <mode> <target>:", "Run layered orchestration."),
             ("surface-kit <domain> --preset <name>:", "Use local source recipes to drive a Sylica-X surface plan."),
@@ -179,6 +181,7 @@ def show_prompt_help() -> None:
             ("show history [--limit N]:", "List previously scanned targets."),
             ("show config:", "Show prompt defaults and active module."),
             ("surface ... --recon-mode passive|active|hybrid:", "Control surface collection lane depth and noise."),
+            ("surface|fusion|orchestrate ... --scan-type <...>:", "Control scan directives, OS hints, verbosity, and pacing."),
             ("out-type <types>:", "Set persisted output formats (cli, html, csv, json)."),
             ("out-print <path>:", "Set current output base directory for this session."),
             ("default-out-print <path>:", "Set persisted default output base directory."),

@@ -123,6 +123,13 @@ class TestRunnerCli(unittest.TestCase):
                 "100",
                 "--recon-mode",
                 "passive",
+                "-sS",
+                "-aS",
+                "-sV",
+                "-O",
+                "-vS",
+                "--scan-delay",
+                "0.25",
                 "--no-ct",
                 "--html",
                 "--info-template",
@@ -134,6 +141,10 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.preset, "quick")
         self.assertEqual(args.max_subdomains, 100)
         self.assertEqual(args.recon_mode, "passive")
+        self.assertEqual(args.scan_type, ["syn", "arp", "service"])
+        self.assertTrue(args.os_fingerprint)
+        self.assertEqual(args.scan_verbosity, "verbose")
+        self.assertAlmostEqual(args.scan_delay, 0.25)
         self.assertFalse(args.ct)
         self.assertTrue(args.html)
         self.assertEqual(args.info_template, "surface-risk")
@@ -152,6 +163,10 @@ class TestRunnerCli(unittest.TestCase):
                 "deep",
                 "--surface-recon-mode",
                 "active",
+                "-sU",
+                "-sX",
+                "--scan-delay",
+                "0.4",
                 "--html",
                 "--plugin",
                 "threat_conductor",
@@ -165,6 +180,8 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.profile_preset, "quick")
         self.assertEqual(args.surface_preset, "deep")
         self.assertEqual(args.surface_recon_mode, "active")
+        self.assertEqual(args.scan_type, ["udp", "xmas"])
+        self.assertAlmostEqual(args.scan_delay, 0.4)
         self.assertTrue(args.html)
         self.assertEqual(args.plugin, ["threat_conductor"])
         self.assertEqual(args.filter, ["exposure_tier_matrix"])
@@ -191,6 +208,9 @@ class TestRunnerCli(unittest.TestCase):
                 "70",
                 "--max-subdomains",
                 "500",
+                "-sN",
+                "-sV",
+                "-O",
                 "--min-confidence",
                 "0.4",
                 "--json",
@@ -213,6 +233,8 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.source_profile, "max")
         self.assertEqual(args.max_platforms, 70)
         self.assertEqual(args.max_subdomains, 500)
+        self.assertEqual(args.scan_type, ["null", "service"])
+        self.assertTrue(args.os_fingerprint)
         self.assertAlmostEqual(args.min_confidence, 0.4)
         self.assertTrue(args.json)
         self.assertTrue(args.html)
@@ -332,6 +354,11 @@ class TestRunnerCli(unittest.TestCase):
                 "max",
                 "--surface-preset",
                 "deep",
+                "-sS",
+                "-sV",
+                "-O",
+                "--scan-delay",
+                "0.2",
                 "--extension-control",
                 "hybrid",
                 "--plugin",
@@ -353,6 +380,9 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.domain, "example.com")
         self.assertEqual(args.profile_preset, "max")
         self.assertEqual(args.surface_preset, "deep")
+        self.assertEqual(args.scan_type, ["syn", "service"])
+        self.assertTrue(args.os_fingerprint)
+        self.assertAlmostEqual(args.scan_delay, 0.2)
         self.assertEqual(args.extension_control, "hybrid")
         self.assertEqual(args.plugin, ["threat_conductor"])
         self.assertEqual(args.filter, ["triage_priority_filter"])
@@ -428,11 +458,13 @@ class TestRunnerCli(unittest.TestCase):
             plugin=["threat_conductor,contact_lattice"],
             filter=["contact_canonicalizer,entity_name_resolver"],
             tag=["identity,pii"],
+            scan_type=["syn,udp", "banner"],
         )
         _normalize_multi_select_args(args)
         self.assertEqual(args.plugin, ["threat_conductor", "contact_lattice"])
         self.assertEqual(args.filter, ["contact_canonicalizer", "entity_name_resolver"])
         self.assertEqual(args.tag, ["identity", "pii"])
+        self.assertEqual(args.scan_type, ["syn", "udp", "banner"])
 
     def test_prompt_parser_raises_value_error_for_unknown_command(self):
         parser = build_prompt_parser()
@@ -483,11 +515,13 @@ class TestRunnerCli(unittest.TestCase):
 
     def test_prompt_parser_parses_orchestrate_command(self):
         parser = build_prompt_parser()
-        args = parser.parse_args(["orchestrate", "profile", "alice", "--profile", "fast"])
+        args = parser.parse_args(["orchestrate", "surface", "example.com", "--profile", "fast", "-sS", "-O"])
         self.assertEqual(args.command, "orchestrate")
-        self.assertEqual(args.mode, "profile")
-        self.assertEqual(args.target, "alice")
+        self.assertEqual(args.mode, "surface")
+        self.assertEqual(args.target, "example.com")
         self.assertEqual(args.profile, "fast")
+        self.assertEqual(args.scan_type, ["syn"])
+        self.assertTrue(args.os_fingerprint)
         self.assertEqual(args.extension_control, "auto")
 
     def test_prompt_parser_parses_wizard_command_with_extended_flags(self):
@@ -501,6 +535,8 @@ class TestRunnerCli(unittest.TestCase):
                 "example.com",
                 "--surface-preset",
                 "quick",
+                "-sT",
+                "-vS",
                 "--extension-control",
                 "manual",
                 "--info-template",
@@ -516,6 +552,8 @@ class TestRunnerCli(unittest.TestCase):
         self.assertTrue(args.run_surface)
         self.assertEqual(args.domain, "example.com")
         self.assertEqual(args.surface_preset, "quick")
+        self.assertEqual(args.scan_type, ["tcp-connect"])
+        self.assertEqual(args.scan_verbosity, "verbose")
         self.assertEqual(args.extension_control, "manual")
         self.assertEqual(args.info_template, "surface-risk")
         self.assertFalse(args.html)

@@ -578,6 +578,25 @@ def display_domain_results(
                     Colors.GREY,
                 )
             )
+    scan_controls = domain_result.get("scan_controls", {})
+    if isinstance(scan_controls, dict) and scan_controls:
+        print(c(f"\n{symbol('major')} Scan Controls", Colors.BLUE))
+        print(c("-" * 36, Colors.BLUE))
+        print(c(f"{symbol('bullet')} recon_mode={scan_controls.get('recon_mode', 'hybrid')}", Colors.GREY))
+        print(
+            c(
+                f"{symbol('bullet')} scan_types={_preview(list(scan_controls.get('scan_types', []) or []), limit=10)}",
+                Colors.GREY,
+            )
+        )
+        print(
+            c(
+                f"{symbol('bullet')} scan_verbosity={scan_controls.get('scan_verbosity', 'standard')} "
+                f"os_fingerprint={scan_controls.get('os_fingerprint_enabled', False)} "
+                f"delay_seconds={scan_controls.get('delay_seconds', 0.0)}",
+                Colors.GREY,
+            )
+        )
     surface_map = domain_result.get("surface_map", {})
     if isinstance(surface_map, dict):
         priority_summary = surface_map.get("priority_summary", {}) if isinstance(surface_map.get("priority_summary"), dict) else {}
@@ -725,6 +744,15 @@ def _render_cli_report(payload: dict) -> str:
         lines.append("[Domain Surface]")
         lines.append(f"- target: {domain_result.get('target', '-')}")
         lines.append(f"- recon_mode: {domain_result.get('recon_mode', 'hybrid')}")
+        scan_controls = domain_result.get("scan_controls", {})
+        if isinstance(scan_controls, dict) and scan_controls:
+            lines.append(
+                "- scan_controls: "
+                f"types={', '.join(scan_controls.get('scan_types', []) or []) or 'none'} "
+                f"verbosity={scan_controls.get('scan_verbosity', 'standard')} "
+                f"os_fingerprint={scan_controls.get('os_fingerprint_enabled', False)} "
+                f"delay_seconds={scan_controls.get('delay_seconds', 0.0)}"
+            )
         lines.append(
             f"- resolved_addresses: {', '.join(domain_result.get('resolved_addresses', []) or []) or 'none'}"
         )

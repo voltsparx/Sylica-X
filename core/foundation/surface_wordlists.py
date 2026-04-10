@@ -13,7 +13,7 @@
 # and conditions defined in the LICENSE file.
 # ------------------------------------------------------------------------------
 
-"""Framework-native surface reconnaissance wordlists derived from assessments."""
+"""Framework-native attack-surface reconnaissance wordlists for read-only research."""
 
 from __future__ import annotations
 
@@ -235,7 +235,7 @@ _DEFAULT_TOP_PORTS: Final[tuple[int, ...]] = (
 
 
 def _wordlist_root() -> Path:
-    return Path(__file__).resolve().parents[2] / "self-assessment" / "wordlists"
+    return Path(__file__).resolve().parents[2] / "wordlists" / "attack_surface"
 
 
 def _read_wordlist_text(filename: str, fallback: tuple[str, ...]) -> tuple[str, ...]:
@@ -317,7 +317,7 @@ def build_surface_wordlist_guidance(
     max_paths: int = 24,
     max_ports: int = 32,
 ) -> dict[str, object]:
-    """Build non-bruteforce surface guidance from curated assessment wordlists."""
+    """Build non-bruteforce surface guidance from framework-owned recon wordlists."""
 
     prioritized_hosts = prioritize_surface_subdomains(subdomains)
     return {

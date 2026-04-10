@@ -220,7 +220,7 @@ def build_surface_next_steps(
             {
                 "priority": "P2",
                 "title": "Review the built-in surface recon plan",
-                "rationale": "Curated assessment wordlists supplied safe top-port and common-path guidance for authorized follow-up.",
+                "rationale": "Framework-owned recon wordlists supplied safe top-port and common-path guidance for authorized follow-up.",
                 "command_hint": f"surface {target} --recon-mode hybrid --preset deep --html",
             }
         )
