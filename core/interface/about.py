@@ -29,6 +29,6 @@ def build_about_text() -> str:
         f"Repository: {REPOSITORY_URL}\n"
         f"Description: {TAGLINE}\n"
         "Capabilities: profile intelligence, domain-surface reconnaissance, fusion correlation,\n"
-        "plugin/filter extension pipeline, HTML/JSON/CLI reporting, Tor/proxy routing controls."
+        "digital footprint mapping, plugin/filter extension pipeline, HTML/JSON/CLI reporting,\n"
+        "Tor/proxy routing controls."
     )
-

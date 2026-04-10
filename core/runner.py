@@ -103,6 +103,7 @@ from core.extensions.signal_forge import list_plugin_descriptors, list_plugin_di
 from core.collect.platform_schema import PlatformValidationError, load_platforms
 from core.analyze.profile_summary import error_profile_rows, found_profile_rows, summarize_target_intel
 from core.analyze.surface_map import build_surface_map, build_surface_next_steps
+from core.analyze.digital_footprint import build_digital_footprint_map
 from core.collect.scanner import scan_username
 from core.domain import BaseEntity
 from core.foundation.session_state import PromptSessionState
@@ -1699,6 +1700,8 @@ def _analyze_intelligence_bundle(
     target: str,
     issues: Sequence[dict] | None = None,
     fused_anomalies: Sequence[object] | None = None,
+    profile_results: Sequence[dict[str, Any]] | None = None,
+    domain_result: dict[str, Any] | None = None,
 ) -> dict:
     if not entities:
         return {}
@@ -1708,12 +1711,23 @@ def _analyze_intelligence_bundle(
         fused_anomalies=fused_anomalies,
     )
     try:
-        return INTELLIGENCE_ENGINE.analyze(
+        bundle = INTELLIGENCE_ENGINE.analyze(
             list(entities),
             mode=mode,
             target=target,
             anomalies=anomaly_rows,
         )
+        footprint_map = build_digital_footprint_map(
+            target=target,
+            mode=mode,
+            profile_results=profile_results,
+            domain_result=domain_result,
+            issues=issues,
+            intelligence_bundle=bundle,
+        )
+        if footprint_map:
+            bundle["footprint_map"] = footprint_map
+        return bundle
     except Exception as exc:  # pragma: no cover - defensive
         append_framework_log("intelligence_bundle_failed", f"target={target} mode={mode} reason={exc}", level="WARN")
         return {}
@@ -1885,6 +1899,7 @@ async def run_profile_scan(
         mode=source_profile,
         target=username,
         issues=issues,
+        profile_results=results,
     )
     plugin_results, plugin_errors = await PLUGIN_MANAGER.run_plugins(
         {
@@ -2099,6 +2114,7 @@ async def run_surface_scan(
         mode="surface",
         target=normalized_domain,
         issues=issues,
+        domain_result=domain_result,
     )
     plugin_results, plugin_errors = await PLUGIN_MANAGER.run_plugins(
         {
@@ -2702,6 +2718,8 @@ async def _handle_fusion_command(
         target=combined_target,
         issues=combined_issues,
         fused_anomalies=list(fused_intel.get("anomalies", []) or []),
+        profile_results=list(profile_data.get("results", []) or []),
+        domain_result=surface_data.get("domain_result") if isinstance(surface_data.get("domain_result"), dict) else None,
     )
     fused_intel["intelligence_bundle"] = intelligence_bundle
     fused_intel["risk_summary"] = intelligence_bundle.get("risk_summary", {})

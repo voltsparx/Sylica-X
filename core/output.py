@@ -253,6 +253,35 @@ def _print_intelligence_block(intelligence_bundle: dict | None) -> None:
     print(c(f"Emails: {_preview(list(facets.get('emails', []) or []), limit=10)}", Colors.GREY))
     print(c(f"Phones: {_preview(list(facets.get('phones', []) or []), limit=10)}", Colors.GREY))
     print(c(f"Names: {_preview(list(facets.get('names', []) or []), limit=10)}", Colors.GREY))
+    footprint_map = bundle.get("footprint_map", {}) if isinstance(bundle.get("footprint_map"), dict) else {}
+    if footprint_map:
+        summary = footprint_map.get("summary", {}) if isinstance(footprint_map.get("summary"), dict) else {}
+        watchlist = footprint_map.get("watchlist", {}) if isinstance(footprint_map.get("watchlist"), dict) else {}
+        indicators = footprint_map.get("threat_indicators", []) if isinstance(footprint_map.get("threat_indicators"), list) else []
+        print(c(f"\n{symbol('major')} Digital Footprint Map", Colors.MAGENTA))
+        print(
+            c(
+                "Profiles: "
+                f"{summary.get('profile_count', 0)} "
+                f"| Linked domains: {summary.get('external_domain_count', 0)} "
+                f"| Surface assets: {summary.get('surface_asset_count', 0)} "
+                f"| Risk signals: {summary.get('risk_signal_count', 0)}",
+                Colors.MAGENTA,
+            )
+        )
+        print(c(f"Observed lanes: {footprint_map.get('source_lanes', {})}", Colors.GREY))
+        print(c(f"Watch handles: {_preview(list(watchlist.get('handles', []) or []), limit=10)}", Colors.GREY))
+        print(c(f"Watch domains: {_preview(list(watchlist.get('domains', []) or []), limit=10)}", Colors.GREY))
+        for row in indicators[:6]:
+            if not isinstance(row, dict):
+                continue
+            print(
+                c(
+                    f"{symbol('bullet')} [{row.get('severity', 'INFO')}] {row.get('title', 'Signal')}"
+                    f" -> {row.get('evidence', '-')}",
+                    Colors.YELLOW,
+                )
+            )
 
     top_contacts = _top_scored_items(scored_contacts, limit=8)
     if top_contacts:
@@ -778,6 +807,7 @@ def _render_cli_report(payload: dict) -> str:
         risk_summary = intelligence_bundle.get("risk_summary", {}) or {}
         scored_entities = intelligence_bundle.get("scored_entities", []) or []
         guidance = intelligence_bundle.get("execution_guidance", {}) or {}
+        footprint_map = intelligence_bundle.get("footprint_map", {}) or {}
 
         lines.append("[Intelligence Scoring]")
         lines.append(
@@ -793,6 +823,19 @@ def _render_cli_report(payload: dict) -> str:
         lines.append(f"- emails: {', '.join(facets.get('emails', []) or []) or 'none'}")
         lines.append(f"- phones: {', '.join(facets.get('phones', []) or []) or 'none'}")
         lines.append(f"- names: {', '.join(facets.get('names', []) or []) or 'none'}")
+        if isinstance(footprint_map, dict) and footprint_map:
+            summary = footprint_map.get("summary", {}) if isinstance(footprint_map.get("summary"), dict) else {}
+            watchlist = footprint_map.get("watchlist", {}) if isinstance(footprint_map.get("watchlist"), dict) else {}
+            lines.append("[Digital Footprint Map]")
+            lines.append(
+                f"- profiles={summary.get('profile_count', 0)} "
+                f"linked_domains={summary.get('external_domain_count', 0)} "
+                f"surface_assets={summary.get('surface_asset_count', 0)} "
+                f"risk_signals={summary.get('risk_signal_count', 0)}"
+            )
+            lines.append(f"- lanes: {footprint_map.get('source_lanes', {})}")
+            lines.append(f"- watch_handles: {', '.join(watchlist.get('handles', []) or []) or 'none'}")
+            lines.append(f"- watch_domains: {', '.join(watchlist.get('domains', []) or []) or 'none'}")
         if scored_entities:
             lines.append("- top_scored_entities:")
             for row in list(scored_entities)[:12]:

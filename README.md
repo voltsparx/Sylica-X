@@ -23,6 +23,7 @@ Multi-engine OSINT orchestration for profile intelligence, domain-surface reconn
 > `profile`, `surface`, `fusion`, and `orchestrate`.
 >  
 > It combines policy-driven execution, plugin/filter control, and explainable scoring into one operator flow, with rich outputs across CLI, JSON, CSV, HTML, and logs. <br>
+> It now builds a native digital-footprint map from public profile, web, surface, and exposure signals so linked identities, assets, and risk cues are easier to triage. <br>
 > Its runtime and console patterns were shaped by reverse engineering multiple reconnaissance tools into a native Sylica-X architecture, rather than exposing those tools directly in the codebase. <br>
 
 > I doubt the pic not looking perfect...also gotta fix the version
@@ -91,6 +92,7 @@ For full command reference, see [Usage Guide](docs/Usage.txt).
 * 🔎 Profile scan workflow (`profile`, `scan`, `persona`, `social`)
 * 🌐 Domain surface workflow (`surface`, `domain`, `asset`)
 * 🔗 Fusion workflow (`fusion`, `full`, `combo`)
+* 🕸️ Digital footprint mapping across public profiles, linked domains, and exposure signals
 * 🧩 Pluggable intelligence system (`core/extensions/signal_forge.py` + `plugins/`)
 * 🧹 Pluggable filtering system (`core/extensions/signal_sieve.py` + `filters/`)
 * 🧱 External module catalog system (`modules/catalog.py` + `modules/*.json`)

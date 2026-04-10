@@ -493,6 +493,7 @@ def _render_intelligence_bundle(intelligence_bundle: dict | None) -> str:
     correlation_summary = bundle.get("correlation_summary", {}) or {}
     guidance = bundle.get("execution_guidance", {}) or {}
     actions = guidance.get("actions", []) if isinstance(guidance.get("actions"), list) else []
+    footprint_map = bundle.get("footprint_map", {}) if isinstance(bundle.get("footprint_map"), dict) else {}
 
     contact_rows = []
     for item in scored_contacts[:28]:
@@ -542,6 +543,37 @@ def _render_intelligence_bundle(intelligence_bundle: dict | None) -> str:
         for item in actions[:8]
         if isinstance(item, dict)
     ) or "<li>None</li>"
+    footprint_html = ""
+    if footprint_map:
+        summary = footprint_map.get("summary", {}) if isinstance(footprint_map.get("summary"), dict) else {}
+        watchlist = footprint_map.get("watchlist", {}) if isinstance(footprint_map.get("watchlist"), dict) else {}
+        indicators = footprint_map.get("threat_indicators", []) if isinstance(footprint_map.get("threat_indicators"), list) else []
+        indicator_items = "".join(
+            "<li>"
+            f"[{html.escape(str(item.get('severity', 'INFO')))}] {html.escape(str(item.get('title', 'Signal')))}"
+            f"<br><span class='muted'>{html.escape(str(item.get('evidence', '-')))}</span>"
+            "</li>"
+            for item in indicators[:8]
+            if isinstance(item, dict)
+        ) or "<li>None</li>"
+        footprint_html = (
+            "<h4>Digital Footprint Map</h4>"
+            f"<p><strong>Profiles:</strong> {html.escape(str(summary.get('profile_count', 0)))} | "
+            f"<strong>Linked Domains:</strong> {html.escape(str(summary.get('external_domain_count', 0)))} | "
+            f"<strong>Surface Assets:</strong> {html.escape(str(summary.get('surface_asset_count', 0)))} | "
+            f"<strong>Risk Signals:</strong> {html.escape(str(summary.get('risk_signal_count', 0)))}</p>"
+            f"<p><strong>Observed Lanes:</strong> {html.escape(str(footprint_map.get('source_lanes', {})))}</p>"
+            "<div class='chip-group'>"
+            "<h4>Watch Handles</h4>"
+            f"<div>{_render_chip_list(list(watchlist.get('handles', []) or []), max_items=18)}</div>"
+            "</div>"
+            "<div class='chip-group'>"
+            "<h4>Watch Domains</h4>"
+            f"<div>{_render_chip_list(list(watchlist.get('domains', []) or []), max_items=18)}</div>"
+            "</div>"
+            "<h4>Risk Signals</h4>"
+            f"<ul>{indicator_items}</ul>"
+        )
 
     return (
         f"<p><strong>Entities:</strong> {html.escape(str(metadata.get('entity_count', 0)))} | "
@@ -580,6 +612,7 @@ def _render_intelligence_bundle(intelligence_bundle: dict | None) -> str:
         "</div>"
         "<h4>Correlation Reasons</h4>"
         f"<ul>{reason_items}</ul>"
+        f"{footprint_html}"
         "<h4>Explainable Guidance</h4>"
         f"<ul>{guidance_items}</ul>"
     )

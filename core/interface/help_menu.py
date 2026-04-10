@@ -77,7 +77,7 @@ def show_flag_help() -> None:
         (
             ("profile <username...>:", "Scan usernames for profile intelligence."),
             ("surface <domain>:", "Scan a domain for surface exposure signals."),
-            ("fusion <username> <domain>:", "Run profile and surface workflows together."),
+            ("fusion <username> <domain>:", "Run profile and surface workflows together with unified footprint mapping."),
             ("orchestrate <mode> <target>:", "Run policy-driven layered orchestration."),
             ("wizard:", "Run guided workflow questions."),
             ("quicktest [flags]:", "Run one random built-in victim template with report outputs."),
@@ -159,10 +159,10 @@ def show_prompt_help() -> None:
     _render_items(
         (
             ("scan <username>:", "Quick profile alias."),
-            ("profile <username...>:", "Run profile workflow."),
+            ("profile <username...>:", "Run profile workflow with digital footprint mapping."),
             ("surface <domain>:", "Run surface workflow."),
             ("surface <domain> --recon-mode <...>:", "Choose passive, active, or hybrid reconnaissance."),
-            ("fusion <username> <domain>:", "Run fusion workflow."),
+            ("fusion <username> <domain>:", "Run fusion workflow with profile, web, and surface linkage summary."),
             ("orchestrate <mode> <target>:", "Run layered orchestration."),
             ("surface-kit <domain> --preset <name>:", "Use local source recipes to drive a Sylica-X surface plan."),
             ("quicktest [flags]:", "Run one random built-in victim template."),
