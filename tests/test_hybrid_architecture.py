@@ -17,6 +17,7 @@ class TestHybridArchitecture(unittest.TestCase):
         self.assertIn(".d8888.", text)
         self.assertIn("Hybrid console lanes:", text)
         self.assertIn("Tor only", text)
+        self.assertIn("Authorized research only.", text)
 
     def test_hybrid_architecture_snapshot_is_native_to_sylica(self):
         snapshot = build_hybrid_architecture_snapshot()

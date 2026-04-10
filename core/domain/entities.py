@@ -32,6 +32,29 @@ def make_entity_id(kind: str, source: str, value: str) -> str:
     return f"{kind.strip().lower()}-{digest}"
 
 
+def _normalize_text(value: str | None) -> str | None:
+    """Normalize optional investigator-facing text values."""
+
+    if value is None:
+        return None
+    normalized = " ".join(str(value).strip().split())
+    return normalized or None
+
+
+def _deduplicate_terms(terms: list[str]) -> tuple[str, ...]:
+    """Deduplicate ordered service query terms while preserving semantic order."""
+
+    unique_terms: list[str] = []
+    seen_terms: set[str] = set()
+    for term in terms:
+        normalized_key = term.casefold()
+        if normalized_key in seen_terms:
+            continue
+        unique_terms.append(term)
+        seen_terms.add(normalized_key)
+    return tuple(unique_terms)
+
+
 @dataclass(frozen=True)
 class BaseEntity:
     """Base immutable entity shared across capability outputs."""
@@ -137,3 +160,77 @@ class AssetEntity(BaseEntity):
 
     asset_kind: str = "asset"
     entity_type: str = field(default="asset", init=False)
+
+
+@dataclass(frozen=True)
+class ServiceEntity(BaseEntity):
+    """Entity representing an observed authorized service for read-only research."""
+
+    authorized_host: str = ""
+    port: int = 0
+    transport_protocol: str = "tcp"
+    service_product: str = ""
+    service_vendor: str | None = None
+    service_version: str | None = None
+    banner_text: str | None = None
+    detected_cpe: str | None = None
+    entity_type: str = field(default="service", init=False)
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if self.port < 1 or self.port > 65535:
+            raise ValueError("Port must be between 1 and 65535.")
+        if not self.authorized_host.strip():
+            raise ValueError("Authorized host is required.")
+        if not self.service_product.strip():
+            raise ValueError("Service product is required.")
+
+        object.__setattr__(self, "authorized_host", self.authorized_host.strip())
+        object.__setattr__(self, "transport_protocol", self.transport_protocol.strip().lower())
+        object.__setattr__(self, "service_product", self.service_product.strip())
+        object.__setattr__(self, "service_vendor", _normalize_text(self.service_vendor))
+        object.__setattr__(self, "service_version", _normalize_text(self.service_version))
+        object.__setattr__(self, "banner_text", _normalize_text(self.banner_text))
+        object.__setattr__(self, "detected_cpe", _normalize_text(self.detected_cpe))
+
+    @property
+    def keyword_terms(self) -> tuple[str, ...]:
+        """Return ordered keyword terms for read-only vulnerability matching."""
+
+        query_terms: list[str] = []
+        if self.service_vendor:
+            query_terms.append(self.service_vendor)
+        query_terms.append(self.service_product)
+        if self.service_version:
+            query_terms.append(self.service_version)
+        return _deduplicate_terms(query_terms)
+
+    @property
+    def keyword_query(self) -> str:
+        """Build a keyword query from observed service metadata."""
+
+        return " ".join(self.keyword_terms)
+
+
+@dataclass(frozen=True)
+class VulnerabilityReference:
+    """Reference URL attached to a correlated vulnerability record."""
+
+    source: str
+    url: str
+    tags: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class VulnerabilityEntity(BaseEntity):
+    """Entity representing a read-only CVE correlation result."""
+
+    cve_id: str = ""
+    summary: str = ""
+    severity: str = "UNKNOWN"
+    cvss_base_score: float | None = None
+    cwes: tuple[str, ...] = field(default_factory=tuple)
+    published: str | None = None
+    last_modified: str | None = None
+    references: tuple[VulnerabilityReference, ...] = field(default_factory=tuple)
+    entity_type: str = field(default="vulnerability", init=False)

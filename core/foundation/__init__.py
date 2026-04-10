@@ -14,3 +14,19 @@
 # ──────────────────────────────────────────────────────────────
 
 """Shared foundational modules."""
+
+from core.foundation.research_scope import (
+    AUTHORIZED_RESEARCH_NOTICE,
+    DEFAULT_RESEARCH_POLICY,
+    InvestigationProfile,
+    ResearchPolicy,
+    ScopeBoundary,
+)
+
+__all__ = [
+    "AUTHORIZED_RESEARCH_NOTICE",
+    "DEFAULT_RESEARCH_POLICY",
+    "InvestigationProfile",
+    "ResearchPolicy",
+    "ScopeBoundary",
+]

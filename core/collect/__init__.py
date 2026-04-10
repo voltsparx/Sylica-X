@@ -14,3 +14,15 @@
 # ──────────────────────────────────────────────────────────────
 
 """Collection and scanning modules."""
+
+from core.collect.vulnerability_intel import (
+    build_nvd_query_parameters,
+    lookup_service_vulnerabilities,
+    severity_from_cvss,
+)
+
+__all__ = [
+    "build_nvd_query_parameters",
+    "lookup_service_vulnerabilities",
+    "severity_from_cvss",
+]

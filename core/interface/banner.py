@@ -15,6 +15,7 @@
 
 from core.foundation.colors import Colors, c
 from core.foundation.metadata import AUTHOR, PROJECT_NAME, VERSION, VERSION_THEME
+from core.foundation.research_scope import AUTHORIZED_RESEARCH_NOTICE
 
 
 def show_banner(anonymity_status: str = "No Anonymization") -> None:
@@ -34,5 +35,7 @@ def show_banner(anonymity_status: str = "No Anonymization") -> None:
     print(c(f"    {PROJECT_NAME} hybrid console by {AUTHOR} (github.com/{AUTHOR})", Colors.CYAN))
     print(c("    Hybrid console lanes: dispatch | registry | event-flow | fusion", Colors.GREY))
     print(c(f"    Current anonymity: {anonymity_status}", Colors.CYAN))
+    for notice_line in AUTHORIZED_RESEARCH_NOTICE:
+        print(c(f"    {notice_line}", Colors.GREY))
     print(c("    Type `help` for commands, `show config` for context, `exit` to quit.", Colors.GREY))
     print()

@@ -15,7 +15,13 @@
 
 import unittest
 
-from core.domain import BaseEntity, ProfileEntity, make_entity_id
+from core.domain import (
+    BaseEntity,
+    ProfileEntity,
+    ServiceEntity,
+    VulnerabilityReference,
+    make_entity_id,
+)
 
 
 class TestDomainEntities(unittest.TestCase):
@@ -52,6 +58,26 @@ class TestDomainEntities(unittest.TestCase):
         self.assertEqual(entity.confidence_score, 0.8)
         self.assertEqual(entity.metadata["status"], "FOUND")
         self.assertEqual(entity.relationships, ("user-1",))
+
+    def test_service_entity_builds_keyword_query(self):
+        entity = ServiceEntity(
+            id="service-1",
+            value="postgresql://192.0.2.10:5432",
+            source="surface",
+            confidence=0.9,
+            authorized_host="192.0.2.10",
+            port=5432,
+            transport_protocol="tcp",
+            service_product="PostgreSQL",
+            service_vendor="postgresql",
+            service_version="14.5",
+        )
+        self.assertEqual(entity.entity_type, "service")
+        self.assertEqual(entity.keyword_query.lower(), "postgresql 14.5")
+
+    def test_vulnerability_reference_defaults_tags(self):
+        reference = VulnerabilityReference(source="NVD", url="https://nvd.nist.gov/")
+        self.assertEqual(reference.tags, ())
 
 
 if __name__ == "__main__":

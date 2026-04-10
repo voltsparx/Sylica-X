@@ -22,6 +22,9 @@ from core.domain.entities import (
     EmailEntity,
     IpEntity,
     ProfileEntity,
+    ServiceEntity,
+    VulnerabilityEntity,
+    VulnerabilityReference,
     make_entity_id,
 )
 
@@ -32,5 +35,8 @@ __all__ = [
     "EmailEntity",
     "IpEntity",
     "ProfileEntity",
+    "ServiceEntity",
+    "VulnerabilityEntity",
+    "VulnerabilityReference",
     "make_entity_id",
 ]
