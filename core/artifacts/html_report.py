@@ -309,10 +309,25 @@ def _render_domain_section(domain_result: dict | None) -> str:
     ) or "<li>None</li>"
     surface_map = domain_result.get("surface_map", {}) if isinstance(domain_result.get("surface_map"), dict) else {}
     scan_controls = domain_result.get("scan_controls", {}) if isinstance(domain_result.get("scan_controls"), dict) else {}
+    packet_crafting = domain_result.get("packet_crafting", {}) if isinstance(domain_result.get("packet_crafting"), dict) else {}
     source_summary = surface_map.get("source_summary", {}) if isinstance(surface_map.get("source_summary"), dict) else {}
     priority_summary = surface_map.get("priority_summary", {}) if isinstance(surface_map.get("priority_summary"), dict) else {}
     probe_plan = surface_map.get("probe_plan", {}) if isinstance(surface_map.get("probe_plan"), dict) else {}
     next_steps = domain_result.get("next_steps", []) if isinstance(domain_result.get("next_steps"), list) else []
+    packet_bundles = packet_crafting.get("bundles", []) if isinstance(packet_crafting.get("bundles"), list) else []
+    packet_bundle_items = "".join(
+        "<li>"
+        f"<strong>{html.escape(str(row.get('title', 'Packet Bundle')))}</strong>: "
+        f"{html.escape(str(row.get('purpose', '-')))} "
+        f"(artifacts={html.escape(str(row.get('artifact_count', 0)))})"
+        "</li>"
+        for row in packet_bundles[:6]
+        if isinstance(row, dict)
+    ) or "<li>None</li>"
+    packet_notes = "".join(
+        f"<li>{html.escape(str(note))}</li>"
+        for note in list(packet_crafting.get("notes", []) or [])[:8]
+    ) or "<li>None</li>"
     next_step_items = "".join(
         "<li>"
         f"[{html.escape(str(row.get('priority', 'P3')))}] "
@@ -353,6 +368,13 @@ def _render_domain_section(domain_result: dict | None) -> str:
         f"<div>{_render_chip_list([str(item) for item in list(probe_plan.get('recommended_ports', []) or [])], max_items=18)}</div>"
         "<h4>Common Paths</h4>"
         f"<div>{_render_chip_list(list(probe_plan.get('common_paths', []) or []), max_items=18)}</div>"
+        "<h4>Packet Crafting Plan</h4>"
+        f"<p><strong>Authorized Host:</strong> {html.escape(str(packet_crafting.get('authorized_host', '-')))}"
+        f" | <strong>Requested Types:</strong> {html.escape(', '.join(packet_crafting.get('requested_scan_types', []) or []) or 'none')}"
+        f" | <strong>Selected Ports:</strong> {html.escape(', '.join(str(item) for item in (packet_crafting.get('selected_ports', []) or [])) or 'none')}</p>"
+        f"<ul>{packet_bundle_items}</ul>"
+        "<h4>Packet Crafting Notes</h4>"
+        f"<ul>{packet_notes}</ul>"
         "<h4>Collector Status</h4>"
         f"<ul>{collector_items}</ul>"
         "<h4>Collector Notes</h4>"

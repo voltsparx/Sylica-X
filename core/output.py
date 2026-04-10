@@ -630,6 +630,38 @@ def display_domain_results(
                 Colors.GREY,
             )
         )
+    packet_crafting = domain_result.get("packet_crafting", {})
+    if isinstance(packet_crafting, dict) and packet_crafting:
+        print(c(f"\n{symbol('major')} Packet Crafting Plan", Colors.BLUE))
+        print(c("-" * 36, Colors.BLUE))
+        print(
+            c(
+                f"{symbol('bullet')} host={packet_crafting.get('authorized_host', '-')} "
+                f"scan_types={_preview(list(packet_crafting.get('requested_scan_types', []) or []), limit=10)}",
+                Colors.GREY,
+            )
+        )
+        print(
+            c(
+                f"{symbol('bullet')} selected_ports={_preview([str(item) for item in list(packet_crafting.get('selected_ports', []) or [])], limit=12)}",
+                Colors.GREY,
+            )
+        )
+        bundles = packet_crafting.get("bundles", [])
+        if isinstance(bundles, list):
+            for bundle in bundles[:6]:
+                if not isinstance(bundle, dict):
+                    continue
+                print(
+                    c(
+                        f"{symbol('action')} {bundle.get('title', 'Packet Bundle')} "
+                        f"artifacts={bundle.get('artifact_count', 0)}",
+                        Colors.CYAN,
+                    )
+                )
+                print(c(f"  {symbol('bullet')} purpose: {bundle.get('purpose', '-')}", Colors.GREY))
+        for note in list(packet_crafting.get("notes", []) or [])[:6]:
+            print(c(f"{symbol('tip')} {note}", Colors.GREY))
     next_steps = domain_result.get("next_steps", [])
     if isinstance(next_steps, list) and next_steps:
         print(c(f"\n{symbol('major')} Recommended Next Steps", Colors.GREEN))

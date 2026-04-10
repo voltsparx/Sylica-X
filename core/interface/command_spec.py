@@ -118,6 +118,13 @@ SURFACE_SCAN_TYPE_SPECS: Final[tuple[SurfaceScanTypeSpec, ...]] = (
         short_flag="-sX",
     ),
     SurfaceScanTypeSpec(
+        identifier="os-fingerprint",
+        title="OS Fingerprint Research",
+        summary="Read-only TTL and TCP-stack inference controls for authorized host fingerprinting.",
+        aliases=("os-fingerprint", "os_fingerprint", "os", "osscan", "fingerprint"),
+        short_flag="-O",
+    ),
+    SurfaceScanTypeSpec(
         identifier="service",
         title="Service Version Inquiry",
         summary="Read-only banner and version inquiry for exposed services.",
@@ -140,7 +147,7 @@ _SURFACE_SCAN_TYPE_ALIAS_MAP: Final[dict[str, str]] = {
 }
 
 SURFACE_ACTIVE_SCAN_TYPES: Final[frozenset[str]] = frozenset(
-    {"arp", "syn", "tcp-connect", "udp", "fin", "null", "xmas", "service", "tls"}
+    {"arp", "syn", "tcp-connect", "udp", "fin", "null", "xmas", "os-fingerprint", "service", "tls"}
 )
 
 
@@ -195,7 +202,9 @@ def resolve_surface_scan_directives(
     """Resolve surface scan controls into a single read-only reconnaissance plan."""
 
     normalized_recon_mode = normalize_recon_mode(recon_mode)
-    normalized_scan_types = normalize_surface_scan_types(requested_scan_types)
+    normalized_scan_types = list(normalize_surface_scan_types(requested_scan_types))
+    if os_fingerprint_enabled and "os-fingerprint" not in normalized_scan_types:
+        normalized_scan_types.append("os-fingerprint")
 
     normalized_verbosity = str(scan_verbosity or "standard").strip().lower() or "standard"
     if normalized_verbosity not in {"standard", "verbose"}:
@@ -221,7 +230,7 @@ def resolve_surface_scan_directives(
 
     return SurfaceScanDirectives(
         recon_mode=effective_recon_mode,
-        scan_types=normalized_scan_types,
+        scan_types=tuple(normalized_scan_types),
         scan_verbosity=normalized_verbosity,
         os_fingerprint_enabled=bool(os_fingerprint_enabled),
         delay_seconds=normalized_delay,

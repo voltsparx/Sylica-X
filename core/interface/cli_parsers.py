@@ -492,7 +492,7 @@ def _add_surface_scan_args(parser: argparse.ArgumentParser) -> None:
         default=[],
         help=(
             "Attack-surface scan directives (repeatable or comma-separated): "
-            "arp, syn, tcp-connect, udp, fin, null, xmas, service, tls."
+            "arp, syn, tcp-connect, udp, fin, null, xmas, os-fingerprint, service, tls."
         ),
     )
     parser.add_argument("-aS", dest="scan_type", action="append_const", const="arp", help="Add ARP discovery intent.")

@@ -115,6 +115,7 @@ from core.domain import BaseEntity
 from core.foundation.session_state import PromptSessionState
 from core.intelligence import IntelligenceEngine
 from core.intelligence.entity_builder import build_fusion_entities, build_profile_entities, build_surface_entities
+from core.packet_crafting import build_surface_packet_crafting_plan
 from core.artifacts.storage import (
     cli_report_path,
     ensure_output_tree,
@@ -1973,6 +1974,9 @@ async def run_profile_scan(
             "issues": issues,
             "issue_summary": issue_summary,
             "intelligence_bundle": intelligence_bundle,
+            "proxy_url": proxy_url,
+            "use_tor": state.use_tor,
+            "use_proxy": state.use_proxy,
             "crypto_config": _build_crypto_plugin_config(
                 scope="profile",
                 scan_mode=scan_mode,
@@ -2171,6 +2175,10 @@ async def run_surface_scan(
     domain_result["scan_controls"] = resolved_scan_directives.as_dict()
     domain_result["surface_map"] = build_surface_map(domain_result)
     domain_result["next_steps"] = build_surface_next_steps(domain_result, issue_summary=issue_summary)
+    domain_result["packet_crafting"] = build_surface_packet_crafting_plan(
+        domain_result,
+        scan_directives=resolved_scan_directives,
+    ).as_dict()
     narrative = build_nano_brief(
         domain=normalized_domain,
         domain_result=domain_result,
@@ -2195,6 +2203,9 @@ async def run_surface_scan(
             "issues": issues,
             "issue_summary": issue_summary,
             "intelligence_bundle": intelligence_bundle,
+            "proxy_url": proxy_url,
+            "use_tor": state.use_tor,
+            "use_proxy": state.use_proxy,
             "crypto_config": _build_crypto_plugin_config(
                 scope="surface",
                 scan_mode=scan_mode,
@@ -2836,6 +2847,9 @@ async def _handle_fusion_command(
             "fused_intel": fused_intel,
             "fusion_graph": fusion_graph,
             "intelligence_bundle": intelligence_bundle,
+            "proxy_url": get_network_settings(effective_state.use_proxy, effective_state.use_tor),
+            "use_tor": effective_state.use_tor,
+            "use_proxy": effective_state.use_proxy,
             "crypto_config": _build_crypto_plugin_config(
                 scope="fusion",
                 scan_mode=fusion_mode,
@@ -3148,6 +3162,10 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         "fused_intel": payload.get("fused", {}),
         "fusion_graph": payload.get("fused", {}).get("graph", {}),
         "intelligence_bundle": payload.get("fused", {}).get("intelligence_bundle", {}),
+        "proxy_url": get_network_settings(effective_state.use_proxy, effective_state.use_tor),
+        "use_tor": effective_state.use_tor,
+        "use_proxy": effective_state.use_proxy,
+        "scan_controls": surface_scan_directives.as_dict(),
         "crypto_config": _build_crypto_plugin_config(
             scope=mode,
             scan_mode=str(args.profile),

@@ -31,6 +31,7 @@ from core.packet_crafting.registry import (
     create_packet_crafting_engine,
     list_packet_crafting_engines,
 )
+from core.packet_crafting.surface_runtime import SurfacePacketCraftingPlan, build_surface_packet_crafting_plan
 
 __all__ = [
     "CraftedPacketArtifact",
@@ -39,6 +40,8 @@ __all__ = [
     "PacketCraftingEngineDescriptor",
     "PacketCraftingProfile",
     "PacketCraftingRequest",
+    "SurfacePacketCraftingPlan",
+    "build_surface_packet_crafting_plan",
     "craft_packet_bundle",
     "create_packet_crafting_engine",
     "list_packet_crafting_engines",
