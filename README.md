@@ -12,6 +12,7 @@ Multi-engine OSINT orchestration for profile intelligence, domain-surface reconn
   <img src="https://img.shields.io/badge/version-v9.3.0-0A66C2?style=for-the-badge" alt="Version v9.3.0">
   <img src="https://img.shields.io/badge/theme-Lattice-1F7A8C?style=for-the-badge" alt="Theme Lattice">
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Versions">
+  <img src="https://img.shields.io/badge/status-unstable-4C956C?style=for-the-badge" alt="Status Unstable">
   <img src="https://img.shields.io/badge/tests-165%2F165%20passing-2E8B57?style=for-the-badge" alt="Tests Passing">
   <img src="https://img.shields.io/badge/platforms-70-4C956C?style=for-the-badge" alt="Platforms">
   <img src="https://img.shields.io/badge/license-Proprietary-8B0000?style=for-the-badge" alt="License Proprietary">
