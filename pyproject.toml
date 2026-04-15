@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Multi-engine OSINT orchestration for profile intelligence, domain-surface reconnaissance, and fused correlation reporting."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { file = "LICENSE" }
+license = "LicenseRef-Proprietary"
 authors = [{ name = "voltsparx", email = "voltsparx@gmail.com" }]
 keywords = ["osint-framework", "intelligence", "recon", "correlation", "security"]
 classifiers = [
@@ -16,7 +16,6 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
-  "License :: Other/Proprietary License",
   "Operating System :: OS Independent",
   "Intended Audience :: Information Technology",
   "Topic :: Security",

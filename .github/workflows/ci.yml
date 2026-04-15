@@ -7,8 +7,16 @@ on:
       - master
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONUTF8: "1"
 
 jobs:
   quality:
@@ -46,8 +54,13 @@ jobs:
       - name: Run Mypy
         run: python -m mypy
 
+      - name: Run CLI smoke
+        run: |
+          python -m silica_x --about
+          python silica-x.py --about
+
       - name: Run compile smoke
-        run: python -m compileall -q core filters modules plugins silica_x platforms tests silica-x.py
+        run: python -m compileall -q core filters modules plugins platforms wordlists silica_x tests silica-x.py
 
   package:
     runs-on: ubuntu-latest
@@ -76,3 +89,20 @@ jobs:
       - name: Check dist metadata
         shell: bash
         run: python -m twine check dist/*
+
+      - name: Install built package and validate entrypoints
+        shell: bash
+        run: |
+          python -m venv .venv-package-smoke
+          source .venv-package-smoke/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install dist/*.whl
+          silica-x --about
+          python -m silica_x --about
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: silica-x-dist
+          path: dist/*
+          if-no-files-found: error

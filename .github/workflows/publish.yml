@@ -5,8 +5,16 @@ on:
     types: [published]
   workflow_dispatch:
 
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONUTF8: "1"
 
 jobs:
   build-dist:
@@ -32,3 +40,20 @@ jobs:
           python -m pip install build "twine>=6,<7"
           python -m build
           python -m twine check dist/*
+
+      - name: Install built package and validate entrypoints
+        shell: bash
+        run: |
+          python -m venv .venv-release-smoke
+          source .venv-release-smoke/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install dist/*.whl
+          silica-x --about
+          python -m silica_x --about
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: silica-x-release-dist
+          path: dist/*
+          if-no-files-found: error
