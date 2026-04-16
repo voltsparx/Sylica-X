@@ -7,8 +7,13 @@ function initSidebar() {
       return;
     }
 
-    DocsState.navGroupFilter = button.dataset.group || "All";
+    const group = button.dataset.group || "All";
+    DocsState.navGroupFilter = group;
     updateSidebar();
+
+    if (group !== "All") {
+      navigateToEntry(firstEntryForGroup(group));
+    }
   });
 
   DocsElements.menuToggle?.addEventListener("click", () => {
@@ -31,4 +36,3 @@ function initSidebar() {
     setNavOpen(false);
   });
 }
-

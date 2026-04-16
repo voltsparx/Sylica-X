@@ -28,6 +28,32 @@ function groupedEntries() {
   return grouped;
 }
 
+function firstEntryForGroup(group) {
+  return DocsData.entries.find((entry) => entry.group === group) || null;
+}
+
+function navigateToEntry(entry) {
+  if (!entry) {
+    return;
+  }
+
+  const destination = pageLink(entry.page, entry.id);
+  const current = `${DocsState.currentPage}${window.location.hash || ""}`;
+
+  if (destination === current) {
+    const node = document.getElementById(entry.id);
+    if (node) {
+      DocsState.currentSection = entry.id;
+      window.history.replaceState(null, "", destination);
+      updateSidebar();
+      node.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    return;
+  }
+
+  window.location.href = destination;
+}
+
 function setNavOpen(nextState) {
   DocsState.navOpen = Boolean(nextState);
   DocsElements.body.classList.toggle("nav-open", DocsState.navOpen);
@@ -97,6 +123,60 @@ function renderSidebarNav() {
 function updateSidebar() {
   renderSidebarTabs();
   renderSidebarNav();
+}
+
+function githubApi(path = "") {
+  return `https://api.github.com/repos/${DocsData.github.owner}/${DocsData.github.repo}${path}`;
+}
+
+function githubRaw(path = "") {
+  if (!path) {
+    return DocsData.github.rawBase;
+  }
+  return `${DocsData.github.rawBase}/${path.replace(/^\/+/, "")}`;
+}
+
+function githubBlob(path = "") {
+  return `${DocsData.github.repoUrl}/blob/${DocsData.github.branch}/${path.replace(/^\/+/, "")}`;
+}
+
+function compactNumber(value) {
+  const number = Number(value || 0);
+  return new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(number);
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "n/a";
+  }
+  return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function formatRelativeTime(value) {
+  if (!value) {
+    return "n/a";
+  }
+
+  const diffMs = new Date(value).getTime() - Date.now();
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  const minutes = Math.round(diffMs / 60000);
+  if (Math.abs(minutes) < 60) {
+    return rtf.format(minutes, "minute");
+  }
+  const hours = Math.round(minutes / 60);
+  if (Math.abs(hours) < 48) {
+    return rtf.format(hours, "hour");
+  }
+  const days = Math.round(hours / 24);
+  if (Math.abs(days) < 30) {
+    return rtf.format(days, "day");
+  }
+  const months = Math.round(days / 30);
+  if (Math.abs(months) < 12) {
+    return rtf.format(months, "month");
+  }
+  const years = Math.round(months / 12);
+  return rtf.format(years, "year");
 }
 
 function initContactPopover() {

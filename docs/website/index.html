@@ -31,13 +31,13 @@
 </head>
 <body data-page="index.html" data-default-section="home">
 <header id="topbar">
-  <a id="topbar-brand" href="index.html">
+  <button id="topbar-brand" type="button" aria-label="Silica-X brand console trigger">
     <img src="web_assets/media/silica-x-web.png" alt="Silica-X logo">
     <span id="topbar-brand-text">
       <span id="topbar-name">Silica-X</span>
       <span id="topbar-tagline">OSINT orchestration and correlation framework</span>
     </span>
-  </a>
+  </button>
   <div id="topbar-version">v9.3.0 · Python 3.11+ · Ember</div>
   <div class="topbar-search">
     <input id="docs-search-input" type="search" placeholder="Search the docs">
@@ -74,7 +74,7 @@
     <div class="hero-grid">
       <article class="hero-card">
         <div class="eyebrow">Release Theme: Ember</div>
-        <h1 class="hero-title">Silica-X</h1>
+        <h1 class="hero-title">Silica-X <span class="hero-title-mark" aria-hidden="true"><img src="web_assets/media/silica-x-web.png" alt=""></span></h1>
         <p class="hero-subtitle">Multi-engine OSINT orchestration for profile intelligence, domain-surface reconnaissance, fused correlation, and structured reporting.</p>
         <p class="hero-copy">Silica-X is a Python framework that brings several investigation lanes into one operator flow. It can scan usernames across platforms, inspect domain surface exposure, combine those signals in a fusion run, and drive a policy-led orchestration pipeline that turns raw findings into usable artifacts.</p>
         <div class="badge-row">
@@ -177,7 +177,6 @@
     </div>
     <div class="pipeline-grid">
       <div id="home-workflow-rail" class="workflow-rail" aria-label="Silica-X workflow stages"></div>
-      <div id="home-workflow-detail"></div>
     </div>
     <div class="grid-2 section-block">
       <article class="panel">

@@ -119,6 +119,7 @@ const DocsState = {
 
 const DocsElements = {
   body: document.body,
+  topbarBrand: document.getElementById("topbar-brand"),
   topbarLogo: document.querySelector("#topbar-brand img"),
   topbarName: document.getElementById("topbar-name"),
   topbarVersion: document.getElementById("topbar-version"),

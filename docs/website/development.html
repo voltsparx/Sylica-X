@@ -21,13 +21,13 @@
 </head>
 <body data-page="development.html" data-default-section="development-home">
 <header id="topbar">
-  <a id="topbar-brand" href="index.html">
+  <button id="topbar-brand" type="button" aria-label="Silica-X brand console trigger">
     <img src="web_assets/media/silica-x-web.png" alt="Silica-X logo">
     <span id="topbar-brand-text">
       <span id="topbar-name">Silica-X</span>
       <span id="topbar-tagline">OSINT orchestration and correlation framework</span>
     </span>
-  </a>
+  </button>
   <div id="topbar-version">v9.3.0 · Python 3.11+ · Ember</div>
   <div class="topbar-search">
     <input id="docs-search-input" type="search" placeholder="Search the docs">
@@ -112,10 +112,17 @@
       <h3 class="panel-title">Repository health</h3>
       <div id="repo-health" class="section-block"><div class="empty-state">Loading GitHub repository data...</div></div>
     </article>
-    <article class="panel section-block">
-      <h3 class="panel-title">Recent commits</h3>
-      <div id="commit-feed" class="section-block"><div class="empty-state">Loading recent commit activity...</div></div>
-    </article>
+    <div class="grid-2 section-block">
+      <article class="panel">
+        <h3 class="panel-title">7-Day Commit Trend</h3>
+        <p class="tiny muted">A compact line graph built from recent GitHub commit history.</p>
+        <div id="dev-commit-chart" class="section-block"><div class="empty-state">Loading commit trend...</div></div>
+      </article>
+      <article class="panel">
+        <h3 class="panel-title">Recent commits</h3>
+        <div id="commit-feed" class="section-block"><div class="empty-state">Loading recent commit activity...</div></div>
+      </article>
+    </div>
   </section>
 
   <section id="release-radar" class="page-section section-anchor">
@@ -125,35 +132,20 @@
         <h2 class="section-title">Raw signals worth watching</h2>
       </div>
     </div>
-    <div class="link-grid">
-      <a class="card" href="https://raw.githubusercontent.com/voltsparx/Silica-X/main/README.md" target="_blank" rel="noreferrer">
-        <h3 class="card-title">README</h3>
-        <div class="card-copy"><p>Current release statement, power summary, command tables, and audit snapshot.</p></div>
-      </a>
-      <a class="card" href="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/release-notes-v9.3.0-lattice.md" target="_blank" rel="noreferrer">
-        <h3 class="card-title">Release Notes</h3>
-        <div class="card-copy"><p>Detailed v9.3.0 changes and release framing.</p></div>
-      </a>
-      <a class="card" href="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/release-checklist-v9.3.0-lattice.md" target="_blank" rel="noreferrer">
-        <h3 class="card-title">Release Checklist</h3>
-        <div class="card-copy"><p>Operational release readiness and checklist view.</p></div>
-      </a>
-      <a class="card" href="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/release-commit-plan-v9.3.0-lattice.md" target="_blank" rel="noreferrer">
-        <h3 class="card-title">Commit Plan</h3>
-        <div class="card-copy"><p>Planned release-level commit coordination notes.</p></div>
-      </a>
-      <a class="card" href="https://raw.githubusercontent.com/voltsparx/Silica-X/main/docs/silica-capability-scan.md" target="_blank" rel="noreferrer">
-        <h3 class="card-title">Capability Scan</h3>
-        <div class="card-copy"><p>Project self-assessment and capability reporting signal.</p></div>
-      </a>
-      <a class="card" href="https://raw.githubusercontent.com/voltsparx/Silica-X/main/intel/runtime-inventory.json" target="_blank" rel="noreferrer">
-        <h3 class="card-title">Runtime Inventory</h3>
-        <div class="card-copy"><p>Machine-readable plugin, filter, platform, and module snapshot.</p></div>
-      </a>
+    <div class="grid-2">
+      <article class="panel">
+        <h3 class="panel-title">Published releases</h3>
+        <div id="release-feed" class="section-block"><div class="empty-state">Loading release data...</div></div>
+      </article>
+      <article class="panel">
+        <h3 class="panel-title">Recent tags</h3>
+        <div id="tag-feed" class="section-block"><div class="empty-state">Loading tag data...</div></div>
+      </article>
     </div>
     <article class="panel section-block">
-      <h3 class="panel-title">Published GitHub releases</h3>
-      <div id="release-feed" class="section-block"><div class="empty-state">Loading release data...</div></div>
+      <h3 class="panel-title">Inline file viewers</h3>
+      <p class="tiny muted">Open raw project files inside the docs shell for quick inspection, or jump out to GitHub when you want the full repository view.</p>
+      <div id="raw-viewer-grid" class="section-block"><div class="empty-state">Loading repository file viewer cards...</div></div>
     </article>
   </section>
 </main>
@@ -173,6 +165,7 @@
 <script src="js/features/search.js"></script>
 <script src="js/features/workflow-visual.js"></script>
 <script src="js/features/easter-eggs.js"></script>
+<script src="js/features/raw-popup.js"></script>
 <script src="js/features/development-feed.js"></script>
 <script src="js/bootstrap/app.js"></script>
 </body>

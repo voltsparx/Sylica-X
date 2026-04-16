@@ -3,8 +3,8 @@ const EasterEgg = (() => {
   let overdriveTimer = null;
   let versionPressTimer = null;
   let menuPressTimer = null;
-  let logoTapCount = 0;
-  let logoTapTimer = null;
+  let brandTapCount = 0;
+  let brandTapTimer = null;
   let heroTapCount = 0;
   let heroTapTimer = null;
 
@@ -53,6 +53,30 @@ const EasterEgg = (() => {
     node.classList.add("egg-logo-pulse");
   }
 
+  function spawnRibbons(count = 18) {
+    const layer = document.createElement("div");
+    layer.className = "egg-ribbon-layer";
+    DocsElements.body.appendChild(layer);
+
+    const palette = ["#ff8a1d", "#ffb259", "#ffd36f", "#73d4ff", "#67d6a8"];
+    const total = Math.max(10, Math.min(count, 40));
+
+    for (let index = 0; index < total; index += 1) {
+      const ribbon = document.createElement("span");
+      ribbon.className = "egg-ribbon";
+      ribbon.style.left = `${Math.random() * 100}%`;
+      ribbon.style.background = `linear-gradient(180deg, ${palette[index % palette.length]}, rgba(255,255,255,0.12))`;
+      ribbon.style.setProperty("--egg-drift", `${(Math.random() * 220) - 110}px`);
+      ribbon.style.animationDuration = `${2.8 + (Math.random() * 1.8)}s`;
+      ribbon.style.animationDelay = `${Math.random() * 0.25}s`;
+      layer.appendChild(ribbon);
+    }
+
+    window.setTimeout(() => {
+      layer.remove();
+    }, 4200);
+  }
+
   function activateOverdrive(message) {
     DocsElements.body.classList.add("egg-overdrive");
     pulseLogo(DocsElements.topbarLogo);
@@ -84,26 +108,28 @@ const EasterEgg = (() => {
     );
   }
 
-  function bindLogoCombo() {
-    if (!DocsElements.topbarLogo) {
+  function bindBrandCombo() {
+    if (!DocsElements.topbarBrand || !DocsElements.topbarLogo) {
       return;
     }
 
-    DocsElements.topbarLogo.addEventListener("click", () => {
-      logoTapCount += 1;
+    DocsElements.topbarBrand.addEventListener("click", (event) => {
+      event.preventDefault();
+      brandTapCount += 1;
       pulseLogo(DocsElements.topbarLogo);
 
-      if (logoTapTimer) {
-        window.clearTimeout(logoTapTimer);
+      if (brandTapTimer) {
+        window.clearTimeout(brandTapTimer);
       }
 
-      logoTapTimer = window.setTimeout(() => {
-        logoTapCount = 0;
-      }, 1600);
+      brandTapTimer = window.setTimeout(() => {
+        brandTapCount = 0;
+      }, 1900);
 
-      if (logoTapCount >= 5) {
-        logoTapCount = 0;
-        activateOverdrive("Operator uplink locked");
+      if (brandTapCount >= 7) {
+        brandTapCount = 0;
+        spawnRibbons(24);
+        showToast("Ribbon fall unlocked", "Brand console accepted seven taps.");
       }
     });
   }
@@ -199,7 +225,7 @@ const EasterEgg = (() => {
   }
 
   function init() {
-    bindLogoCombo();
+    bindBrandCombo();
     bindHeroCombo();
     bindVersionLongPress();
     bindMenuLongPress();

@@ -7,7 +7,7 @@
 .dev-status-item {
   padding: 1rem;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 176, 90, 0.08);
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -34,7 +34,7 @@
 .feed-item {
   padding: 0.95rem 1rem;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 176, 90, 0.08);
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -48,3 +48,230 @@
   font-size: 0.84rem;
 }
 
+.dev-chart-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.dev-chart-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: start;
+}
+
+.dev-chart-summary strong {
+  color: var(--text-0);
+}
+
+.dev-chart-summary .muted {
+  font-size: 0.82rem;
+}
+
+.dev-chart {
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 176, 90, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dev-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.dev-chart-grid {
+  stroke: rgba(255, 176, 90, 0.08);
+  stroke-width: 1;
+}
+
+.dev-chart-line {
+  fill: none;
+  stroke: var(--ember);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dev-chart-area {
+  fill: rgba(255, 138, 29, 0.12);
+}
+
+.dev-chart-point {
+  fill: var(--ember-2);
+  stroke: rgba(8, 13, 19, 0.9);
+  stroke-width: 2;
+}
+
+.dev-chart-axis {
+  fill: var(--text-2);
+  font-size: 12px;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.dev-chart-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+
+.dev-chart-chip {
+  padding: 0.65rem 0.72rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 176, 90, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.dev-chart-chip strong {
+  display: block;
+  color: var(--text-0);
+  font-size: 0.88rem;
+}
+
+.dev-chart-chip span {
+  display: block;
+  margin-top: 0.22rem;
+  color: var(--text-2);
+  font-size: 0.78rem;
+}
+
+.raw-link-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.raw-link-card {
+  display: block;
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 176, 90, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+}
+
+.raw-link-card:hover,
+.raw-link-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(255, 176, 90, 0.18);
+  background: linear-gradient(180deg, rgba(255, 138, 29, 0.06), rgba(255, 255, 255, 0.02));
+}
+
+.raw-link-title {
+  display: block;
+  color: var(--text-0);
+  font-weight: 700;
+}
+
+.raw-link-path {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--ember-2);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+}
+
+.raw-link-copy {
+  display: block;
+  margin-top: 0.55rem;
+  color: var(--text-2);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.raw-viewer-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 8, 12, 0.72);
+  z-index: 120;
+  padding: 1.2rem;
+}
+
+.raw-viewer-window {
+  width: min(960px, 100%);
+  max-height: min(88vh, 900px);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 176, 90, 0.12);
+  background: rgba(8, 13, 19, 0.98);
+  box-shadow: var(--shadow);
+}
+
+.raw-viewer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+  padding: 1rem 1rem 0.85rem;
+  border-bottom: 1px solid rgba(255, 176, 90, 0.08);
+}
+
+.raw-viewer-title {
+  color: var(--text-0);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.raw-viewer-meta {
+  margin-top: 0.3rem;
+  color: var(--text-2);
+  font-size: 0.82rem;
+}
+
+.raw-viewer-close {
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 176, 90, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-0);
+}
+
+.raw-viewer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 176, 90, 0.08);
+}
+
+.raw-viewer-link {
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 176, 90, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-0);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.raw-viewer-body {
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  color: #d9e3ef;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01));
+}
+
+@media (max-width: 1080px) {
+  .raw-link-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .dev-chart-summary,
+  .raw-link-grid {
+    grid-template-columns: 1fr;
+  }
+}
