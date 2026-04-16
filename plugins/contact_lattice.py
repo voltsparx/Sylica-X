@@ -13,7 +13,7 @@
 # and conditions defined in the LICENSE file.
 # ──────────────────────────────────────────────────────────────
 
-"""Plugin: contact lattice exposure analytics."""
+"""Plugin: contact ember exposure analytics."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from collections import defaultdict
 
 PLUGIN_SPEC = {
     "id": "contact_lattice",
-    "title": "Contact Lattice Analyzer",
+    "title": "Contact Ember Analyzer",
     "description": "Correlates exposed emails/phones across platforms and calculates contact mesh density.",
     "scopes": ["profile", "fusion"],
     "aliases": ["contact_mesh", "contacts", "mesh"],

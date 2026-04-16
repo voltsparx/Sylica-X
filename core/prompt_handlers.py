@@ -1,4 +1,4 @@
-# ──────────────────────────────────────────────────────────────
+﻿# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # SPDX-License-Identifier: Proprietary
 #
 # Silica-X Intelligence Framework
@@ -11,7 +11,7 @@
 #
 # This file is part of Silica-X and is subject to the terms
 # and conditions defined in the LICENSE file.
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 """Prompt command parsing and session-state mutation helpers."""
 
@@ -230,7 +230,7 @@ def _mutate_selection(
 
     requested = _split_csv_values(value)
     if not requested:
-        emit(f"Provide at least one {kind[:-1]} selector (id/alias/name).", Colors.YELLOW)
+        emit(f"Provide at least one {kind[:-1]} selector (id/alias/name).", Colors.EMBER)
         return True
 
     if kind == "plugins":
@@ -241,7 +241,7 @@ def _mutate_selection(
                 f"Incompatible or unknown selectors: {', '.join(rejected)}",
                 Colors.RED,
             )
-            emit("Use `plugins --scope ...` to inspect compatible selectors.", Colors.YELLOW)
+            emit("Use `plugins --scope ...` to inspect compatible selectors.", Colors.EMBER)
             return True
         current = _dedupe_names(session.plugin_names)
         if action == "add":
@@ -270,7 +270,7 @@ def _mutate_selection(
             f"Incompatible or unknown selectors: {', '.join(rejected)}",
             Colors.RED,
         )
-        emit("Use `filters --scope ...` to inspect compatible selectors.", Colors.YELLOW)
+        emit("Use `filters --scope ...` to inspect compatible selectors.", Colors.EMBER)
         return True
     current = _dedupe_names(session.filter_names)
     if action == "add":
@@ -352,7 +352,7 @@ def handle_prompt_set_command(
     if len(tokens) != 3:
         _emit(
             "Usage: set <template|plugins|filters|profile_preset|surface_preset|extension_control|orchestrate_extension_control> <value>",
-            Colors.YELLOW,
+            Colors.EMBER,
         )
         return True
 
@@ -405,7 +405,7 @@ def handle_prompt_set_command(
         )
         module_tags = template.get("module_tags", ())
         if module_tags:
-            _emit(f"Module tags: {', '.join(module_tags)}", Colors.YELLOW)
+            _emit(f"Module tags: {', '.join(module_tags)}", Colors.EMBER)
         _emit(str(template.get("notes", "")), Colors.GREY)
         return True
 
@@ -430,7 +430,7 @@ def handle_prompt_set_command(
             return True
         requested = _split_csv_values(value)
         if not requested:
-            _emit("Provide at least one plugin selector (id/alias/name).", Colors.YELLOW)
+            _emit("Provide at least one plugin selector (id/alias/name).", Colors.EMBER)
             return True
         selected, rejected = _resolve_plugins_for_scope(requested, scope)
         if rejected:
@@ -439,7 +439,7 @@ def handle_prompt_set_command(
                 f"Incompatible or unknown selectors: {', '.join(rejected)}",
                 Colors.RED,
             )
-            _emit("Use `plugins --scope ...` to inspect compatible selectors.", Colors.YELLOW)
+            _emit("Use `plugins --scope ...` to inspect compatible selectors.", Colors.EMBER)
             return True
         if not selected:
             _emit(f"No compatible plugins selected for module '{scope}'.", Colors.RED)
@@ -479,7 +479,7 @@ def handle_prompt_set_command(
             return True
         requested = _split_csv_values(value)
         if not requested:
-            _emit("Provide at least one filter selector (id/alias/name).", Colors.YELLOW)
+            _emit("Provide at least one filter selector (id/alias/name).", Colors.EMBER)
             return True
         selected, rejected = _resolve_filters_for_scope(requested, scope)
         if rejected:
@@ -488,7 +488,7 @@ def handle_prompt_set_command(
                 f"Incompatible or unknown selectors: {', '.join(rejected)}",
                 Colors.RED,
             )
-            _emit("Use `filters --scope ...` to inspect compatible selectors.", Colors.YELLOW)
+            _emit("Use `filters --scope ...` to inspect compatible selectors.", Colors.EMBER)
             return True
         if not selected:
             _emit(f"No compatible filters selected for module '{scope}'.", Colors.RED)
@@ -557,7 +557,7 @@ def handle_prompt_set_command(
         _emit(f"Orchestrate extension control set to: {normalized_value}", Colors.GREEN)
         return True
 
-    _emit(f"Unknown set key: {key}", Colors.YELLOW)
+    _emit(f"Unknown set key: {key}", Colors.EMBER)
     return True
 
 
@@ -583,20 +583,20 @@ def handle_prompt_control_command(
     if verb not in {"select", "add", "remove"}:
         return False
     if len(tokens) < 3:
-        _emit("Usage: select|add|remove <module|plugins|filters> <value>", Colors.YELLOW)
+        _emit("Usage: select|add|remove <module|plugins|filters> <value>", Colors.EMBER)
         return True
 
     target = tokens[1].strip().lower().replace("-", "_")
     value = tokens[2].strip()
     if target in {"module", "mode"}:
         if verb != "select":
-            _emit("Only `select module <profile|surface|fusion>` is supported for module controls.", Colors.YELLOW)
+            _emit("Only `select module <profile|surface|fusion>` is supported for module controls.", Colors.EMBER)
             return True
         return handle_prompt_use_command(f"use {value}", session, on_message=on_message)
 
     if target in {"template", "info_template", "info-template"}:
         if verb != "select":
-            _emit("Only `select template <id>` is supported for template controls.", Colors.YELLOW)
+            _emit("Only `select template <id>` is supported for template controls.", Colors.EMBER)
             return True
         return handle_prompt_set_command(f"set template {value}", session, on_message=on_message)
 
@@ -626,7 +626,7 @@ def handle_prompt_control_command(
             emit=_emit,
         )
 
-    _emit(f"Unknown control target: {target}", Colors.YELLOW)
+    _emit(f"Unknown control target: {target}", Colors.EMBER)
     return True
 
 
@@ -644,11 +644,11 @@ def handle_prompt_use_command(
 
     tokens = command_text.strip().split(maxsplit=1)
     if len(tokens) != 2:
-        _emit("Usage: use <profile|surface|fusion>", Colors.YELLOW)
+        _emit("Usage: use <profile|surface|fusion>", Colors.EMBER)
         return True
     module = tokens[1].strip().lower()
     if module not in VALID_MODULES:
-        _emit(f"Unknown module: {module}", Colors.YELLOW)
+        _emit(f"Unknown module: {module}", Colors.EMBER)
         return True
     session.module = module
     _emit(f"Active module: {module}", Colors.GREEN)
@@ -658,7 +658,7 @@ def handle_prompt_use_command(
     if rejected_plugins:
         _emit(
             f"Removed incompatible plugins for module '{module}': {', '.join(rejected_plugins)}",
-            Colors.YELLOW,
+            Colors.EMBER,
         )
 
     selected_filters, rejected_filters = _resolve_filters_for_scope(session.filter_names, module)
@@ -666,7 +666,8 @@ def handle_prompt_use_command(
     if rejected_filters:
         _emit(
             f"Removed incompatible filters for module '{module}': {', '.join(rejected_filters)}",
-            Colors.YELLOW,
+            Colors.EMBER,
         )
 
     return True
+

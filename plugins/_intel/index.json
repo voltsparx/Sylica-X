@@ -5,7 +5,7 @@
   "inventory": [
     {
       "id": "contact_lattice",
-      "title": "Contact Lattice Analyzer",
+      "title": "Contact Ember Analyzer",
       "description": "Correlates exposed emails/phones across platforms and calculates contact mesh density.",
       "scopes": [
         "profile",

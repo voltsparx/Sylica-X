@@ -32,7 +32,9 @@ class Colors:
     GREY = "\033[38;5;245m"
     DARK_GREY = "\033[38;5;240m"
 
-    YELLOW = "\033[38;5;221m"
+    EMBER = "\033[38;5;208m"
+    AMBER = "\033[38;5;215m"
+    YELLOW = EMBER
     CYAN = "\033[38;5;215m"
     BLUE = "\033[38;5;208m"
     MAGENTA = "\033[38;5;209m"

@@ -1,6 +1,6 @@
 # Docker Runner Scripts
 
-Release: v9.3.0 (Theme: Lattice)
+Release: v9.3.0 (Theme: Ember)
 
 These scripts wrap `docker/docker-compose.yml` and provide guided setup for:
 

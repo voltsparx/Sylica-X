@@ -1,4 +1,4 @@
-# ──────────────────────────────────────────────────────────────
+﻿# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # SPDX-License-Identifier: Proprietary
 #
 # Silica-X Intelligence Framework
@@ -11,7 +11,7 @@
 #
 # This file is part of Silica-X and is subject to the terms
 # and conditions defined in the LICENSE file.
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 """Main runner orchestration for Silica-X."""
 
@@ -192,18 +192,18 @@ def _print_prompt_help_hint(command_text: str | None = None) -> None:
         requested = normalized.split(maxsplit=1)[1].strip()
         suggestion = difflib.get_close_matches(requested, sorted(PROMPT_SHOW_COMMANDS), n=1)
         if suggestion:
-            print(c(f"{symbol('tip')} Unknown `show` target: {requested}. Try `show {suggestion[0]}`.", Colors.YELLOW))
+            print(c(f"{symbol('tip')} Unknown `show` target: {requested}. Try `show {suggestion[0]}`.", Colors.EMBER))
             return
-        print(c(f"{symbol('tip')} Use `show` with: {', '.join(sorted(PROMPT_SHOW_COMMANDS))}.", Colors.YELLOW))
+        print(c(f"{symbol('tip')} Use `show` with: {', '.join(sorted(PROMPT_SHOW_COMMANDS))}.", Colors.EMBER))
         return
 
     first = normalized.split(maxsplit=1)[0] if normalized else ""
     if first:
         suggestion = difflib.get_close_matches(first, _prompt_command_catalog(), n=1)
         if suggestion:
-            print(c(f"{symbol('tip')} Unknown command: {first}. Try `{suggestion[0]}` or `help`.", Colors.YELLOW))
+            print(c(f"{symbol('tip')} Unknown command: {first}. Try `{suggestion[0]}` or `help`.", Colors.EMBER))
             return
-    print(c(f"{symbol('tip')} Invalid command. Use `help` to list commands.", Colors.YELLOW))
+    print(c(f"{symbol('tip')} Invalid command. Use `help` to list commands.", Colors.EMBER))
 
 
 def _set_non_exiting_parser(parser: argparse.ArgumentParser) -> None:
@@ -253,7 +253,7 @@ def clear_screen() -> None:
 
 
 def ask(message: str) -> str:
-    return input(c(message, Colors.YELLOW)).strip()
+    return input(c(message, Colors.EMBER)).strip()
 
 
 def _configure_console_output() -> None:
@@ -370,7 +370,7 @@ def _ensure_tor_ready(*, prompt_user: bool) -> tuple[bool, str | None]:
         if not allow_install:
             return False, "Tor required for --tor was declined by user."
 
-        print(c(f"{symbol('action')} Installing Tor...", Colors.YELLOW))
+        print(c(f"{symbol('action')} Installing Tor...", Colors.EMBER))
         ok, message = install_tor()
         if not ok:
             return False, f"Tor install failed: {message}"
@@ -387,7 +387,7 @@ def _ensure_tor_ready(*, prompt_user: bool) -> tuple[bool, str | None]:
     if not allow_start:
         return False, "Tor startup declined by user."
 
-    print(c(f"{symbol('action')} Starting Tor...", Colors.YELLOW))
+    print(c(f"{symbol('action')} Starting Tor...", Colors.EMBER))
     ok, message = start_tor(status.binary_path)
     if not ok:
         return False, f"Failed to start Tor: {message}"
@@ -621,9 +621,9 @@ def _print_plugin_inventory(scope: str | None = None) -> None:
     print(c(f"\n{symbol('major')} Plugins ({title_suffix})", Colors.BLUE))
     print(c("-" * 36, Colors.BLUE))
     if not plugins:
-        print(c(f"{symbol('warn')} No plugins discovered.", Colors.YELLOW))
+        print(c(f"{symbol('warn')} No plugins discovered.", Colors.EMBER))
         for error in discovery_errors:
-            print(c(f"{symbol('warn')} {error}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} {error}", Colors.EMBER))
         print()
         return
 
@@ -660,7 +660,7 @@ def _print_plugin_inventory(scope: str | None = None) -> None:
     _print_rows(crypto_plugins, heading="Cryptography Plugin Set", accent=Colors.MAGENTA)
 
     for error in discovery_errors:
-        print(c(f"{symbol('warn')} {error}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {error}", Colors.EMBER))
     print()
 
 
@@ -672,9 +672,9 @@ def _print_filter_inventory(scope: str | None = None) -> None:
     print(c(f"\n{symbol('major')} Filters ({title_suffix})", Colors.BLUE))
     print(c("-" * 36, Colors.BLUE))
     if not filters:
-        print(c(f"{symbol('warn')} No filters discovered.", Colors.YELLOW))
+        print(c(f"{symbol('warn')} No filters discovered.", Colors.EMBER))
         for error in discovery_errors:
-            print(c(f"{symbol('warn')} {error}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} {error}", Colors.EMBER))
         print()
         return
 
@@ -688,7 +688,7 @@ def _print_filter_inventory(scope: str | None = None) -> None:
         print(c(f"  desc: {row.get('description')}", Colors.WHITE))
         print()
     for error in discovery_errors:
-        print(c(f"{symbol('warn')} {error}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {error}", Colors.EMBER))
     print()
 
 
@@ -844,16 +844,16 @@ def _print_modules_inventory(
     )
 
     if has_more:
-        print(c(f"{symbol('tip')} more_results=true (increase --offset or --limit to continue).", Colors.YELLOW))
+        print(c(f"{symbol('tip')} more_results=true (increase --offset or --limit to continue).", Colors.EMBER))
 
     if stats_only:
-        print(c(f"{symbol('tip')} stats_only=true (entry listing skipped).", Colors.YELLOW))
+        print(c(f"{symbol('tip')} stats_only=true (entry listing skipped).", Colors.EMBER))
         print()
         return
 
     if not rows:
-        print(c(f"{symbol('warn')} No module entries matched this query.", Colors.YELLOW))
-        print(c(f"{symbol('tip')} Run `modules --sync` if catalog is empty or stale.", Colors.YELLOW))
+        print(c(f"{symbol('warn')} No module entries matched this query.", Colors.EMBER))
+        print(c(f"{symbol('tip')} Run `modules --sync` if catalog is empty or stale.", Colors.EMBER))
         print()
         return
 
@@ -951,7 +951,7 @@ def _print_framework_inventory(
 
         other_dirs = inventory.get("other_dirs", [])
         if other_dirs:
-            print(c(f"{symbol('tip')} Other temp/ directories", Colors.YELLOW))
+            print(c(f"{symbol('tip')} Other temp/ directories", Colors.EMBER))
             for row in other_dirs:
                 if isinstance(row, dict):
                     print(c(f"  - {row.get('name')}: {row.get('path')}", Colors.GREY))
@@ -1098,7 +1098,7 @@ def _print_scan_history(limit: int = 25) -> None:
     print(c(f"\n{symbol('major')} Scan History", Colors.BLUE))
     print(c("-" * 36, Colors.BLUE))
     if not rows:
-        print(c(f"{symbol('warn')} No scan artifacts found under output/json or output/html.", Colors.YELLOW))
+        print(c(f"{symbol('warn')} No scan artifacts found under output/json or output/html.", Colors.EMBER))
         print()
         return
 
@@ -1154,7 +1154,7 @@ def _print_info_templates(*, as_json: bool = False) -> None:
         print(c(f"  module tags: {tags}", Colors.WHITE))
         note = str(row.get("notes", "")).strip()
         if note:
-            print(c(f"  note: {note}", Colors.YELLOW))
+            print(c(f"  note: {note}", Colors.EMBER))
         print()
     print(c(f"{symbol('tip')} Apply with --info-template <id> or `set template <id>` in prompt mode.", Colors.GREY))
     print()
@@ -1241,17 +1241,17 @@ def _print_runtime_loaded_inventory() -> None:
         )
     )
     hybrid_lines = render_hybrid_inventory_lines(inventory.hybrid_architecture)
-    print(c(hybrid_lines[0], Colors.YELLOW))
+    print(c(hybrid_lines[0], Colors.EMBER))
     print(c(hybrid_lines[1], Colors.GREY))
     print(c(hybrid_lines[2], Colors.GREY))
     if inventory.plugin_errors:
-        print(c(f"{symbol('warn')} plugin discovery warnings={len(inventory.plugin_errors)}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} plugin discovery warnings={len(inventory.plugin_errors)}", Colors.EMBER))
     if inventory.filter_errors:
-        print(c(f"{symbol('warn')} filter discovery warnings={len(inventory.filter_errors)}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} filter discovery warnings={len(inventory.filter_errors)}", Colors.EMBER))
     if inventory.platform_error:
-        print(c(f"{symbol('warn')} platform inventory unavailable: {inventory.platform_error}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} platform inventory unavailable: {inventory.platform_error}", Colors.EMBER))
     if inventory.module_error:
-        print(c(f"{symbol('warn')} module catalog unavailable: {inventory.module_error}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} module catalog unavailable: {inventory.module_error}", Colors.EMBER))
 
     snapshot = build_runtime_inventory_snapshot(
         plugin_count=inventory.plugin_count,
@@ -1269,7 +1269,7 @@ def _print_runtime_loaded_inventory() -> None:
     try:
         write_runtime_inventory_snapshot(snapshot)
     except Exception as exc:  # pragma: no cover - diagnostics-only path
-        print(c(f"{symbol('warn')} runtime inventory snapshot failed: {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} runtime inventory snapshot failed: {exc}", Colors.EMBER))
     print()
 
 
@@ -1455,12 +1455,12 @@ def launch_live_dashboard(
             try:
                 webbrowser.open(f"http://localhost:{port}/")
             except Exception as exc:  # pragma: no cover - environment-dependent
-                print(c(f"{symbol('warn')} Failed to open browser: {exc}", Colors.YELLOW))
+                print(c(f"{symbol('warn')} Failed to open browser: {exc}", Colors.EMBER))
         with HTTPServer(server_address, Handler) as httpd:
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
-                print(c(f"\n{symbol('warn')} Live dashboard stopped.", Colors.YELLOW))
+                print(c(f"\n{symbol('warn')} Live dashboard stopped.", Colors.EMBER))
 
     if background:
         thread = threading.Thread(target=run_server, daemon=True)
@@ -1532,7 +1532,7 @@ def _print_extension_control_feedback(
         )
     )
     for warning in warnings:
-        print(c(f"{symbol('warn')} {warning}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {warning}", Colors.EMBER))
 
 
 def _print_surface_scan_type_inventory() -> None:
@@ -1578,13 +1578,13 @@ def _resolve_extension_plan_or_fail(
             c(
                 f"{symbol('tip')} Inspect compatible selectors with: "
                 f"`plugins --scope {scope}` and `filters --scope {scope}`.",
-                Colors.YELLOW,
+                Colors.EMBER,
             )
         )
         print(
             c(
                 f"{symbol('tip')} Use `--extension-control manual|hybrid` for explicit selector control.",
-                Colors.YELLOW,
+                Colors.EMBER,
             )
         )
         return (), (), (), False
@@ -1652,11 +1652,11 @@ def _wizard_preflight_extension_plan(
                 c(
                     f"{symbol('warn')} Wizard extension preflight warnings "
                     f"(scope={scope}, mode={plan.scan_mode}, control={plan.control_mode})",
-                    Colors.YELLOW,
+                    Colors.EMBER,
                 )
             )
             for item in plan.warnings:
-                print(c(f" {symbol('warn')} {item}", Colors.YELLOW))
+                print(c(f" {symbol('warn')} {item}", Colors.EMBER))
 
     if has_errors:
         print(c(f"{symbol('warn')} Stop: wizard extension configuration is invalid.", Colors.RED))
@@ -1664,7 +1664,7 @@ def _wizard_preflight_extension_plan(
             c(
                 f"{symbol('tip')} Use `plugins --scope <scope>` and `filters --scope <scope>` "
                 "to inspect compatible selectors.",
-                Colors.YELLOW,
+                Colors.EMBER,
             )
         )
         return False
@@ -2065,7 +2065,7 @@ async def run_profile_scan(
             print(c(f"HTML report generated -> {report_path}", Colors.GREEN))
     except Exception as exc:  # pragma: no cover - defensive
         append_framework_log("profile_html_failed", f"target={username} reason={exc}", level="WARN")
-        print(c(f"{symbol('warn')} HTML report generation failed: {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} HTML report generation failed: {exc}", Colors.EMBER))
 
     if live_dashboard:
         launch_live_dashboard(
@@ -2291,7 +2291,7 @@ async def run_surface_scan(
             print(c(f"HTML report generated -> {report_path}", Colors.GREEN))
     except Exception as exc:  # pragma: no cover - defensive
         append_framework_log("surface_html_failed", f"target={normalized_domain} reason={exc}", level="WARN")
-        print(c(f"{symbol('warn')} HTML report generation failed: {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} HTML report generation failed: {exc}", Colors.EMBER))
 
     if write_csv:
         payload = saved[1] if isinstance(saved, tuple) and len(saved) > 1 else None
@@ -2948,7 +2948,7 @@ async def _handle_fusion_command(
             print(c(f"Fusion HTML report generated -> {report_path}", Colors.GREEN))
     except Exception as exc:  # pragma: no cover - defensive
         append_framework_log("fusion_html_failed", f"target={combined_target} reason={exc}", level="WARN")
-        print(c(f"{symbol('warn')} Fusion HTML report generation failed: {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} Fusion HTML report generation failed: {exc}", Colors.EMBER))
 
     print(c(f"{symbol('ok')} Fusion bundle saved under output/json/", Colors.GREEN))
     append_framework_log("fusion_scan_done", f"target={combined_target} report={report_path or '-'}")
@@ -3206,9 +3206,9 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
     payload["filters"] = filter_results
     payload["filter_errors"] = filter_errors
     for item in plugin_errors:
-        print(c(f"{symbol('feature')} plugin: {item}", Colors.YELLOW))
+        print(c(f"{symbol('feature')} plugin: {item}", Colors.EMBER))
     for item in filter_errors:
-        print(c(f"{symbol('feature')} filter: {item}", Colors.YELLOW))
+        print(c(f"{symbol('feature')} filter: {item}", Colors.EMBER))
 
     output_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     try:
@@ -3229,7 +3229,7 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
                 f"json_write_failed target={target_label} reason={exc}",
                 level="WARN",
             )
-            print(c(f"{symbol('warn')} Failed to write orchestration JSON: {exc}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} Failed to write orchestration JSON: {exc}", Colors.EMBER))
 
     summary = str(payload.get("cli_summary", "")).strip()
     if summary:
@@ -3250,7 +3250,7 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
                 f"cli_write_failed target={target_label} reason={exc}",
                 level="WARN",
             )
-            print(c(f"{symbol('warn')} Failed to write orchestration CLI report: {exc}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} Failed to write orchestration CLI report: {exc}", Colors.EMBER))
 
     html_path = ""
     if "html" in selected_types or args.html:
@@ -3267,9 +3267,9 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
                     f"html_write_failed target={target_label} reason={exc}",
                     level="WARN",
                 )
-                print(c(f"{symbol('warn')} Failed to write orchestration HTML report: {exc}", Colors.YELLOW))
+                print(c(f"{symbol('warn')} Failed to write orchestration HTML report: {exc}", Colors.EMBER))
         else:
-            print(c(f"{symbol('warn')} Orchestration HTML payload was empty.", Colors.YELLOW))
+            print(c(f"{symbol('warn')} Orchestration HTML payload was empty.", Colors.EMBER))
 
     if "csv" in selected_types:
         csv_payload = {
@@ -3308,7 +3308,7 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
             f"log_write_failed target={target_label} reason={exc}",
             level="WARN",
         )
-        print(c(f"{symbol('warn')} Failed to write orchestration run log: {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} Failed to write orchestration run log: {exc}", Colors.EMBER))
 
     if json_path:
         print(c(f"{symbol('ok')} Orchestration bundle saved -> {json_path}", Colors.GREEN))
@@ -3363,7 +3363,7 @@ async def _handle_anonymity_command(
                 return EXIT_FAILURE
             print(c("Tor routing is enabled and operational.", Colors.GREEN))
         else:
-            print(c("Tor routing is currently OFF.", Colors.YELLOW))
+            print(c("Tor routing is currently OFF.", Colors.EMBER))
             if _prompt_yes_no("Open anonymity configuration now?", True):
                 set_anonymity_interactive(state)
     elif args.tor is None and args.proxy is None:
@@ -3409,7 +3409,7 @@ async def _handle_out_type_command(args: argparse.Namespace) -> int:
     types_override, error = _parse_output_type_override(tokens)
     if error:
         print(c(f"{symbol('warn')} {error}", Colors.RED))
-        print(c(f"{symbol('tip')} Allowed types: cli, html, csv, json", Colors.YELLOW))
+        print(c(f"{symbol('tip')} Allowed types: cli, html, csv, json", Colors.EMBER))
         return EXIT_USAGE
     desired = types_override or set(DEFAULT_OUTPUT_TYPES)
     try:
@@ -3418,11 +3418,11 @@ async def _handle_out_type_command(args: argparse.Namespace) -> int:
     except OutputConfigError as exc:
         types = set_session_output_types(desired)
         config_saved = False
-        print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {exc}", Colors.EMBER))
     try:
         ensure_output_tree(types=types)
     except OutputConfigError as exc:
-        print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {exc}", Colors.EMBER))
         return EXIT_FAILURE
     print(c(f"{symbol('ok')} Output types set: {', '.join(types)}", Colors.GREEN))
     if not config_saved:
@@ -3449,12 +3449,12 @@ async def _handle_out_print_command(args: argparse.Namespace, *, make_default: b
             clear_output_base_dir(clear_default=make_default)
             clear_session_output_base_dir()
         except OutputConfigError as exc:
-            print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} {exc}", Colors.EMBER))
             return EXIT_FAILURE
         try:
             ensure_output_tree(types=get_output_settings().types)
         except OutputConfigError as exc:
-            print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} {exc}", Colors.EMBER))
             return EXIT_FAILURE
         label = "default" if make_default else "current"
         print(c(f"{symbol('ok')} Output {label} base directory reset to working-dir.", Colors.GREEN))
@@ -3466,14 +3466,14 @@ async def _handle_out_print_command(args: argparse.Namespace, *, make_default: b
         try:
             base_dir = set_session_output_base_dir(text)
             config_saved = False
-            print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} {exc}", Colors.EMBER))
         except OutputConfigError as session_exc:
             print(c(f"{symbol('warn')} {session_exc}", Colors.RED))
             return EXIT_FAILURE
     try:
         ensure_output_tree(types=get_output_settings().types)
     except OutputConfigError as exc:
-        print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {exc}", Colors.EMBER))
         return EXIT_FAILURE
     label = "default" if make_default else "current"
     print(c(f"{symbol('ok')} Output {label} base directory: {base_dir}", Colors.GREEN))
@@ -3521,7 +3521,7 @@ async def _handle_modules_command(args: argparse.Namespace) -> int:
     except Exception as exc:  # pragma: no cover - defensive user-facing guard
         append_framework_log("modules_query_failed", str(exc), level="WARN")
         print(c(f"{symbol('warn')} Module catalog query failed: {exc}", Colors.RED))
-        print(c(f"{symbol('tip')} Try `modules --sync` to rebuild catalog metadata.", Colors.YELLOW))
+        print(c(f"{symbol('tip')} Try `modules --sync` to rebuild catalog metadata.", Colors.EMBER))
         return EXIT_FAILURE
     return EXIT_SUCCESS
 
@@ -3584,7 +3584,7 @@ async def _handle_surface_kit_command(args: argparse.Namespace, state: RunnerSta
             limit=_int_from_value(getattr(args, "limit", 25), 25),
             as_json=bool(getattr(args, "json", False)),
         )
-        print(c(f"{symbol('tip')} Supply a domain to run a source-derived surface-kit workflow.", Colors.YELLOW))
+        print(c(f"{symbol('tip')} Supply a domain to run a source-derived surface-kit workflow.", Colors.EMBER))
         return EXIT_SUCCESS
 
     try:
@@ -3969,13 +3969,13 @@ async def _handle_wizard_command(
         valid_usernames = [item for item in provided_usernames if _validate_username(item)]
         invalid_usernames = [item for item in provided_usernames if not _validate_username(item)]
         for invalid in invalid_usernames:
-            print(c(f"{symbol('warn')} Ignoring invalid username selector: '{invalid}'", Colors.YELLOW))
+            print(c(f"{symbol('warn')} Ignoring invalid username selector: '{invalid}'", Colors.EMBER))
         profile_usernames = valid_usernames
         if not profile_usernames:
             raw = ask("Enter usernames (comma-separated): ")
             profile_usernames = [item for item in _split_csv_tokens([raw]) if _validate_username(item)]
         if not profile_usernames:
-            print(c(f"{symbol('warn')} No valid usernames entered; profile phase skipped.", Colors.YELLOW))
+            print(c(f"{symbol('warn')} No valid usernames entered; profile phase skipped.", Colors.EMBER))
             run_profile = False
 
     surface_domain = ""
@@ -3984,7 +3984,7 @@ async def _handle_wizard_command(
         if not surface_domain:
             surface_domain = ask("Enter target domain: ").strip()
         if not normalize_domain(surface_domain):
-            print(c(f"{symbol('warn')} Invalid domain; surface phase skipped.", Colors.YELLOW))
+            print(c(f"{symbol('warn')} Invalid domain; surface phase skipped.", Colors.EMBER))
             run_surface = False
 
     run_fusion_value = getattr(args, "run_fusion", None)
@@ -4367,7 +4367,7 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         else:
             normalized_first = _keyword_to_command(first_token) or first_token
             if normalized_first in PROMPT_SHOW_COMMANDS:
-                print(c(f"{symbol('tip')} Use `show {normalized_first}`.", Colors.YELLOW))
+                print(c(f"{symbol('tip')} Use `show {normalized_first}`.", Colors.EMBER))
                 continue
 
         lowered = " ".join(raw_tokens).lower()
@@ -4502,14 +4502,14 @@ async def run(argv: Sequence[str] | None = None) -> int:
     try:
         ensure_output_tree()
     except OutputConfigError as exc:
-        print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {exc}", Colors.EMBER))
     parser = build_root_parser()
     _set_non_exiting_parser(parser)
     argv_tokens = list(argv) if argv is not None else sys.argv[1:]
     try:
         args = parser.parse_args(argv_tokens)
     except (argparse.ArgumentError, ValueError):
-        print(c(f"{symbol('tip')} Invalid command. Use `help` command.", Colors.YELLOW))
+        print(c(f"{symbol('tip')} Invalid command. Use `help` command.", Colors.EMBER))
         append_framework_log("framework_exit", f"status={EXIT_USAGE} reason=parse_error")
         return EXIT_USAGE
     setattr(args, "_explicit_flags", _extract_explicit_flags(argv_tokens))
@@ -4556,3 +4556,4 @@ async def run(argv: Sequence[str] | None = None) -> int:
     status = await _dispatch(args, state=state, prompt_mode=False)
     append_framework_log("framework_exit", f"status={status}")
     return status
+

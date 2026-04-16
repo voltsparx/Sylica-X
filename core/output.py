@@ -1,4 +1,4 @@
-# ──────────────────────────────────────────────────────────────
+﻿# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # SPDX-License-Identifier: Proprietary
 #
 # Silica-X Intelligence Framework
@@ -11,7 +11,7 @@
 #
 # This file is part of Silica-X and is subject to the terms
 # and conditions defined in the LICENSE file.
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 """Console, JSON, CLI-report, and log output helpers."""
 
@@ -112,8 +112,8 @@ def _status_color(status: str) -> str:
     mapping = {
         "FOUND": Colors.GREEN,
         "NOT FOUND": Colors.GREY,
-        "BLOCKED": Colors.YELLOW,
-        "INVALID_USERNAME": Colors.YELLOW,
+        "BLOCKED": Colors.EMBER,
+        "INVALID_USERNAME": Colors.EMBER,
         "ERROR": Colors.RED,
     }
     return mapping.get(status, Colors.GREY)
@@ -153,7 +153,7 @@ def _print_issue_block(issues: Iterable[dict[str, str]]) -> None:
     _section("Exposure Findings", Colors.MAGENTA)
     for idx, issue in enumerate(issue_list, start=1):
         severity = issue.get("severity", "LOW")
-        severity_color = Colors.RED if severity in {"HIGH", "CRITICAL"} else Colors.YELLOW
+        severity_color = Colors.RED if severity in {"HIGH", "CRITICAL"} else Colors.EMBER
         marker = symbol("error") if severity in {"HIGH", "CRITICAL"} else symbol("warn")
         print(c(f"{marker} #{idx} [{severity}] {issue.get('title', 'Issue')}", severity_color))
         print(c(f"  {symbol('bullet')} scope: {issue.get('scope', '-')}", Colors.GREY))
@@ -173,7 +173,7 @@ def _print_plugin_block(
     _section("Plugin Intelligence", Colors.BLUE)
     for row in rows:
         severity = str(row.get("severity", "INFO")).upper()
-        color = Colors.RED if severity in {"HIGH", "CRITICAL"} else Colors.YELLOW if severity == "MEDIUM" else Colors.CYAN
+        color = Colors.RED if severity in {"HIGH", "CRITICAL"} else Colors.EMBER if severity == "MEDIUM" else Colors.CYAN
         marker = symbol("error") if severity in {"HIGH", "CRITICAL"} else symbol("warn") if severity == "MEDIUM" else symbol("feature")
         print(c(f"{marker} [{severity}] {row.get('title', row.get('id', 'plugin'))}", color))
         print(c(f"  {symbol('bullet')} summary: {row.get('summary', '')}", Colors.GREY))
@@ -202,7 +202,7 @@ def _print_filter_block(
     _section("Filter Intelligence", Colors.BLUE)
     for row in rows:
         severity = str(row.get("severity", "INFO")).upper()
-        color = Colors.RED if severity in {"HIGH", "CRITICAL"} else Colors.YELLOW if severity == "MEDIUM" else Colors.CYAN
+        color = Colors.RED if severity in {"HIGH", "CRITICAL"} else Colors.EMBER if severity == "MEDIUM" else Colors.CYAN
         marker = symbol("error") if severity in {"HIGH", "CRITICAL"} else symbol("warn") if severity == "MEDIUM" else symbol("feature")
         print(c(f"{marker} [{severity}] {row.get('title', row.get('id', 'filter'))}", color))
         print(c(f"  {symbol('bullet')} summary: {row.get('summary', '')}", Colors.GREY))
@@ -279,13 +279,13 @@ def _print_intelligence_block(intelligence_bundle: dict | None) -> None:
                 c(
                     f"{symbol('bullet')} [{row.get('severity', 'INFO')}] {row.get('title', 'Signal')}"
                     f" -> {row.get('evidence', '-')}",
-                    Colors.YELLOW,
+                    Colors.EMBER,
                 )
             )
 
     top_contacts = _top_scored_items(scored_contacts, limit=8)
     if top_contacts:
-        print(c(f"\n{symbol('major')} Top contact/name signals", Colors.YELLOW))
+        print(c(f"\n{symbol('major')} Top contact/name signals", Colors.EMBER))
         for item in top_contacts:
             print(
                 c(
@@ -293,7 +293,7 @@ def _print_intelligence_block(intelligence_bundle: dict | None) -> None:
                     f" score={item.get('score_percent', 0)}%"
                     f" support={item.get('supporting_entities', 0)}"
                     f" risk={item.get('risk_level', 'LOW')}",
-                    Colors.YELLOW,
+                    Colors.EMBER,
                 )
             )
 
@@ -415,11 +415,11 @@ def display_results(
             print(c(f"  {symbol('bullet')} bio: {str(item['bio'])[:180]}", Colors.GREY))
         if item.get("links"):
             top_links = ", ".join(item["links"][:6])
-            print(c(f"  {symbol('bullet')} extracted links: {top_links}", Colors.YELLOW))
+            print(c(f"  {symbol('bullet')} extracted links: {top_links}", Colors.EMBER))
         if contacts.get("emails"):
-            print(c(f"  {symbol('bullet')} emails: {', '.join(contacts['emails'])}", Colors.YELLOW))
+            print(c(f"  {symbol('bullet')} emails: {', '.join(contacts['emails'])}", Colors.EMBER))
         if contacts.get("phones"):
-            print(c(f"  {symbol('bullet')} phones: {', '.join(contacts['phones'])}", Colors.YELLOW))
+            print(c(f"  {symbol('bullet')} phones: {', '.join(contacts['phones'])}", Colors.EMBER))
         if item.get("mentions"):
             print(c(f"  {symbol('bullet')} mentions: {', '.join(item['mentions'][:8])}", Colors.GREY))
         if item.get("http_status") is not None:
@@ -443,7 +443,7 @@ def display_results(
         if item.get("response_time_ms") is not None:
             print(c(f"  {symbol('bullet')} rtt: {item['response_time_ms']} ms", Colors.GREY))
         if item.get("context"):
-            print(c(f"  {symbol('warn')} reason: {item['context']}", Colors.YELLOW))
+            print(c(f"  {symbol('warn')} reason: {item['context']}", Colors.EMBER))
 
     _section("Summary", Colors.BLUE)
     status_counter: Counter = Counter(item.get("status", "UNKNOWN") for item in results)
@@ -550,20 +550,20 @@ def display_domain_results(
 
     subdomains = domain_result.get("subdomains", [])
     if subdomains:
-        print(c(f"{symbol('action')} Subdomains ({len(subdomains)}):", Colors.YELLOW))
+        print(c(f"{symbol('action')} Subdomains ({len(subdomains)}):", Colors.EMBER))
         for name in subdomains[:25]:
-            print(c(f"{symbol('bullet')} {name}", Colors.YELLOW))
+            print(c(f"{symbol('bullet')} {name}", Colors.EMBER))
         if len(subdomains) > 25:
-            print(c(f"{symbol('tip')} ... and {len(subdomains) - 25} more", Colors.YELLOW))
+            print(c(f"{symbol('tip')} ... and {len(subdomains) - 25} more", Colors.EMBER))
     else:
         print(c(f"{symbol('bullet')} Subdomains: none", Colors.GREY))
 
     print(c(f"{symbol('bullet')} robots.txt present: {domain_result.get('robots_txt_present')}", Colors.GREY))
     print(c(f"{symbol('bullet')} security.txt present: {domain_result.get('security_txt_present')}", Colors.GREY))
     if domain_result.get("scan_notes"):
-        print(c(f"{symbol('tip')} Scan notes:", Colors.YELLOW))
+        print(c(f"{symbol('tip')} Scan notes:", Colors.EMBER))
         for note in domain_result["scan_notes"]:
-            print(c(f"{symbol('bullet')} {note}", Colors.YELLOW))
+            print(c(f"{symbol('bullet')} {note}", Colors.EMBER))
     collector_status = domain_result.get("collector_status", {})
     if isinstance(collector_status, dict):
         print(c(f"\n{symbol('major')} Recon Collector Status", Colors.BLUE))
@@ -1022,7 +1022,7 @@ def save_results(
         ensure_output_tree(types=selected_types)
     except OutputConfigError as exc:
         output_ready = False
-        print(c(f"{symbol('warn')} {exc}", Colors.YELLOW))
+        print(c(f"{symbol('warn')} {exc}", Colors.EMBER))
         append_framework_log("save_results_failed", f"output_tree_failed reason={exc}", level="WARN")
         selected_types = set()
     target_display = str(target or "").strip()
@@ -1079,7 +1079,7 @@ def save_results(
                 json.dump(payload, handle, indent=4)
         except OSError as exc:
             append_framework_log("save_results_failed", f"json_write_failed target={target_key} reason={exc}", level="WARN")
-            print(c(f"{symbol('warn')} Failed to write JSON output: {exc}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} Failed to write JSON output: {exc}", Colors.EMBER))
             json_path = None
 
         if json_path is not None:
@@ -1094,7 +1094,7 @@ def save_results(
                     f"legacy_json_write_failed target={target_key} reason={exc}",
                     level="WARN",
                 )
-                print(c(f"{symbol('warn')} Failed to write legacy JSON output: {exc}", Colors.YELLOW))
+                print(c(f"{symbol('warn')} Failed to write legacy JSON output: {exc}", Colors.EMBER))
 
     cli_path: Path | None = None
     if output_ready and "cli" in selected_types:
@@ -1103,7 +1103,7 @@ def save_results(
             cli_path.write_text(_render_cli_report(payload), encoding="utf-8")
         except OSError as exc:
             append_framework_log("save_results_failed", f"cli_write_failed target={target_key} reason={exc}", level="WARN")
-            print(c(f"{symbol('warn')} Failed to write CLI report: {exc}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} Failed to write CLI report: {exc}", Colors.EMBER))
             cli_path = None
 
     run_log: Path | None = None
@@ -1137,7 +1137,7 @@ def save_results(
                 f"log_write_failed target={target_key} reason={exc}",
                 level="WARN",
             )
-            print(c(f"{symbol('warn')} Failed to write run log: {exc}", Colors.YELLOW))
+            print(c(f"{symbol('warn')} Failed to write run log: {exc}", Colors.EMBER))
             run_log = None
     append_framework_log(
         "scan_saved",
@@ -1156,3 +1156,4 @@ def save_results(
     if return_payload:
         return str(json_path or run_log or ""), payload
     return str(json_path or run_log or "")
+

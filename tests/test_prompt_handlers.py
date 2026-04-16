@@ -135,7 +135,7 @@ class TestPromptHandlers(unittest.TestCase):
     def test_handle_prompt_set_command_resolves_titles(self):
         session = PromptSessionState(module="profile")
         handle_prompt_set_command(
-            "set plugins Contact Lattice Analyzer,Threat Conductor",
+            "set plugins Contact Ember Analyzer,Threat Conductor",
             session,
             on_message=lambda _message, _color: None,
         )

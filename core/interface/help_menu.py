@@ -1,4 +1,4 @@
-# ──────────────────────────────────────────────────────────────
+﻿# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # SPDX-License-Identifier: Proprietary
 #
 # Silica-X Intelligence Framework
@@ -11,7 +11,7 @@
 #
 # This file is part of Silica-X and is subject to the terms
 # and conditions defined in the LICENSE file.
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 """Help menu renderers for flag mode and prompt mode."""
 
@@ -56,7 +56,7 @@ def _render_items(items: HelpItems) -> None:
 
 
 def _example(command: str, description: str) -> None:
-    print(c(f"  {symbol('action')} {command}", Colors.YELLOW))
+    print(c(f"  {symbol('action')} {command}", Colors.EMBER))
     print(c(f"    {description}", Colors.GREY))
 
 
@@ -241,3 +241,4 @@ def show_prompt_help() -> None:
 def show_help() -> None:
     # Backward-compatible wrapper
     show_prompt_help()
+

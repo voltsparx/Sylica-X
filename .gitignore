@@ -51,3 +51,4 @@ output/**
 .tmp_test/
 .tmp-tests/
 pytest-cache-files-*/
+.tmp*/
