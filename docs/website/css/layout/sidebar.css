@@ -1,107 +1,152 @@
 #sidebar {
   position: fixed;
-  top: calc(var(--topbar-height) + 12px);
-  left: max(1rem, calc((100vw - var(--site-width)) / 2));
+  top: var(--topbar-height);
+  left: 0;
+  bottom: 0;
   width: var(--sidebar-width);
-  max-height: calc(100vh - var(--topbar-height) - 24px);
+  max-height: calc(100vh - var(--topbar-height));
   overflow: auto;
-  padding: 1.2rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 26px;
-  background: rgba(10, 15, 22, 0.76);
+  padding: 1rem 0 1.6rem;
+  border-right: 1px solid rgba(255, 176, 90, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 176, 90, 0.03), transparent 22%),
+    rgba(8, 13, 19, 0.95);
   backdrop-filter: blur(18px);
-  box-shadow: var(--shadow);
+  box-shadow: 20px 0 60px rgba(0, 0, 0, 0.18);
+}
+
+.sidebar-panel-head {
+  margin: 0 1rem 0.95rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 176, 90, 0.14);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 138, 29, 0.09), rgba(255, 138, 29, 0.02)),
+    radial-gradient(circle at top right, rgba(255, 178, 89, 0.14), transparent 48%);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
 }
 
 .sidebar-kicker {
   color: var(--ember-2);
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
 }
 
 .sidebar-title {
-  margin-top: 0.4rem;
+  margin-top: 0.42rem;
   color: var(--text-0);
-  font-size: 1.15rem;
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
 }
 
 .sidebar-note {
   margin: 0.6rem 0 0;
   color: var(--text-2);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.65;
 }
 
 .sidebar-tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
-  margin-top: 1.1rem;
+  margin: 0 1rem 1rem;
 }
 
 .sidebar-tab {
-  padding: 0.5rem 0.72rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
+  padding: 0.55rem 0.66rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 176, 90, 0.08);
+  background: rgba(255, 255, 255, 0.025);
   color: var(--text-2);
-  font-size: 0.8rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
 }
 
 .sidebar-tab.is-active {
   color: #120a04;
+  border-color: rgba(255, 176, 90, 0.24);
   background: linear-gradient(135deg, var(--ember), var(--ember-2));
 }
 
 #sidebar-nav {
   display: grid;
-  gap: 1rem;
-  margin-top: 1.2rem;
+  gap: 0.9rem;
 }
 
 .sidebar-group {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.46rem;
 }
 
 .sidebar-group-title {
-  color: var(--text-0);
-  font-size: 0.84rem;
+  color: var(--ember-2);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.16em;
+  padding: 0.4rem 1.2rem 0.1rem;
 }
 
 .sidebar-link {
   display: block;
-  padding: 0.78rem 0.9rem;
+  margin: 0 0.75rem;
+  padding: 0.78rem 0.9rem 0.82rem 1rem;
   border-radius: 14px;
   border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid transparent;
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
 }
 
 .sidebar-link:hover,
 .sidebar-link:focus-visible {
-  border-color: rgba(255, 171, 86, 0.2);
+  transform: translateY(-1px);
+  border-color: rgba(255, 171, 86, 0.18);
+  border-left-color: rgba(255, 171, 86, 0.42);
+  background: linear-gradient(180deg, rgba(255, 138, 29, 0.08), rgba(255, 255, 255, 0.02));
 }
 
 .sidebar-link.is-current {
-  border-color: rgba(255, 171, 86, 0.26);
-  background: rgba(255, 138, 29, 0.08);
+  border-color: rgba(255, 171, 86, 0.22);
+  border-left-color: var(--ember);
+  background: linear-gradient(180deg, rgba(255, 138, 29, 0.1), rgba(255, 255, 255, 0.02));
 }
 
 .sidebar-link-title {
   display: block;
   color: var(--text-0);
-  font-size: 0.93rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .sidebar-link-hint {
   display: block;
-  margin-top: 0.25rem;
+  margin-top: 0.22rem;
   color: var(--text-2);
-  font-size: 0.82rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.64rem;
+  line-height: 1.5;
+}
+
+.sidebar-link-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.5rem;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid rgba(255, 176, 90, 0.1);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 #sidebar-backdrop {
@@ -119,4 +164,3 @@ body.nav-open #sidebar {
 body.nav-open #sidebar-backdrop {
   display: block;
 }
-

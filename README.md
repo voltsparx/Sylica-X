@@ -27,7 +27,7 @@ Multi-engine OSINT orchestration for profile intelligence, domain-surface reconn
 > It now builds a native digital-footprint map from public profile, web, surface, and exposure signals so linked identities, assets, and risk cues are easier to triage. <br>
 > Its runtime and console patterns were shaped by reverse engineering multiple reconnaissance tools into a native Silica-X architecture, rather than exposing those tools directly in the codebase. <br>
 
-> I doubt the pic not looking perfect...also gotta fix the version
+> I will add a picture of the frameworks soon. I'm just tired right now;-;
 
 ---
 

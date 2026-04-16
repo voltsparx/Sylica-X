@@ -61,8 +61,9 @@ Load JavaScript in this order:
 3. `js/features/sidebar.js`
 4. `js/features/search.js`
 5. `js/features/workflow-visual.js`
-6. `js/features/development-feed.js`
-7. `js/bootstrap/app.js`
+6. `js/features/easter-eggs.js`
+7. `js/features/development-feed.js`
+8. `js/bootstrap/app.js`
 
 ## Maintenance Rules
 
@@ -82,7 +83,7 @@ node --check docs/website/js/core/helpers.js
 node --check docs/website/js/features/sidebar.js
 node --check docs/website/js/features/search.js
 node --check docs/website/js/features/workflow-visual.js
+node --check docs/website/js/features/easter-eggs.js
 node --check docs/website/js/features/development-feed.js
 node --check docs/website/js/bootstrap/app.js
 ```
-
