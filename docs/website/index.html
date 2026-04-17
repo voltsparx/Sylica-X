@@ -74,7 +74,7 @@
     <div class="hero-grid">
       <article class="hero-card">
         <div class="eyebrow">Release Theme: Ember</div>
-        <h1 class="hero-title">Silica-X <span class="hero-title-mark" aria-hidden="true"><img src="web_assets/media/silica-x-web.png" alt=""></span></h1>
+        <h1 class="hero-title">Silica-X</h1>
         <p class="hero-subtitle">Multi-engine OSINT orchestration for profile intelligence, domain-surface reconnaissance, fused correlation, and structured reporting.</p>
         <p class="hero-copy">Silica-X is a Python framework that brings several investigation lanes into one operator flow. It can scan usernames across platforms, inspect domain surface exposure, combine those signals in a fusion run, and drive a policy-led orchestration pipeline that turns raw findings into usable artifacts.</p>
         <div class="badge-row">
@@ -202,7 +202,7 @@
     <div class="section-head">
       <div>
         <div class="section-kicker">Quick start</div>
-        <h2 class="section-title">Source install is the cleanest current path</h2>
+        <h2 class="section-title">Install the package, run the CLI, import the module with an underscore</h2>
       </div>
     </div>
     <article class="code-block">
@@ -212,10 +212,9 @@
         <span class="code-dot"></span>
         <span class="code-lang">shell</span>
       </div>
-      <pre class="code-body"><span class="cmd">git clone</span> <span class="arg">https://github.com/voltsparx/Silica-X.git</span>
-<span class="cmd">cd</span> <span class="arg">Silica-X</span>
-<span class="cmd">pip install</span> <span class="arg">-r requirements.txt</span>
-<span class="cmd">python</span> <span class="arg">silica-x.py</span>
+      <pre class="code-body"><span class="cmd">pip install</span> <span class="arg">silica-x</span>
+<span class="cmd">silica-x</span>
+<span class="cmd">python -c</span> <span class="arg">"import silica_x"</span>
 <span class="muted"># then try:</span>
 help
 show plugins
@@ -223,6 +222,10 @@ profile alice
 surface example.com
 fusion alice example.com</pre>
     </article>
+    <div class="callout callout-info section-block">
+      <div class="callout-title">Naming rule</div>
+      Install and run the package as <span class="mono">silica-x</span>. Inside Python code, import it as <span class="mono">silica_x</span>.
+    </div>
     <div class="section-links">
       <a class="section-link" href="getting-started.html#install">Installation details</a>
       <a class="section-link" href="cli-reference.html#commands">Command reference</a>

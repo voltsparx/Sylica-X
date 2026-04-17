@@ -63,7 +63,7 @@
   <header class="page-intro">
     <div class="eyebrow">Command Surface</div>
     <h1 class="page-title">The Silica-X CLI mixes scan workflows, runtime controls, and project introspection commands</h1>
-    <p class="page-copy">Silica-X is not only a scanner CLI. It also exposes prompt helpers, source-study views, inventory commands, output controls, history listing, and package-like metadata surfaces. The result is broad, but the main workflows are easy to group once you know what is core and what is support tooling.</p>
+    <p class="page-copy">Install the package as <span class="mono">silica-x</span>, run it as <span class="mono">silica-x</span>, and import its Python module as <span class="mono">silica_x</span>. The CLI itself mixes scan workflows, runtime controls, and project introspection commands.</p>
   </header>
 
   <section id="commands" class="page-section section-anchor">
@@ -78,55 +78,55 @@
         <div class="command-card-head"><span class="icon-chip">P</span><div class="command-name">profile</div></div>
         <div class="command-aliases">aliases: <span class="mono">scan</span>, <span class="mono">persona</span>, <span class="mono">social</span></div>
         <div class="card-copy"><p>Run public profile and username intelligence across the platform inventory.</p></div>
-        <div class="command-snippet mono">python silica-x.py profile alice --html</div>
+        <div class="command-snippet mono">silica-x profile alice --html</div>
       </article>
       <article class="card">
         <div class="command-card-head"><span class="icon-chip">S</span><div class="command-name">surface</div></div>
         <div class="command-aliases">aliases: <span class="mono">domain</span>, <span class="mono">asset</span></div>
         <div class="card-copy"><p>Inspect domain attack surface and public exposure lanes.</p></div>
-        <div class="command-snippet mono">python silica-x.py surface example.com --html</div>
+        <div class="command-snippet mono">silica-x surface example.com --html</div>
       </article>
       <article class="card">
         <div class="command-card-head"><span class="icon-chip">F</span><div class="command-name">fusion</div></div>
         <div class="command-aliases">aliases: <span class="mono">full</span>, <span class="mono">combo</span></div>
         <div class="card-copy"><p>Combine profile and surface signals into one run for correlation.</p></div>
-        <div class="command-snippet mono">python silica-x.py fusion alice example.com --csv --html</div>
+        <div class="command-snippet mono">silica-x fusion alice example.com --csv --html</div>
       </article>
       <article class="card">
         <div class="command-card-head"><span class="icon-chip">O</span><div class="command-name">orchestrate</div></div>
         <div class="command-aliases">alias: <span class="mono">orch</span></div>
         <div class="card-copy"><p>Run the policy-driven layered orchestration pipeline directly.</p></div>
-        <div class="command-snippet mono">python silica-x.py orchestrate example.com</div>
+        <div class="command-snippet mono">silica-x orchestrate example.com</div>
       </article>
       <article class="card">
         <div class="command-card-head"><span class="icon-chip">Q</span><div class="command-name">quicktest</div></div>
         <div class="command-aliases">aliases: <span class="mono">qtest</span>, <span class="mono">smoke</span></div>
         <div class="card-copy"><p>Run an offline quicktest using a built-in victim template.</p></div>
-        <div class="command-snippet mono">python silica-x.py quicktest</div>
+        <div class="command-snippet mono">silica-x quicktest</div>
       </article>
       <article class="card">
         <div class="command-card-head"><span class="icon-chip">W</span><div class="command-name">wizard</div></div>
         <div class="command-aliases">interactive guided workflow</div>
         <div class="card-copy"><p>Guided multi-scan operator flow for onboarding and structured runs.</p></div>
-        <div class="command-snippet mono">python silica-x.py wizard</div>
+        <div class="command-snippet mono">silica-x wizard</div>
       </article>
       <article class="card">
         <div class="command-card-head"><span class="icon-chip">I</span><div class="command-name">plugins / filters</div></div>
         <div class="command-aliases">runtime introspection</div>
         <div class="card-copy"><p>Inspect extension discovery, scopes, aliases, and descriptions.</p></div>
-        <div class="command-snippet mono">python silica-x.py plugins --scope all</div>
+        <div class="command-snippet mono">silica-x plugins --scope all</div>
       </article>
       <article class="card">
         <div class="command-card-head"><span class="icon-chip">M</span><div class="command-name">modules / frameworks</div></div>
         <div class="command-aliases">catalog and source-study views</div>
         <div class="card-copy"><p>Inspect module catalogs and local source-study framework references.</p></div>
-        <div class="command-snippet mono">python silica-x.py frameworks --framework recursive-modules --presets</div>
+        <div class="command-snippet mono">silica-x frameworks --framework recursive-modules --presets</div>
       </article>
       <article class="card">
         <div class="command-card-head"><span class="icon-chip">R</span><div class="command-name">history / live</div></div>
         <div class="command-aliases">artifact inspection</div>
         <div class="card-copy"><p>List saved targets and launch a local live dashboard for stored results.</p></div>
-        <div class="command-snippet mono">python silica-x.py history</div>
+        <div class="command-snippet mono">silica-x history</div>
       </article>
     </div>
   </section>
@@ -162,17 +162,17 @@
     <div class="grid-3">
       <article class="card">
         <h3 class="card-title">Direct scan</h3>
-        <div class="command-snippet mono">python silica-x.py profile alice --html</div>
+        <div class="command-snippet mono">silica-x profile alice --html</div>
         <div class="card-copy"><p>Use this for explicit automation or repeatable scripted runs.</p></div>
       </article>
       <article class="card">
         <h3 class="card-title">Prompt first</h3>
-        <div class="command-snippet mono">python silica-x.py</div>
+        <div class="command-snippet mono">silica-x</div>
         <div class="card-copy"><p>Better when you want to discover commands, use aliases, or inspect plugins and filters interactively.</p></div>
       </article>
       <article class="card">
         <h3 class="card-title">Source-study translation</h3>
-        <div class="command-snippet mono">python silica-x.py surface-kit example.com --preset web-basic</div>
+        <div class="command-snippet mono">silica-x surface-kit example.com --preset web-basic</div>
         <div class="card-copy"><p>Useful when you want a native Silica-X run informed by local reference profiles under <span class="mono">temp/</span>.</p></div>
       </article>
     </div>
@@ -183,11 +183,11 @@
         <span class="code-dot"></span>
         <span class="code-lang">shell</span>
       </div>
-      <pre class="code-body"><span class="cmd">python silica-x.py --help</span>
-<span class="cmd">python silica-x.py profile</span> <span class="arg">alice --html --plugin threat_conductor</span>
-<span class="cmd">python silica-x.py surface</span> <span class="arg">example.com --ct --rdap --html</span>
-<span class="cmd">python silica-x.py fusion</span> <span class="arg">alice example.com --profile-preset deep --surface-preset balanced</span>
-<span class="cmd">python silica-x.py prompt</span></pre>
+      <pre class="code-body"><span class="cmd">silica-x</span> <span class="arg">--help</span>
+<span class="cmd">silica-x</span> <span class="arg">profile alice --html --plugin threat_conductor</span>
+<span class="cmd">silica-x</span> <span class="arg">surface example.com --ct --rdap --html</span>
+<span class="cmd">silica-x</span> <span class="arg">fusion alice example.com --profile-preset deep --surface-preset balanced</span>
+<span class="cmd">silica-x</span> <span class="arg">prompt</span></pre>
     </article>
   </section>
 </main>
