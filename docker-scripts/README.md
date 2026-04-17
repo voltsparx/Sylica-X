@@ -1,6 +1,6 @@
-# Docker Runner Scripts
+﻿# Docker Runner Scripts
 
-Release: v9.3.0 (Theme: Ember)
+Release: v10.0 (Theme: Ember)
 
 These scripts wrap `docker/docker-compose.yml` and provide guided setup for:
 
@@ -109,3 +109,4 @@ No forwarded args starts Sylica prompt mode.
   Runs `--runner-stop` behavior, then attempts to stop Docker on the host.
 - Termux note:
   If `DOCKER_HOST` points to a remote daemon, remote daemon shutdown is not automated.
+

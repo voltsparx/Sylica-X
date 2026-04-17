@@ -1,6 +1,6 @@
-# Filter Intel Views
+﻿# Filter Intel Views
 
-Release: v9.3.0 (Theme: Ember)
+Release: v10.0 (Theme: Ember)
 
 Sylica-native filter inventory and triage guidance.
 
@@ -31,3 +31,4 @@ Sylica-native filter inventory and triage guidance.
 - Non-dict rows and missing optional plugin payloads are handled safely.
 - Filters always return normalized output (`severity`, `summary`, `highlights`, `data`) even on sparse input.
 - Discovery and runtime import failures are surfaced in filter error channels, not hard crashes.
+

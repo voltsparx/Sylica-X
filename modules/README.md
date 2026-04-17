@@ -1,6 +1,6 @@
-# Modules Catalog
+﻿# Modules Catalog
 
-Release: v9.3.0 (Theme: Ember)
+Release: v10.0 (Theme: Ember)
 
 Generated index for module-like capabilities discovered under `intel-sources/`.
 
@@ -14,3 +14,4 @@ Refresh from CLI:
 Advanced query examples:
 - `python silica-x.py modules --search dns --sort-by power_score --descending`
 - `python silica-x.py modules --kind plugin --tag identity --min-score 55`
+

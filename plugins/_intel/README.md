@@ -1,6 +1,6 @@
-# Plugin Intel Views
+﻿# Plugin Intel Views
 
-Release: v9.3.0 (Theme: Ember)
+Release: v10.0 (Theme: Ember)
 
 Sylica-native plugin inventory and usage guidance.
 
@@ -31,3 +31,4 @@ Sylica-native plugin inventory and usage guidance.
 - Non-dict/invalid result rows are ignored safely.
 - Each plugin returns normalized output (`severity`, `summary`, `highlights`, `data`) without raising for missing fields.
 - Discovery and runtime import failures are surfaced through extension error channels, not hard crashes.
+

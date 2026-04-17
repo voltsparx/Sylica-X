@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -28,7 +28,7 @@
       <span id="topbar-tagline">OSINT orchestration and correlation framework</span>
     </span>
   </button>
-  <div id="topbar-version">v9.3.0 · Python 3.11+ · Ember</div>
+  <div id="topbar-version">v10.0 Â· Python 3.11+ Â· Ember</div>
   <div class="topbar-search">
     <input id="docs-search-input" type="search" placeholder="Search the docs">
     <div id="docs-search-results" class="topbar-search-results" hidden></div>
@@ -53,7 +53,7 @@
   <div class="sidebar-panel-head">
     <div class="sidebar-kicker">Project</div>
     <h2 class="sidebar-title">Development Signals</h2>
-    <p class="sidebar-note">Static repo health pulled from the repository and live public GitHub data where the browser can fetch it.</p>
+    <p class="sidebar-note">Static repo health pulled from the repository and live public GitHub data where the browser can fetch it, now aligned to the v10.0 docs and Reporter runtime.</p>
   </div>
   <div id="sidebar-tabs" class="sidebar-tabs"></div>
   <div id="sidebar-nav"></div>
@@ -63,8 +63,8 @@
 <main id="main">
   <header class="page-intro">
     <div class="eyebrow">Development</div>
-    <h1 class="page-title">The project already behaves like a maintained engineering repo, not only an experiment</h1>
-    <p class="page-copy">Silica-X carries tests, typing, linting, package smoke checks, Docker assets, docs, source-study notes, and a growing internal intel layer. The architecture is ambitious, but the repo also shows a real push toward verification and maintainability.</p>
+    <h1 class="page-title">The project is being shaped as a maintained engineering repo, not only a feature spike</h1>
+    <p class="page-copy">Silica-X v10.0 tightens the repo around maintainability: clearer docs, a stronger reporting layer, first-class OCR and media lanes, package naming consistency, and a website that reflects the current runtime instead of old release notes.</p>
   </header>
 
   <section id="development-home" class="page-section section-anchor">
@@ -75,18 +75,18 @@
       </div>
     </div>
     <div class="dev-status-grid">
-      <div class="dev-status-item"><span class="dev-status-label">Tests</span><span class="dev-status-value">165 / 165</span></div>
-      <div class="dev-status-item"><span class="dev-status-label">Plugins</span><span class="dev-status-value">20 + 3 crypto</span></div>
-      <div class="dev-status-item"><span class="dev-status-label">Filters</span><span class="dev-status-value">17</span></div>
-      <div class="dev-status-item"><span class="dev-status-label">Platforms</span><span class="dev-status-value">70</span></div>
+      <div class="dev-status-item"><span class="dev-status-label">Release</span><span class="dev-status-value">v10.0</span></div>
+      <div class="dev-status-item"><span class="dev-status-label">Reporter</span><span class="dev-status-value">HTML case view</span></div>
+      <div class="dev-status-item"><span class="dev-status-label">Package</span><span class="dev-status-value">silica-x</span></div>
+      <div class="dev-status-item"><span class="dev-status-label">Import</span><span class="dev-status-value">silica_x</span></div>
     </div>
     <div class="grid-2 section-block">
       <article class="panel">
         <h3 class="panel-title">Engineering slices</h3>
         <ul class="simple-list">
           <li><span class="list-label">core/interface</span>Banner, prompt UX, help, explain, parsing, live server helpers.</li>
-          <li><span class="list-label">core/collect</span>Profile, surface, network, media, domain, and source fusion collectors.</li>
-          <li><span class="list-label">core/analyze + core/fusion</span>Footprint maps, exposure, narratives, correlation, confidence, graph building.</li>
+          <li><span class="list-label">core/collect</span>Profile, surface, network, media, OCR, domain, and source fusion collectors.</li>
+          <li><span class="list-label">core/analyze + core/fusion</span>Footprint maps, exposure, Reporter narratives, correlation, confidence, graph building.</li>
           <li><span class="list-label">core/extensions</span>Plugin manager, signal forge, signal sieve, selector/control plane.</li>
         </ul>
       </article>
@@ -95,7 +95,7 @@
         <ul class="simple-list">
           <li><span class="list-label">CI matrix</span>Python 3.11, 3.12, and 3.13.</li>
           <li><span class="list-label">Static checks</span>Ruff and mypy run in CI.</li>
-          <li><span class="list-label">Package verification</span>Build, twine metadata checks, and installed-entrypoint smoke tests.</li>
+          <li><span class="list-label">Package verification</span>Build, metadata checks, and installed-entrypoint smoke tests.</li>
           <li><span class="list-label">Compilation smoke</span><span class="mono">compileall</span> is part of the CI health story.</li>
         </ul>
       </article>
@@ -127,8 +127,8 @@
   <section id="release-radar" class="page-section section-anchor">
     <div class="section-head">
       <div>
-        <div class="section-kicker">Release radar</div>
-        <h2 class="section-title">Raw signals worth watching</h2>
+      <div class="section-kicker">Docs radar</div>
+      <h2 class="section-title">Raw project signals worth watching</h2>
       </div>
     </div>
     <div class="grid-2">
@@ -169,3 +169,4 @@
 <script src="js/bootstrap/app.js"></script>
 </body>
 </html>
+

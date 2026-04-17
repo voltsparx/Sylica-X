@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -38,7 +38,7 @@
       <span id="topbar-tagline">OSINT orchestration and correlation framework</span>
     </span>
   </button>
-  <div id="topbar-version">v9.3.0 · Python 3.11+ · Ember</div>
+  <div id="topbar-version">v10.0 Â· Python 3.11+ Â· Ember</div>
   <div class="topbar-search">
     <input id="docs-search-input" type="search" placeholder="Search the docs">
     <div id="docs-search-results" class="topbar-search-results" hidden></div>
@@ -63,7 +63,7 @@
   <div class="sidebar-panel-head">
     <div class="sidebar-kicker">Docs Control</div>
     <h2 class="sidebar-title">Silica-X Website</h2>
-    <p class="sidebar-note">A static docs shell built from the repo itself: workflows, commands, runtime design, outputs, and project signals.</p>
+    <p class="sidebar-note">A static docs shell built from the repo itself: workflows, commands, runtime design, Reporter outputs, and project signals.</p>
   </div>
   <div id="sidebar-tabs" class="sidebar-tabs" role="tablist" aria-label="Documentation groups"></div>
   <div id="sidebar-nav"></div>
@@ -74,17 +74,17 @@
   <section id="home" class="page-section section-anchor">
     <div class="hero-grid">
       <article class="hero-card">
-        <div class="eyebrow">Release Theme: Ember</div>
+        <div class="eyebrow">Release Theme: Ember · v10.0</div>
         <h1 class="hero-title">Silica-X</h1>
-        <p class="hero-subtitle">Multi-engine OSINT orchestration for profile intelligence, domain-surface reconnaissance, fused correlation, and structured reporting.</p>
-        <p class="hero-copy">Silica-X is a Python framework that brings several investigation lanes into one operator flow. It can scan usernames across platforms, inspect domain surface exposure, combine those signals in a fusion run, and drive a policy-led orchestration pipeline that turns raw findings into usable artifacts.</p>
+        <p class="hero-subtitle">Multi-engine OSINT orchestration for profile intelligence, domain-surface reconnaissance, public-media analysis, OCR image scanning, fused correlation, and Reporter-grade reporting.</p>
+        <p class="hero-copy">Silica-X is a Python framework that brings several investigation lanes into one operator flow. It can scan usernames across platforms, inspect domain surface exposure, process public-media and OCR-heavy cases, combine those signals in a fusion run, and drive a policy-led orchestration pipeline that turns raw findings into usable artifacts.</p>
         <div class="badge-row">
           <span class="badge is-accent">4 main workflows</span>
-          <span class="badge">70 platforms</span>
-          <span class="badge">20 plugins</span>
-          <span class="badge">17 filters</span>
-          <span class="badge">567 modules in catalog</span>
-          <span class="badge">165 tests passing</span>
+          <span class="badge">71 platforms</span>
+          <span class="badge">Reporter HTML</span>
+          <span class="badge">OCR lane</span>
+          <span class="badge">Media recon</span>
+          <span class="badge">silica-x / silica_x</span>
         </div>
         <div class="cta-row">
           <a class="btn btn-primary" href="getting-started.html#install">Start Here</a>
@@ -98,14 +98,14 @@
         </div>
         <div>
           <div class="card-title">What the repo says today</div>
-          <p class="hero-logo-note">The codebase centers on prompt and flag workflows, a scope-aware plugin and filter layer, engine-level execution control, correlation, confidence scoring, and output generation to CLI, JSON, CSV, HTML, and logs.</p>
+          <p class="hero-logo-note">The codebase centers on prompt and flag workflows, a scope-aware plugin and filter layer, engine-level execution control, correlation, confidence scoring, media and OCR lanes, and output generation to CLI, JSON, CSV, Reporter HTML, and logs.</p>
         </div>
       </article>
     </div>
 
     <div class="stats-grid section-block">
       <article class="metric-card"><span class="metric-value">4</span><span class="metric-label">Primary workflows: profile, surface, fusion, orchestrate</span></article>
-      <article class="metric-card"><span class="metric-value">5</span><span class="metric-label">Native engine lanes listed in hybrid architecture docs</span></article>
+      <article class="metric-card"><span class="metric-value">5+</span><span class="metric-label">Engine and specialized intelligence lanes active in the runtime</span></article>
       <article class="metric-card"><span class="metric-value">3</span><span class="metric-label">Supported Python versions in CI: 3.11, 3.12, 3.13</span></article>
       <article class="metric-card"><span class="metric-value">0</span><span class="metric-label">Inventory error counts in the current runtime snapshot</span></article>
       <article class="metric-card"><span class="metric-value">1</span><span class="metric-label">Unified docs shell for the project website under <span class="mono">docs/website</span></span></article>
@@ -165,7 +165,7 @@
     </div>
     <div class="callout callout-info section-block">
       <div class="callout-title">Repository-accurate framing</div>
-      Silica-X already ships profile, surface, fusion, orchestration, plugin/filter discovery, explain surfaces, Docker wrappers, and typed test automation. Some deeper ideas in planning notes, like broader vulnerability mapping and richer teaching layers, are still roadmap material rather than current runtime claims.
+      Silica-X already ships profile, surface, fusion, orchestration, OCR image scanning, media reconnaissance, plugin/filter discovery, explain surfaces, Docker wrappers, and a Reporter-centered artifact layer.
     </div>
   </section>
 
@@ -272,8 +272,8 @@ fusion alice example.com</pre>
   <div class="footer-grid">
     <div>
       <div class="footer-title">Silica-X</div>
-      <div>v9.3.0 · Ember · Python 3.11+</div>
-      <div class="tiny" style="margin-top: 0.5rem;">Multi-engine OSINT orchestration for profile, surface, fusion, and reporting workflows.</div>
+      <div>v10.0 Â· Ember Â· Python 3.11+</div>
+      <div class="tiny" style="margin-top: 0.5rem;">Multi-engine OSINT orchestration for profile, surface, fusion, media, OCR, and Reporter workflows.</div>
     </div>
     <div>
       <div class="footer-title">Start</div>
@@ -306,3 +306,4 @@ fusion alice example.com</pre>
 <script src="js/bootstrap/app.js"></script>
 </body>
 </html>
+

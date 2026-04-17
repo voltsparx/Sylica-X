@@ -89,10 +89,10 @@ async function initDevelopmentFeed() {
 
     if (rawViewerGrid) {
       const files = [
-        { title: "README", path: "README.md", copy: "Current release statement, command tables, and audit snapshot." },
-        { title: "Security Policy", path: "SECURITY.md", copy: "Repository security and responsible handling guidance." },
-        { title: "Release Notes", path: "docs/release-notes-v9.3.0-lattice.md", copy: "Detailed v9.3.0 changes and release framing." },
-        { title: "Capability Scan", path: "docs/silica-capability-scan.md", copy: "Project self-assessment and capability reporting signal." },
+        { title: "README", path: "README.md", copy: "Current v10.0 release statement, package naming, and workflow summary." },
+        { title: "Docs Index", path: "docs/README.md", copy: "The new docs tree for architecture, Reporter, media, and development." },
+        { title: "Reporter", path: "docs/reporter.md", copy: "Reporter structure, goals, and artifact framing." },
+        { title: "Media Intelligence", path: "docs/media-intelligence.md", copy: "Public-media and OCR lane overview." },
         { title: "Runtime Inventory", path: "intel/runtime-inventory.json", copy: "Machine-readable plugin, filter, platform, and module snapshot." },
         { title: "Package Metadata", path: "pyproject.toml", copy: "Project metadata, dependencies, and packaging entrypoints." }
       ];

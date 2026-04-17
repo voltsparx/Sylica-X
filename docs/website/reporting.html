@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -28,7 +28,7 @@
       <span id="topbar-tagline">OSINT orchestration and correlation framework</span>
     </span>
   </button>
-  <div id="topbar-version">v9.3.0 · Python 3.11+ · Ember</div>
+  <div id="topbar-version">v10.0 Â· Python 3.11+ Â· Ember</div>
   <div class="topbar-search">
     <input id="docs-search-input" type="search" placeholder="Search the docs">
     <div id="docs-search-results" class="topbar-search-results" hidden></div>
@@ -51,8 +51,8 @@
 <nav id="sidebar" aria-label="Documentation navigation">
   <div class="sidebar-panel-head">
     <div class="sidebar-kicker">Reports</div>
-    <h2 class="sidebar-title">Outputs and Verification</h2>
-    <p class="sidebar-note">Silica-X produces human-readable artifacts, automation-friendly exports, and runtime inventory snapshots that help keep the framework inspectable.</p>
+    <h2 class="sidebar-title">Reporter and Artifacts</h2>
+    <p class="sidebar-note">Silica-X v10.0 centers reporting around Reporter while still keeping machine-friendly exports and runtime inventory snapshots for automation.</p>
   </div>
   <div id="sidebar-tabs" class="sidebar-tabs"></div>
   <div id="sidebar-nav"></div>
@@ -62,8 +62,8 @@
 <main id="main">
   <header class="page-intro">
     <div class="eyebrow">Artifacts</div>
-    <h1 class="page-title">Silica-X treats reporting as a first-class layer</h1>
-    <p class="page-copy">The framework does not stop at terminal output. It writes structured artifacts, logs, and inventory snapshots so runs are easier to review, compare, and automate against.</p>
+    <h1 class="page-title">Silica-X treats reporting as a first-class runtime, not an afterthought</h1>
+    <p class="page-copy">Reporter is the v10.0 case-view layer for Silica-X. It groups identity, surface, vulnerability, extension, media, and scoring signals into one readable HTML report while keeping JSON, CSV, and logs available for machines.</p>
   </header>
 
   <section id="outputs" class="page-section section-anchor">
@@ -95,7 +95,7 @@
       <article class="card">
         <h3 class="card-title">HTML</h3>
         <div class="card-copy">
-          <p>Browser-friendly report output and a companion to the live dashboard mode.</p>
+          <p>The Reporter case view: categorized HTML output with graphs, severity context, raw payload drill-downs, and the closing Reporter Brief.</p>
         </div>
       </article>
       <article class="card">
@@ -128,8 +128,8 @@
       <div class="directory-row"><div class="directory-name mono">output/logs/</div><div>Per-run logs and framework log output.</div></div>
     </div>
     <div class="callout callout-info section-block">
-      <div class="callout-title">Output root is not hardcoded forever</div>
-      Use <span class="mono">out-type</span>, <span class="mono">out-print</span>, and <span class="mono">default-out-print</span> to change formats or artifact roots for the current session and persisted defaults.
+      <div class="callout-title">Reporter is presentation, not the source of truth</div>
+      The HTML layer reads from the same structured payloads written to JSON and CSV. Change output roots or formats with <span class="mono">out-type</span>, <span class="mono">out-print</span>, and <span class="mono">default-out-print</span>.
     </div>
   </section>
 
@@ -164,7 +164,7 @@
     <div class="section-head">
       <div>
         <div class="section-kicker">Verification</div>
-        <h2 class="section-title">The repo leans heavily on tests and static checks</h2>
+        <h2 class="section-title">The repo leans on tests and static checks to keep the runtime sustainable</h2>
       </div>
     </div>
     <div class="roadmap-strip">
@@ -192,7 +192,7 @@
     </article>
     <div class="callout callout-warn section-block">
       <div class="callout-title">Current quality snapshot</div>
-      The README currently reports 165 tests passing, Ruff clean, mypy clean, package smoke checks, and runtime inventory generation with zero inventory error counts.
+      The v10.0 refresh aligns reporting, docs, and website behavior around the current runtime. Verification still centers on pytest, Ruff, mypy, compile smoke, and package-entrypoint checks.
     </div>
   </section>
 </main>
@@ -216,3 +216,4 @@
 <script src="js/bootstrap/app.js"></script>
 </body>
 </html>
+

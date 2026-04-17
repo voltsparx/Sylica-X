@@ -1442,7 +1442,7 @@ def launch_live_dashboard(
                 <ul>{filter_items}</ul>
               </div>
               <div class="panel">
-                <h3>Nano AI Brief</h3>
+                <h3>Reporter Brief</h3>
                 <p>{narrative}</p>
               </div>
             </body>

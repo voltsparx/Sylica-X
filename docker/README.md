@@ -1,6 +1,6 @@
-# Tor Wrappers
+﻿# Tor Wrappers
 
-Release: v9.3.0 (Theme: Ember)
+Release: v10.0 (Theme: Ember)
 
 This folder now contains Tor wrapper scripts for container and host OS usage.
 
@@ -57,3 +57,4 @@ powershell -ExecutionPolicy Bypass -File .\docker\tor-wrapper-windows.ps1 --data
 - `--no-install`
 
 Any non-wrapper args are passed directly to Tor.
+

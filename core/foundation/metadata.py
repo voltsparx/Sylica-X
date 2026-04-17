@@ -21,13 +21,13 @@ from datetime import datetime, timezone
 
 
 PROJECT_NAME = "Silica-X"
-VERSION = "9.3.0"
+VERSION = "10.0"
 VERSION_THEME = "Ember"
 AUTHOR = "voltsparx"
 AUTHOR_HANDLE = "voltsparx"
 CONTACT_EMAIL = "voltsparx@gmail.com"
 REPOSITORY_URL = f"https://github.com/{AUTHOR_HANDLE}/{PROJECT_NAME}"
-TAGLINE = "Framework for cross-referencing OSINT data to support analysis work"
+TAGLINE = "OSINT orchestration, media intelligence, and Reporter-grade analysis artifacts"
 
 
 def utc_timestamp() -> str:

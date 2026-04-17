@@ -1,6 +1,6 @@
 # Silica-X Website
 
-This folder contains the static documentation website for Silica-X.
+This folder contains the static documentation website for Silica-X v10.0.
 
 ## Purpose
 
@@ -8,7 +8,7 @@ The site is intentionally plain HTML, CSS, and JavaScript so it can be:
 
 - served by GitHub Pages
 - edited without a build step
-- kept close to the repository docs and release state
+- kept close to the repository docs and current runtime state
 
 ## Structure
 
@@ -20,7 +20,7 @@ The site is intentionally plain HTML, CSS, and JavaScript so it can be:
 - `workflow.html` explains the four main workflows and layered runtime design
 - `cli-reference.html` documents commands, aliases, and common flags
 - `modes.html` describes prompt, wizard, live, and source-study runtime modes
-- `reporting.html` explains output formats, storage, history, and testing
+- `reporting.html` explains Reporter, output formats, storage, history, and testing
 - `development.html` shows repository health and GitHub activity signals
 - `project.html` covers project context, author, legal use, and roadmap signals
 
@@ -72,6 +72,7 @@ Load JavaScript in this order:
 - Put shared tokens and reusable components in the shared CSS modules.
 - Keep page-specific behavior out of HTML where possible.
 - Favor repository-accurate wording over marketing claims that the codebase does not support yet.
+- Keep version strings, docs links, and Reporter wording aligned with the root `README.md` and `docs/*.md`.
 
 ## Verification
 

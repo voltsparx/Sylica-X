@@ -709,6 +709,223 @@ def _render_ocr_scan(ocr_scan: dict | None) -> str:
     )
 
 
+def _count_statuses(rows: list[dict]) -> dict[str, int]:
+    counts = {"FOUND": 0, "ERROR": 0, "BLOCKED": 0, "NOT FOUND": 0, "OTHER": 0}
+    for row in rows:
+        status = str(row.get("status", "OTHER")).strip().upper() or "OTHER"
+        if status not in counts:
+            status = "OTHER"
+        counts[status] += 1
+    return counts
+
+
+def _severity_badge(severity: str) -> str:
+    color_map = {
+        "CRITICAL": "#ff6b7d",
+        "HIGH": "#ff8a3d",
+        "MEDIUM": "#ffb454",
+        "LOW": "#87d6a6",
+        "INFO": "#70b9ff",
+    }
+    normalized = str(severity or "INFO").strip().upper() or "INFO"
+    color = color_map.get(normalized, "#70b9ff")
+    return (
+        "<span class='severity-pill' "
+        f"style='background:{html.escape(color)}22;border-color:{html.escape(color)}66;color:{html.escape(color)};'>{html.escape(normalized)}</span>"
+    )
+
+
+def _bar_row(label: str, value: int, maximum: int, tone: str, hint: str = "") -> str:
+    width = 0.0 if maximum <= 0 or value <= 0 else max(8.0, min(100.0, (value / maximum) * 100.0))
+    hint_html = f"<span class='bar-hint'>{html.escape(hint)}</span>" if hint else ""
+    return (
+        "<div class='bar-row'>"
+        "<div class='bar-meta'>"
+        f"<span class='bar-label'>{html.escape(label)}</span>"
+        f"<span class='bar-value'>{html.escape(str(value))}</span>"
+        "</div>"
+        "<div class='bar-track'>"
+        f"<span class='bar-fill {html.escape(tone)}' style='width:{width:.1f}%;'></span>"
+        "</div>"
+        f"{hint_html}"
+        "</div>"
+    )
+
+
+def _render_graph_cluster(
+    results: list[dict],
+    issues: list[dict[str, str]],
+    plugin_results: list[dict],
+    filter_results: list[dict],
+    intelligence_bundle: dict,
+    ocr_scan: dict,
+) -> str:
+    status_counts = _count_statuses(results)
+    issue_breakdown = _severity_breakdown(_safe_dict_rows(issues))
+    plugin_breakdown = _severity_breakdown(_safe_dict_rows(plugin_results))
+    filter_breakdown = _severity_breakdown(_safe_dict_rows(filter_results))
+    confidence_distribution = (
+        intelligence_bundle.get("confidence_distribution", {})
+        if isinstance(intelligence_bundle.get("confidence_distribution"), dict)
+        else {}
+    )
+    ocr_summary = ocr_scan.get("summary", {}) if isinstance(ocr_scan.get("summary"), dict) else {}
+
+    result_max = max(sum(status_counts.values()), 1)
+    severity_max = max(max(issue_breakdown.values(), default=0), 1)
+    extension_max = max(
+        max(plugin_breakdown.values(), default=0),
+        max(filter_breakdown.values(), default=0),
+        1,
+    )
+    confidence_max = max(
+        int(confidence_distribution.get("high", 0) or 0),
+        int(confidence_distribution.get("medium", 0) or 0),
+        int(confidence_distribution.get("low", 0) or 0),
+        1,
+    )
+    ocr_max = max(
+        int(ocr_summary.get("image_count", 0) or 0),
+        int(ocr_summary.get("processed_count", 0) or 0),
+        int(ocr_summary.get("ocr_hits", 0) or 0),
+        1,
+    )
+
+    ocr_card = ""
+    if ocr_scan:
+        ocr_card = (
+            "<article class='subpanel graph-card'>"
+            "<h4>OCR scan throughput</h4>"
+            f"{_bar_row('Images supplied', int(ocr_summary.get('image_count', 0) or 0), ocr_max, 'tone-info')}"
+            f"{_bar_row('Processed', int(ocr_summary.get('processed_count', 0) or 0), ocr_max, 'tone-positive')}"
+            f"{_bar_row('OCR hits', int(ocr_summary.get('ocr_hits', 0) or 0), ocr_max, 'tone-warn')}"
+            f"{_bar_row('Failures', int(ocr_summary.get('failed_count', 0) or 0), ocr_max, 'tone-critical')}"
+            "</article>"
+        )
+
+    return (
+        "<section class='panel' id='graphs'>"
+        "<div class='section-banner'>"
+        "<div>"
+        "<div class='section-eyebrow'>Operational graphs</div>"
+        "<h3>Run shape, vulnerabilities, and signal pressure</h3>"
+        "</div>"
+        "<p class='muted'>Reporter surfaces the current case shape with simple visual bars so an operator can understand coverage and pressure before reading raw tables.</p>"
+        "</div>"
+        "<div class='graph-grid'>"
+        "<article class='subpanel graph-card'>"
+        "<h4>Result coverage</h4>"
+        f"{_bar_row('Found', status_counts.get('FOUND', 0), result_max, 'tone-positive', 'profiles confirmed')}"
+        f"{_bar_row('Errors', status_counts.get('ERROR', 0), result_max, 'tone-critical', 'request or parsing failures')}"
+        f"{_bar_row('Blocked', status_counts.get('BLOCKED', 0), result_max, 'tone-warn', 'access friction')}"
+        f"{_bar_row('Not found', status_counts.get('NOT FOUND', 0), result_max, 'tone-neutral', 'negative coverage')}"
+        "</article>"
+        "<article class='subpanel graph-card'>"
+        "<h4>Vulnerability severity</h4>"
+        f"{_bar_row('Critical', issue_breakdown.get('CRITICAL', 0), severity_max, 'tone-critical')}"
+        f"{_bar_row('High', issue_breakdown.get('HIGH', 0), severity_max, 'tone-high')}"
+        f"{_bar_row('Medium', issue_breakdown.get('MEDIUM', 0), severity_max, 'tone-warn')}"
+        f"{_bar_row('Low', issue_breakdown.get('LOW', 0), severity_max, 'tone-positive')}"
+        f"{_bar_row('Info', issue_breakdown.get('INFO', 0), severity_max, 'tone-info')}"
+        "</article>"
+        "<article class='subpanel graph-card'>"
+        "<h4>Extension pressure</h4>"
+        f"{_bar_row('Plugin high+', plugin_breakdown.get('CRITICAL', 0) + plugin_breakdown.get('HIGH', 0), extension_max, 'tone-high')}"
+        f"{_bar_row('Filter high+', filter_breakdown.get('CRITICAL', 0) + filter_breakdown.get('HIGH', 0), extension_max, 'tone-high')}"
+        f"{_bar_row('Plugin medium', plugin_breakdown.get('MEDIUM', 0), extension_max, 'tone-warn')}"
+        f"{_bar_row('Filter medium', filter_breakdown.get('MEDIUM', 0), extension_max, 'tone-warn')}"
+        f"{_bar_row('Plugin info', plugin_breakdown.get('INFO', 0), extension_max, 'tone-info')}"
+        "</article>"
+        "<article class='subpanel graph-card'>"
+        "<h4>Confidence mix</h4>"
+        f"{_bar_row('High confidence', int(confidence_distribution.get('high', 0) or 0), confidence_max, 'tone-positive')}"
+        f"{_bar_row('Medium confidence', int(confidence_distribution.get('medium', 0) or 0), confidence_max, 'tone-warn')}"
+        f"{_bar_row('Low confidence', int(confidence_distribution.get('low', 0) or 0), confidence_max, 'tone-critical')}"
+        "</article>"
+        f"{ocr_card}"
+        "</div>"
+        "</section>"
+    )
+
+
+def _build_reporter_facts(
+    *,
+    mode: str,
+    snapshot: dict,
+    issue_summary: dict,
+    domain_result: dict | None,
+    intelligence_bundle: dict,
+    ocr_scan: dict,
+) -> list[str]:
+    facts = [
+        f"Mode {mode.upper()} reviewed {snapshot.get('found_count', 0)} confirmed profiles and {snapshot.get('error_count', 0)} unstable or blocked results.",
+        f"Coverage ratio currently sits at {snapshot.get('coverage_ratio', 0)} with average found confidence at {snapshot.get('avg_found_confidence', 0)}.",
+        f"Risk score is {issue_summary.get('risk_score', 0)} based on the current exposure and vulnerability findings.",
+    ]
+    if isinstance(domain_result, dict) and domain_result:
+        surface_map = domain_result.get("surface_map", {}) if isinstance(domain_result.get("surface_map"), dict) else {}
+        facts.append(
+            "Surface intelligence tracked "
+            f"{len(domain_result.get('subdomains', []) or [])} subdomain candidates and "
+            f"attack surface score {surface_map.get('attack_surface_score', 0)}."
+        )
+    if isinstance(intelligence_bundle, dict) and intelligence_bundle:
+        metadata = intelligence_bundle.get("metadata", {}) if isinstance(intelligence_bundle.get("metadata"), dict) else {}
+        facts.append(
+            "Fusion scoring mapped "
+            f"{metadata.get('entity_count', 0)} entities and {metadata.get('evidence_count', 0)} evidence items into the case graph."
+        )
+    if isinstance(ocr_scan, dict) and ocr_scan:
+        summary = ocr_scan.get("summary", {}) if isinstance(ocr_scan.get("summary"), dict) else {}
+        facts.append(
+            "OCR processed "
+            f"{summary.get('processed_count', 0)} media inputs with {summary.get('ocr_hits', 0)} text-positive hits."
+        )
+    return facts
+
+
+def _render_reporter_brief(
+    *,
+    mode: str,
+    narrative: str | None,
+    snapshot: dict,
+    issue_summary: dict,
+    domain_result: dict | None,
+    intelligence_bundle: dict,
+    ocr_scan: dict,
+) -> str:
+    facts = "".join(
+        f"<li>{html.escape(item)}</li>"
+        for item in _build_reporter_facts(
+            mode=mode,
+            snapshot=snapshot,
+            issue_summary=issue_summary,
+            domain_result=domain_result,
+            intelligence_bundle=intelligence_bundle,
+            ocr_scan=ocr_scan,
+        )
+    )
+    summary_text = narrative or (
+        "Reporter did not receive a narrative string for this run, so this closing brief reflects the structured telemetry captured across results, vulnerabilities, extensions, and intelligence scoring."
+    )
+    return (
+        "<section class='panel reporter-panel' id='reporter'>"
+        "<div class='section-banner'>"
+        "<div>"
+        "<div class='section-eyebrow'>Reporter</div>"
+        "<h3>Reporter Brief</h3>"
+        "</div>"
+        "<span class='panel-chip'>Case closeout</span>"
+        "</div>"
+        f"<div class='brief'>{html.escape(summary_text)}</div>"
+        "<div class='subpanel section-block'>"
+        "<h4>Case summary</h4>"
+        f"<ul>{facts}</ul>"
+        "</div>"
+        "</section>"
+    )
+
+
 def generate_html(
     target: str,
     results: list[dict] | None,
@@ -746,12 +963,20 @@ def generate_html(
     error_rows = error_profile_rows(results)
     focus_rows = focused_profile_rows(results)
     snapshot = summarize_target_intel(results)
+    issue_breakdown = _severity_breakdown(_safe_dict_rows(issues))
+    plugin_breakdown = _severity_breakdown(_safe_dict_rows(plugin_results))
+    filter_breakdown = _severity_breakdown(_safe_dict_rows(filter_results))
+    confidence_distribution = (
+        intelligence_bundle.get("confidence_distribution", {})
+        if isinstance(intelligence_bundle.get("confidence_distribution"), dict)
+        else {}
+    )
 
     overlap_score = correlation.get("identity_overlap_score", 0)
     metrics_html = "".join(
         [
             _metric_card("Mode", mode.upper(), "workflow"),
-            _metric_card("Target", target_display, "entity"),
+            _metric_card("Target", target_display or target_key, "entity"),
             _metric_card("Platforms Checked", str(len(results)), "total websites queried"),
             _metric_card("Found Profiles", str(len(found_rows)), "confirmed social profiles"),
             _metric_card("Errors/Blocked", str(len(error_rows)), "sites requiring retry"),
@@ -760,6 +985,16 @@ def generate_html(
             _metric_card("Risk Score", str(issue_summary.get("risk_score", 0)), "exposure signal"),
         ]
     )
+    triage_chips = "".join(
+        [
+            f"<span class='panel-chip'>{html.escape(mode.upper())} case</span>",
+            f"<span class='panel-chip'>issues {html.escape(str(len(issues)))}</span>",
+            f"<span class='panel-chip'>plugins {html.escape(str(len(plugin_results)))}</span>",
+            f"<span class='panel-chip'>filters {html.escape(str(len(filter_results)))}</span>",
+            f"<span class='panel-chip'>ocr {'active' if ocr_scan else 'idle'}</span>",
+        ]
+    )
+    exposure_level = "HIGH" if (issue_breakdown.get("CRITICAL", 0) or issue_breakdown.get("HIGH", 0)) else "INFO"
 
     report_html = f"""
     <!DOCTYPE html>
@@ -767,46 +1002,75 @@ def generate_html(
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>{html.escape(PROJECT_NAME)} v{html.escape(VERSION)} Report - {html.escape(target_display)}</title>
+      <title>{html.escape(PROJECT_NAME)} Reporter v{html.escape(VERSION)} - {html.escape(target_display or target_key)}</title>
       <style>
         :root {{
-          --bg:#140c07;
-          --panel:#24140b;
-          --panel-2:#311b0f;
-          --text:#fff3e8;
-          --muted:#d7bba1;
+          --bg:#120904;
+          --panel:#211109;
+          --panel-2:#2d170b;
+          --panel-3:#371d0f;
+          --text:#fff4ea;
+          --muted:#dcbca3;
           --accent:#ff8a3d;
-          --accent-2:#ffb15e;
-          --line:#6e4425;
-          --shadow:0 14px 40px rgba(0, 0, 0, 0.42);
+          --accent-2:#ffb454;
+          --accent-3:#ffd28c;
+          --info:#70b9ff;
+          --positive:#87d6a6;
+          --warn:#ffcf73;
+          --critical:#ff6b7d;
+          --line:#7e4b28;
+          --shadow:0 22px 60px rgba(0, 0, 0, 0.45);
         }}
         * {{ box-sizing: border-box; }}
         body {{
-          margin:0;
+          margin: 0;
           font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
           color: var(--text);
           background:
-            radial-gradient(circle at 12% -6%, rgba(255,138,61,0.28) 0%, rgba(255,138,61,0) 35%),
-            radial-gradient(circle at 88% -15%, rgba(255,177,94,0.24) 0%, rgba(255,177,94,0) 40%),
-            linear-gradient(145deg, #140c07 0%, #1a1008 45%, #120904 100%);
+            radial-gradient(circle at 10% -10%, rgba(255,138,61,0.26) 0%, rgba(255,138,61,0) 34%),
+            radial-gradient(circle at 100% 0%, rgba(255,180,84,0.18) 0%, rgba(255,180,84,0) 32%),
+            linear-gradient(145deg, #120904 0%, #1a0f08 44%, #120904 100%);
           min-height: 100vh;
-          padding: 20px;
+          padding: 22px;
         }}
-        .shell {{ max-width: 1300px; margin: 0 auto; }}
+        .shell {{ max-width: 1360px; margin: 0 auto; }}
         .header {{
-          background: linear-gradient(130deg, rgba(255,138,61,0.18), rgba(255,177,94,0.12));
+          background:
+            linear-gradient(145deg, rgba(255,138,61,0.20), rgba(255,177,94,0.08)),
+            linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
           border: 1px solid var(--line);
-          border-radius: 18px;
-          padding: 20px 22px;
-          margin-bottom: 16px;
+          border-radius: 22px;
+          padding: 24px 24px 20px;
+          margin-bottom: 18px;
           box-shadow: var(--shadow);
           backdrop-filter: blur(6px);
+        }}
+        .header-top {{
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }}
+        .header h1 {{ margin: 0 0 8px 0; font-size: 2rem; letter-spacing: -0.02em; }}
+        .header-lead {{ max-width: 820px; }}
+        .header-copy {{
+          color: var(--muted);
+          margin: 8px 0 0;
+          line-height: 1.55;
+        }}
+        .header-pills {{
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          justify-content: flex-end;
+          max-width: 380px;
         }}
         .quick-nav {{
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
-          margin-bottom: 14px;
+          margin: 16px 0 14px;
         }}
         .quick-nav a {{
           border: 1px solid var(--line);
@@ -816,12 +1080,13 @@ def generate_html(
           color: var(--text);
           font-size: 0.82rem;
           text-decoration: none;
+          transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
         }}
         .quick-nav a:hover {{
           border-color: var(--accent-2);
           transform: translateY(-1px);
+          background: rgba(255,255,255,0.06);
         }}
-        .header h1 {{ margin: 0 0 8px 0; font-size: 1.75rem; }}
         .muted {{ color: var(--muted); }}
         .metrics {{
           display: grid;
@@ -830,10 +1095,10 @@ def generate_html(
           margin-bottom: 16px;
         }}
         .metric-card {{
-          background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+          background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
           border: 1px solid var(--line);
-          border-radius: 14px;
-          padding: 12px;
+          border-radius: 16px;
+          padding: 14px 14px 12px;
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
         }}
         .metric-label {{
@@ -842,22 +1107,41 @@ def generate_html(
           text-transform: uppercase;
           letter-spacing: 0.08em;
         }}
-        .metric-value {{ font-size: 1.34rem; font-weight: 800; margin-top: 4px; }}
+        .metric-value {{ font-size: 1.42rem; font-weight: 800; margin-top: 4px; }}
         .metric-hint {{ color: var(--muted); font-size: 0.78rem; margin-top: 4px; }}
         .panel {{
-          background: linear-gradient(180deg, rgba(42,24,13,0.9), rgba(30,17,10,0.97));
+          background: linear-gradient(180deg, rgba(43,24,13,0.92), rgba(28,16,10,0.98));
           border: 1px solid var(--line);
-          border-radius: 14px;
-          padding: 14px;
-          margin-bottom: 14px;
+          border-radius: 18px;
+          padding: 16px;
+          margin-bottom: 16px;
           box-shadow: var(--shadow);
         }}
+        .reporter-panel {{
+          border-color: rgba(255, 180, 84, 0.45);
+          box-shadow: 0 22px 70px rgba(255, 138, 61, 0.14), var(--shadow);
+        }}
+        .section-banner {{
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+          margin-bottom: 12px;
+          flex-wrap: wrap;
+        }}
+        .section-eyebrow {{
+          color: var(--accent-3);
+          font-size: 0.76rem;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          margin-bottom: 6px;
+        }}
         .subpanel {{
-          background: rgba(255,255,255,0.02);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 10px;
-          padding: 10px 12px;
-          margin-bottom: 10px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.032), rgba(255,255,255,0.015));
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 14px;
+          padding: 12px 14px;
+          margin-bottom: 12px;
         }}
         .badge {{
           display: inline-block;
@@ -875,6 +1159,87 @@ def generate_html(
           padding: 2px 8px;
           font-size: 0.74rem;
           vertical-align: middle;
+        }}
+        .severity-pill {{
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 10px;
+          border-radius: 999px;
+          border: 1px solid transparent;
+          font-size: 0.76rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }}
+        .triage-grid {{
+          display: grid;
+          grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.95fr);
+          gap: 16px;
+        }}
+        .panel-chip {{
+          display: inline-flex;
+          align-items: center;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: rgba(255, 180, 84, 0.12);
+          border: 1px solid rgba(255, 180, 84, 0.24);
+          color: var(--text);
+          font-size: 0.8rem;
+          margin: 0 8px 8px 0;
+        }}
+        .summary-stack {{
+          display: grid;
+          gap: 10px;
+        }}
+        .summary-row {{
+          display: flex;
+          justify-content: space-between;
+          gap: 14px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.06);
+        }}
+        .summary-row strong {{ font-size: 1rem; }}
+        .graph-grid {{
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 14px;
+        }}
+        .graph-card h4 {{ margin-top: 0; margin-bottom: 12px; }}
+        .bar-row {{ margin-bottom: 12px; }}
+        .bar-meta {{
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 6px;
+          font-size: 0.85rem;
+        }}
+        .bar-label {{ color: var(--muted); }}
+        .bar-value {{ color: var(--text); font-weight: 700; }}
+        .bar-track {{
+          width: 100%;
+          height: 10px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.08);
+          overflow: hidden;
+        }}
+        .bar-fill {{
+          display: block;
+          height: 100%;
+          border-radius: 999px;
+        }}
+        .tone-positive {{ background: linear-gradient(90deg, #5fc48e, #87d6a6); }}
+        .tone-critical {{ background: linear-gradient(90deg, #ff5473, #ff7f7b); }}
+        .tone-high {{ background: linear-gradient(90deg, #ff7f3f, #ffb454); }}
+        .tone-warn {{ background: linear-gradient(90deg, #e8a847, #ffd068); }}
+        .tone-info {{ background: linear-gradient(90deg, #4e9df0, #70b9ff); }}
+        .tone-neutral {{ background: linear-gradient(90deg, #7b8590, #9ca7b3); }}
+        .bar-hint {{
+          display: block;
+          color: var(--muted);
+          font-size: 0.75rem;
+          margin-top: 5px;
         }}
         .chip-group {{ margin-top: 12px; }}
         .chip-group h4 {{ margin: 0 0 6px 0; }}
@@ -910,9 +1275,9 @@ def generate_html(
         details {{
           margin-top: 8px;
           border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 8px;
+          border-radius: 10px;
           padding: 6px 8px;
-          background: rgba(7,11,18,0.38);
+          background: rgba(7,11,18,0.30);
         }}
         summary {{
           cursor: pointer;
@@ -932,16 +1297,19 @@ def generate_html(
           font-size: 0.8rem;
         }}
         .brief {{
-          background: rgba(255,138,61,0.1);
-          border: 1px solid rgba(255,138,61,0.4);
+          background: rgba(255,138,61,0.10);
+          border: 1px solid rgba(255,138,61,0.38);
           border-left: 4px solid var(--accent);
-          border-radius: 8px;
-          padding: 10px 12px;
+          border-radius: 12px;
+          padding: 12px 14px;
+          line-height: 1.6;
         }}
+        .section-block {{ margin-top: 12px; }}
         footer {{ margin-top: 16px; color: var(--muted); font-size: 0.84rem; }}
         @media (max-width: 760px) {{
           body {{ padding: 12px; }}
-          .header h1 {{ font-size: 1.35rem; }}
+          .header h1 {{ font-size: 1.45rem; }}
+          .triage-grid {{ grid-template-columns: 1fr; }}
           table {{ min-width: 760px; }}
         }}
       </style>
@@ -949,14 +1317,21 @@ def generate_html(
     <body>
       <div class="shell">
         <div class="header">
-          <h1>{html.escape(PROJECT_NAME)} v{html.escape(VERSION)} Intelligence Report</h1>
-          <div class="muted"><strong>Target:</strong> {html.escape(target_display)} |
-          <strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} |
-          <strong>Framework:</strong> {html.escape(framework_signature())}</div>
+          <div class="header-top">
+            <div class="header-lead">
+              <h1>{html.escape(PROJECT_NAME)} Reporter v{html.escape(VERSION)}</h1>
+              <div class="muted"><strong>Target:</strong> {html.escape(target_display or target_key)} |
+              <strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} |
+              <strong>Framework:</strong> {html.escape(framework_signature())}</div>
+              <p class="header-copy">Reporter is the v10.0 case-view layer for Silica-X. It reshapes raw results into triage-friendly sections, categorized vulnerability context, extension drill-downs, and an operator-ready closing summary.</p>
+            </div>
+            <div class="header-pills">{triage_chips}</div>
+          </div>
         </div>
 
         <div class="quick-nav">
           <a href="#overview">Overview</a>
+          <a href="#graphs">Graphs</a>
           <a href="#profiles">Profiles</a>
           <a href="#errors">Errors</a>
           <a href="#correlation">Correlation</a>
@@ -965,16 +1340,41 @@ def generate_html(
           <a href="#plugins">Plugins</a>
           <a href="#filters">Filters</a>
           <a href="#intelligence">Intelligence</a>
+          <a href="#reporter">Reporter</a>
         </div>
 
         <div class="metrics">{metrics_html}</div>
 
-        <div id="overview">{_render_target_snapshot(target_display, snapshot, len(results))}</div>
+        <section class="panel" id="overview">
+          <div class="section-banner">
+            <div>
+              <div class="section-eyebrow">Overview</div>
+              <h3>Case triage snapshot</h3>
+            </div>
+            <span class="panel-chip">Ember report theme</span>
+          </div>
+          <div class="triage-grid">
+            <div>{_render_target_snapshot(target_display or target_key, snapshot, len(results))}</div>
+            <div class="summary-stack">
+              <div class="summary-row"><span>Issue severity</span><strong>{html.escape(str(issue_breakdown))}</strong></div>
+              <div class="summary-row"><span>Plugin severity</span><strong>{html.escape(str(plugin_breakdown))}</strong></div>
+              <div class="summary-row"><span>Filter severity</span><strong>{html.escape(str(filter_breakdown))}</strong></div>
+              <div class="summary-row"><span>Confidence mix</span><strong>high={html.escape(str(confidence_distribution.get('high', 0)))} medium={html.escape(str(confidence_distribution.get('medium', 0)))} low={html.escape(str(confidence_distribution.get('low', 0)))}</strong></div>
+            </div>
+          </div>
+        </section>
 
         {_render_extension_overview(issues, issue_summary, plugin_results, plugin_errors, filter_results, filter_errors)}
+        {_render_graph_cluster(results, issues, plugin_results, filter_results, intelligence_bundle, ocr_scan)}
 
         <section class="panel" id="profiles">
-          <h3>Found Social Media Profiles</h3>
+          <div class="section-banner">
+            <div>
+              <div class="section-eyebrow">Identity lane</div>
+              <h3>Found Social Media Profiles</h3>
+            </div>
+            <span class="panel-chip">{html.escape(str(len(found_rows)))} found</span>
+          </div>
           <div class="table-wrap">
             <table>
               <tr>
@@ -987,7 +1387,13 @@ def generate_html(
         </section>
 
         <section class="panel" id="errors">
-          <h3>Errored / Blocked Websites</h3>
+          <div class="section-banner">
+            <div>
+              <div class="section-eyebrow">Reliability</div>
+              <h3>Errored / Blocked Websites</h3>
+            </div>
+            <span class="panel-chip">{html.escape(str(len(error_rows)))} unstable rows</span>
+          </div>
           <div class="table-wrap">
             <table>
               <tr><th>Platform</th><th>Status</th><th>Profile Link</th><th>HTTP</th><th>RTT (ms)</th><th>Reason</th></tr>
@@ -997,41 +1403,76 @@ def generate_html(
         </section>
 
         <section class="panel" id="correlation">
-          <h3>Correlation Engine</h3>
+          <div class="section-banner">
+            <div>
+              <div class="section-eyebrow">Correlation</div>
+              <h3>Correlation Engine</h3>
+            </div>
+            <span class="panel-chip">overlap {html.escape(str(overlap_score))}</span>
+          </div>
           {_render_correlation(correlation)}
         </section>
 
         {_render_domain_section(domain_result)}
 
         <section class="panel" id="exposure">
-          <h3>Exposure & Vulnerability Signals</h3>
+          <div class="section-banner">
+            <div>
+              <div class="section-eyebrow">Vulnerabilities</div>
+              <h3>Exposure & Vulnerability Signals</h3>
+            </div>
+            {_severity_badge(exposure_level)}
+          </div>
           {_render_issues(issues, issue_summary)}
         </section>
 
         {_render_ocr_scan(ocr_scan)}
 
         <section class="panel" id="plugins">
-          <h3>Plugin Intelligence</h3>
+          <div class="section-banner">
+            <div>
+              <div class="section-eyebrow">Extensions</div>
+              <h3>Plugin Intelligence</h3>
+            </div>
+            <span class="panel-chip">{html.escape(str(len(plugin_results)))} plugin results</span>
+          </div>
           {_render_plugins(plugin_results, plugin_errors)}
         </section>
 
         <section class="panel" id="filters">
-          <h3>Filter Intelligence</h3>
+          <div class="section-banner">
+            <div>
+              <div class="section-eyebrow">Extensions</div>
+              <h3>Filter Intelligence</h3>
+            </div>
+            <span class="panel-chip">{html.escape(str(len(filter_results)))} filter results</span>
+          </div>
           {_render_filters(filter_results, filter_errors)}
         </section>
 
         <section class="panel" id="intelligence">
-          <h3>Intelligence Scoring & Guidance</h3>
+          <div class="section-banner">
+            <div>
+              <div class="section-eyebrow">Scoring</div>
+              <h3>Intelligence Scoring & Guidance</h3>
+            </div>
+            <span class="panel-chip">fusion-ready</span>
+          </div>
           {_render_intelligence_bundle(intelligence_bundle)}
         </section>
 
-        <section class="panel">
-          <h3>Nano AI Narrative</h3>
-          <div class="brief">{html.escape(narrative or 'No narrative generated for this run.')}</div>
-        </section>
+        {_render_reporter_brief(
+            mode=mode,
+            narrative=narrative,
+            snapshot=snapshot,
+            issue_summary=issue_summary,
+            domain_result=domain_result,
+            intelligence_bundle=intelligence_bundle,
+            ocr_scan=ocr_scan,
+        )}
 
         <footer>
-          Generated by {html.escape(PROJECT_NAME)} v{html.escape(VERSION)} |
+          Generated by {html.escape(PROJECT_NAME)} Reporter v{html.escape(VERSION)} |
           Developed by {html.escape(AUTHOR)}
         </footer>
       </div>

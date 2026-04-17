@@ -1,62 +1,51 @@
-# 📡Silica-X v9.3.0
+# Silica-X v10.0
 
-<strong>Release Theme: Ember</strong><br>
-Multi-engine OSINT orchestration for profile intelligence, domain-surface reconnaissance, and fused correlation reporting.
-
+<strong>Theme: Ember</strong><br>
+OSINT orchestration, media intelligence, and Reporter-grade artifacts for profile, surface, fusion, and OCR-led investigations.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/voltsparx/Silica-X/refs/heads/main/docs/images/illustration/silica-x-icon.png" alt="Silica-X Logo for now" width="500px">
+  <img src="https://raw.githubusercontent.com/voltsparx/Silica-X/refs/heads/main/docs/images/illustration/silica-x-icon.png" alt="Silica-X logo" width="420">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v9.3.0-0A66C2?style=for-the-badge" alt="Version v9.3.0">
-  <img src="https://img.shields.io/badge/theme-Ember-F47C20?style=for-the-badge" alt="Theme Ember">
+  <img src="https://img.shields.io/badge/version-v10.0-F47C20?style=for-the-badge" alt="Version v10.0">
+  <img src="https://img.shields.io/badge/theme-Ember-E86F1C?style=for-the-badge" alt="Theme Ember">
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Versions">
-  <img src="https://img.shields.io/badge/status-unstable-4C956C?style=for-the-badge" alt="Status Unstable">
-  <img src="https://img.shields.io/badge/tests-165%2F165%20passing-2E8B57?style=for-the-badge" alt="Tests Passing">
-  <img src="https://img.shields.io/badge/platforms-70-4C956C?style=for-the-badge" alt="Platforms">
+  <img src="https://img.shields.io/badge/package-silica--x-CB6D1E?style=for-the-badge" alt="PyPI package name">
+  <img src="https://img.shields.io/badge/import-silica__x-784421?style=for-the-badge" alt="Python import name">
   <img src="https://img.shields.io/badge/license-Proprietary-8B0000?style=for-the-badge" alt="License Proprietary">
 </p>
 
-> **Power Summary:**
-> Silica-X is a fast, modular OSINT framework designed for identity, surface, and fusion intelligence workflows. It uses multi-engine orchestration (async, threading, scheduler, and parallel execution) to gather, correlate, and score open-source signals with structured reporting. <br>
-> Silica-X is built to run intelligence workflows as one coordinated system:
-> `profile`, `surface`, `fusion`, and `orchestrate`.
->  
-> It combines policy-driven execution, plugin/filter control, and explainable scoring into one operator flow, with rich outputs across CLI, JSON, CSV, HTML, and logs. <br>
-> It now builds a native digital-footprint map from public profile, web, surface, and exposure signals so linked identities, assets, and risk cues are easier to triage. <br>
-> Its runtime and console patterns were shaped by reverse engineering multiple reconnaissance tools into a native Silica-X architecture, rather than exposing those tools directly in the codebase. <br>
+Silica-X is a Python intelligence framework for authorized OSINT work. It combines profile reconnaissance, domain-surface analysis, fusion scoring, public-media reconnaissance, and OCR image scanning into one runtime with plugins, filters, engine policies, and categorized artifacts.
 
-> I will add a picture of the frameworks soon. I'm just tired right now;-;
+## What v10.0 changes
 
----
+- Reporter is now the primary reporting layer for HTML and CLI summaries.
+- Media reconnaissance and OCR image scanning are first-class lanes instead of side notes.
+- HTML artifacts are organized as case views with graphs, categorized sections, extension drill-downs, vulnerability context, and a closing `Reporter Brief`.
+- The docs tree and website are aligned to the current runtime instead of old release-planning notes.
 
-## 📊 Why Use Silica-X?
+## Core workflows
 
-* Unified OSINT workflows in one tool: `profile`, `surface`, `fusion`, and `orchestrate`
-* Strong extension system with plugins + filters + scope compatibility checks
-* Prompt mode and flag mode for both guided and automation-friendly usage
-* Rich output lanes: CLI, JSON, CSV, HTML, and logs
-* Built-in quicktest templates for fast smoke validation
+- `profile` scans usernames and public profiles across platform manifests.
+- `surface` analyzes domain exposure, transport posture, and surface intelligence.
+- `fusion` correlates profile and surface evidence into scored intelligence.
+- `orchestrate` runs the policy-led orchestration pipeline directly.
+- `ocr` runs dedicated OCR image scanning across local paths and remote URLs.
+- media plugins add public image/video/post-text reconnaissance and stego-style triage.
 
----
-
-## 🗂 Quick Start
-
-### Install from PyPI
+## Install, run, import
 
 ```bash
 pip install silica-x
 silica-x
 ```
 
-> It's not actually available as im fixing some issues so i can upload to PyPi
-
 ```python
 import silica_x
 ```
 
-### Run from source
+From source:
 
 ```bash
 git clone https://github.com/voltsparx/Silica-X.git
@@ -65,675 +54,64 @@ pip install -r requirements.txt
 python silica-x.py
 ```
 
-In prompt mode, start here:
-
-```text
-help
-show plugins
-show filters
-profile <username>
-surface <domain>
-fusion <username> <domain>
-```
-
-For full command reference, see [Usage Guide](docs/Usage.txt).
-
----
-
-## ⚠️ Disclaimer
-
-* Legal and authorized use only
-* You are responsible for compliance with local laws and platform Terms of Service
-* Do not use this framework for harassment, stalking, or unauthorized collection
-
----
-
-## ✨ Highlights
-
-* 🔎 Profile scan workflow (`profile`, `scan`, `persona`, `social`)
-* 🌐 Domain surface workflow (`surface`, `domain`, `asset`)
-* 🔗 Fusion workflow (`fusion`, `full`, `combo`)
-* 🕸️ Digital footprint mapping across public profiles, linked domains, and exposure signals
-* 🧩 Pluggable intelligence system (`core/extensions/signal_forge.py` + `plugins/`)
-* 🧹 Pluggable filtering system (`core/extensions/signal_sieve.py` + `filters/`)
-* 🧱 External module catalog system (`modules/catalog.py` + `modules/*.json`)
-* 🌌 Signal fusion connector layer (`core/collect/source_fusion.py` + `signal_*` plugin/filter pair)
-* 🖼️ Public media reconnaissance lane for images, thumbnails, post text, and stego-suspicion triage
-* 🖥️ Prompt mode with keyword shortcuts, context-aware prompt flow, and session defaults
-* 📖 Explain system (`--explain`, `explain`) for command/plugin/filter onboarding
-* 📦 Prompt startup inventory shows loaded plugin/filter/platform/module counts
-* 📊 HTML, JSON, CLI, CSV, and run-log outputs
-* 🕵️ Optional Tor/proxy routing with diagnostics and guided startup
-
----
-
-## 📘 Documentation Index
-
-* [Usage Guide](docs/Usage.txt)
-* [Orchestration Architecture](docs/orchestration-architecture.md)
-* [Recon Source Integration](docs/recon-source-integration.md)
-* [Media Recon Orchestration](docs/media-recon-orchestration.md)
-* [Capability Scan Report](docs/sylica-capability-scan.md)
-* [OCR/Image Infrastructure Plan](docs/ocr-image-scan-infrastructure.md)
-* [Release Checklist v9.3.0 Ember](docs/release-checklist-v9.3.0-lattice.md)
-* [Release Notes v9.3.0 Ember](docs/release-notes-v9.3.0-lattice.md)
-* [Release Commit Plan v9.3.0 Ember](docs/release-commit-plan-v9.3.0-lattice.md)
-* [Code of Conduct](CODE_OF_CONDUCT.md)
-
----
-
-## 🚀 v9.3.0 Engine Architecture Updates
-
-* Added a standardized engine result contract: `name`, `status`, `data`, `error`, `execution_time`
-* Added `EngineBase` execution discipline with hard timeout guard + exception isolation
-* Added runtime `EngineHealthMonitor` metrics: active tasks, failure counters, and average latency
-* Updated engine manager to support structured execution (`run_detailed`) while preserving compatibility `run()`
-* Updated orchestrator capability stage to track `success/failed/timeout` and attach `engine_health` + `engine_results` in payload/lifecycle
-* Added execution mode aliases for operator language parity: `safe -> fast`, `aggressive -> max`, `standard -> balanced`
-* Added engine-runtime validation tests (`tests/test_engine_runtime.py`) and updated orchestration/policy tests for v9.3.0 behavior
-* Detailed notes (v9.3.0): `docs/release-notes-v9.3.0-lattice.md`
-
----
-
-## 🛠️ Engineering Upgrades Included
-
-* Parser construction split into `core/interface/cli_parsers.py`
-* Shared prompt presets/keywords split into `core/interface/cli_config.py`
-* Prompt command handlers split into `core/prompt_handlers.py`
-* Centralized about/description renderer in `core/interface/about.py`
-* Centralized explain renderer in `core/interface/explain.py`
-* ⚡ Native async engine (`core/engines/async_engine.py`) with adaptive batch concurrency
-* 🧵 Native thread engine (`core/engines/thread_engine.py`) with shared executor + adaptive batch concurrency
-* 🧠 Hybrid parallel orchestration engine (`core/engines/parallel_engine.py`) for async + thread + CPU execution
-* 🔗 Fusion analytics engine (`core/engines/fusion_engine.py`) with confidence scoring, anomaly flags, and graph output
-* 🧩 Async plugin manager (`core/extensions/plugin_manager.py`) with chaining support and dependency checks
-* 🌐 Shared resilient HTTP layer (`core/collect/http_resilience.py`) with retry/backoff and `Retry-After` handling
-* 💡 Prompt intelligence + advisor modules (`core/intel/prompt_engine.py`, `core/intel/advisor.py`)
-* 📁 Categorized core layout (`core/interface/`, `core/collect/`, `core/analyze/`, `core/extensions/`, `core/artifacts/`, `core/foundation/`, `core/engines/`, `core/intel/`)
-* 🔐 Credential + security managers (`core/foundation/credential_manager.py`, `core/foundation/security_manager.py`)
-* 📈 Reporting/scheduler/CLI helpers (`core/artifacts/reporting.py`, `core/engines/scheduler.py`, `core/interface/cli_ui.py`)
-* 🗺️ Capability-source map integration (`core/intel/capability_matrix.py`)
-* 🧬 Sylica capability intel generated under `intel/` (`baseline/`, `features/`, `plans/`, `wiring/`)
-* 🧩 Plugin/filter intel views generated in `plugins/_intel/` and `filters/_intel/`
-* 🌌 Signal fusion connector layer with normalized signal extraction (`core/collect/source_fusion.py`)
-* 🔒 TLS verification enabled by default in scan collectors
-* 🧅 Tor routing uses `socks5h://127.0.0.1:9050` (DNS over Tor)
-* 🌍 Proxy validation supports `HTTP_PROXY` and `HTTPS_PROXY` with scheme checks
-* 🔄 Domain CT/RDAP collectors run concurrently with connector pooling
-* 🌐 Profile scanner reuses tuned async connector limits + DNS cache
-* 🧪 CI pipeline with tests + Ruff + mypy on Python 3.11/3.12/3.13
-* 📦 Full-repository mypy scope enabled
-
----
-
-## 📊 Verified Audit Snapshot (March 14, 2026)
-
-* Repository-wide file audit completed across **1,198 files** (including generated output/cache artifacts)
-* File audit checks (readability + parser/compile validation) reported **0 errors**
-* Unit tests: **165/165 passing**
-* Ruff lint: passing
-* mypy (full repository scope): passing (no issues found)
-* Bytecode compile check (`compileall`): passing
-* Wiring compatibility matrix: **PASS**
-
-  * root commands = 23
-  * prompt commands = 22
-  * keyword/flag parity verified
-* Platform manifests loaded: **70**
-* Runtime plugin/filter discovery: **20 plugins, 17 filters**
-* Runtime module catalog: **567 modules**
-* Runtime inventory snapshot (2026-03-14): `intel/runtime-inventory.json`
-
-### Scope Compatibility Inventory
-
-* plugins → profile=13, surface=12, fusion=18
-* filters → profile=14, surface=9, fusion=17
-
----
-
-## 🚀 Installation
+## Quick examples
 
 ```bash
-git clone https://github.com/voltsparx/Silica-X.git
-cd Silica-X
-pip install -r requirements.txt
+silica-x profile alice --html
+silica-x surface example.com --html
+silica-x fusion alice example.com --html
+silica-x ocr ./captures/poster.png --url https://example.com/image.png --html
+silica-x profile alice --plugin media_recon_engine --plugin post_signal_intel --plugin stego_signal_probe --html
 ```
 
-### Optional developer tooling
+## Reporter outputs
 
-```bash
-pip install -r requirements-dev.txt
-```
+Silica-X writes artifacts under `output/` and can emit:
 
-Crypto plugin runtime note:
+- CLI summaries
+- JSON payloads
+- CSV exports plus companion CSV slices
+- HTML Reporter case views
+- run logs and framework logs
 
-* `cryptography` is included in `requirements.txt` and required for `crypto_aes_attachment`.
-* `crypto_xor_attachment` and `crypto_rot13_attachment` run without external system binaries.
+Reporter is designed to make the result easier to triage by grouping identity findings, reliability issues, correlation, vulnerabilities, plugin/filter signals, OCR/media lanes, and the final `Reporter Brief`.
 
-Media/OCR dependency note:
+## Documentation
 
-* The shipped public-media lane can use `Pillow` plus optional OCR engines such as `pytesseract` or `easyocr`.
-* `pytesseract` still requires a host Tesseract installation when selected.
+- [Docs Index](docs/README.md)
+- [Operator Guide](docs/operator-guide.md)
+- [Architecture](docs/architecture.md)
+- [Extensions](docs/extensions.md)
+- [Media Intelligence](docs/media-intelligence.md)
+- [Reporter](docs/reporter.md)
+- [Development](docs/development.md)
+- [Website](docs/website/README.md)
 
----
+## Safety
 
-## ▶️ Run
+- Legal and authorized use only
+- Respect platform terms, privacy, and local law
+- Do not use Silica-X for stalking, harassment, or unauthorized surveillance
 
-```bash
-python silica-x.py
-```
+## Developer notes
 
-Running without flags starts **prompt mode**.
-
----
-
-## 🧩 Adding Extensions
-
-Use the scaffold helper to create new plugins/filters (they are auto-discovered at runtime):
-
-```bash
-python scripts/scaffold_extension.py plugin my_plugin --title "My Plugin" --scopes profile,fusion
-python scripts/scaffold_extension.py filter my_filter --title "My Filter" --scopes profile,surface
-```
-
-Verify discovery:
-
-```bash
-python silica-x.py plugins --scope all
-python silica-x.py filters --scope all
-```
-
----
-
-## 📚 Documentation Tables
-
-<table>
-  <thead>
-    <tr>
-      <th>Mode</th>
-      <th>Command</th>
-      <th>Aliases</th>
-      <th>Primary Purpose</th>
-      <th>High-Value Flags</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td>Flag/Prompt</td><td><code>profile &lt;username...&gt;</code></td><td><code>scan</code>, <code>persona</code>, <code>social</code></td><td>Username/profile reconnaissance</td><td><code>--preset</code>, <code>--plugin</code>, <code>--filter</code>, <code>--html</code>, <code>--csv</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>surface &lt;domain&gt;</code></td><td><code>domain</code>, <code>asset</code></td><td>Domain surface exposure collection</td><td><code>--preset</code>, <code>--ct</code>, <code>--rdap</code>, <code>--plugin</code>, <code>--filter</code>, <code>--html</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>fusion &lt;username&gt; &lt;domain&gt;</code></td><td><code>full</code>, <code>combo</code></td><td>Combined profile + surface intelligence</td><td><code>--profile-preset</code>, <code>--surface-preset</code>, <code>--plugin</code>, <code>--filter</code>, <code>--html</code>, <code>--csv</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>orchestrate &lt;mode&gt; &lt;target&gt;</code></td><td><code>orch</code></td><td>Policy-driven orchestration pipeline</td><td><code>--profile</code>, <code>--source-profile</code>, <code>--min-confidence</code>, <code>--json</code>, <code>--html</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>quicktest</code></td><td><code>qtest</code>, <code>smoke</code></td><td>Offline synthetic victim test run with full artifact generation</td><td><code>--template</code>, <code>--seed</code>, <code>--list-templates</code>, <code>--json</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>plugins</code></td><td>-</td><td>List plugin inventory</td><td><code>--scope all|profile|surface|fusion</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>filters</code></td><td>-</td><td>List filter inventory</td><td><code>--scope all|profile|surface|fusion</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>templates</code></td><td><code>info-templates</code></td><td>List curated info-templates</td><td><code>--json</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>modules</code></td><td>-</td><td>List/sync/query module catalog</td><td><code>--sync</code>, <code>--kind</code>, <code>--search</code>, <code>--tag</code>, <code>--stats-only</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>history</code></td><td><code>targets</code>, <code>scans</code></td><td>Show local scan history</td><td><code>--limit</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>anonymity</code></td><td>-</td><td>Inspect/configure routing state</td><td><code>--tor</code>, <code>--proxy</code>, <code>--check</code>, <code>--prompt</code></td></tr>
-    <tr><td>Flag</td><td><code>live &lt;target&gt;</code></td><td>-</td><td>Launch local dashboard for a saved target</td><td><code>--port</code>, <code>--no-browser</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>wizard</code></td><td>-</td><td>Guided interactive workflow</td><td><code>--profile-preset</code>, <code>--surface-preset</code>, <code>--extension-control</code>, <code>--plugin</code>, <code>--filter</code>, <code>--info-template</code>, <code>--tor</code>, <code>--proxy</code></td></tr>
-    <tr><td>Flag/Prompt</td><td><code>keywords</code></td><td>-</td><td>Show keyword-to-command map</td><td>-</td></tr>
-    <tr><td>Flag/Prompt</td><td><code>about</code>, <code>explain</code>, <code>help</code></td><td>-</td><td>Documentation and metadata</td><td><code>--about</code>, <code>--explain</code> (global)</td></tr>
-  </tbody>
-</table>
-
-<br>
-
-<table>
-  <thead>
-    <tr>
-      <th>Prompt Control</th>
-      <th>Example</th>
-      <th>Behavior</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td>Module switch</td><td><code>use fusion</code> or <code>select module fusion</code></td><td>Changes active prompt context.</td></tr>
-    <tr><td>Plugin set</td><td><code>set plugins threat_conductor,signal_fusion_core</code></td><td>Sets module-compatible plugins by id/alias/title.</td></tr>
-    <tr><td>Filter set</td><td><code>set filters triage_priority_filter,link_hygiene_filter</code></td><td>Sets module-compatible filters by id/alias/title.</td></tr>
-    <tr><td>Template set</td><td><code>set template contact-discovery</code></td><td>Applies a bundled info-template to plugin/filter defaults.</td></tr>
-    <tr><td>Incremental plugin edits</td><td><code>add plugins x</code> / <code>remove plugins x</code></td><td>Adds/removes specific plugins while preserving compatibility checks.</td></tr>
-    <tr><td>Incremental filter edits</td><td><code>add filters x</code> / <code>remove filters x</code></td><td>Adds/removes specific filters while preserving compatibility checks.</td></tr>
-    <tr><td>Preset defaults</td><td><code>set profile_preset deep</code>, <code>set surface_preset quick</code></td><td>Updates prompt defaults for later commands.</td></tr>
-    <tr><td>Extension control</td><td><code>set extension_control hybrid</code></td><td>Controls auto/manual/hybrid selection behavior.</td></tr>
-    <tr><td>Quick smoke run</td><td><code>quicktest --seed 7</code></td><td>Runs synthetic end-to-end flow from prompt mode.</td></tr>
-  </tbody>
-</table>
-
-<br>
-
-<table>
-  <thead>
-    <tr>
-      <th>Artifact</th>
-      <th>Path Pattern</th>
-      <th>Contains</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td>Primary JSON</td><td><code>output/json/&lt;target&gt;-info-&lt;timestamp&gt;.json</code></td><td>Structured run payload (results, issues, plugins/filters, intelligence, summary).</td></tr>
-    <tr><td>HTML Report</td><td><code>output/html/&lt;target&gt;-info-&lt;timestamp&gt;.html</code></td><td>Visual dashboard report with tables/cards/correlation/guidance.</td></tr>
-    <tr><td>CLI Report</td><td><code>output/cli/&lt;target&gt;-info-&lt;timestamp&gt;.txt</code></td><td>Readable text report with scoring and extension summaries.</td></tr>
-    <tr><td>CSV Main</td><td><code>output/csv/&lt;target&gt;-info-&lt;timestamp&gt;.csv</code></td><td>Core flattened rows.</td></tr>
-    <tr><td>CSV Companions</td><td><code>output/csv/&lt;target&gt;-info-&lt;timestamp&gt;.*.csv</code></td><td>Detailed slices for downstream analysis.</td></tr>
-    <tr><td>Run Logs</td><td><code>output/logs/&lt;target&gt;-info-&lt;timestamp&gt;.log</code>, <code>output/logs/framework.log.txt</code></td><td>Per-run and framework lifecycle logs.</td></tr>
-  </tbody>
-</table>
-
-<br>
-
-<table>
-  <thead>
-    <tr>
-      <th>Quicktest Template ID</th>
-      <th>Victim Label</th>
-      <th>Username</th>
-      <th>Domain</th>
-      <th>Default Selection</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td><code>atlas-mercier</code></td><td>Atlas Mercier</td><td><code>atlas_mercier</code></td><td><code>atlaslab.dev</code></td><td rowspan="5">Random when no <code>--template</code> is provided.</td></tr>
-    <tr><td><code>noor-akhtar</code></td><td>Noor Akhtar</td><td><code>noor_akhtar</code></td><td><code>nordelta-ops.net</code></td></tr>
-    <tr><td><code>juno-harbor</code></td><td>Juno Harbor</td><td><code>juno_harbor</code></td><td><code>harbor-grid.io</code></td></tr>
-    <tr><td><code>raven-ion</code></td><td>Raven Ion</td><td><code>raven_ion</code></td><td><code>ionrelay.cloud</code></td></tr>
-    <tr><td><code>maya-cipher</code></td><td>Maya Cipher</td><td><code>maya_cipher</code></td><td><code>ciphertrail.ai</code></td></tr>
-  </tbody>
-</table>
-
-<br>
-
-<table>
-  <thead>
-    <tr>
-      <th>Smoke Suite (2026-03-14; latest pytest 2026-03-14)</th>
-      <th>Status</th>
-      <th>Notes</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td><code>python -m pytest -q</code></td><td>PASS</td><td>165 tests passed (latest run 2026-03-14).</td></tr>
-    <tr><td><code>python -m ruff check .</code></td><td>PASS</td><td>No lint errors.</td></tr>
-    <tr><td><code>python -m mypy</code></td><td>PASS</td><td>No type errors found (repository scope).</td></tr>
-    <tr><td><code>python -m compileall -q core filters plugins tests silica-x.py</code></td><td>PASS</td><td>Bytecode compile smoke passed.</td></tr>
-    <tr><td>CLI matrix (about/explain/help/keywords/plugins/filters/modules/history)</td><td>PASS</td><td>All returned exit code 0.</td></tr>
-    <tr><td>Command-path matrix (profile/surface/fusion/orchestrate via <code>--list-plugins/--list-filters</code>, plus <code>anonymity --check</code>)</td><td>PASS</td><td>All returned exit code 0 without external collection.</td></tr>
-    <tr><td>Quicktest matrix (<code>quicktest</code>, <code>qtest</code>, <code>smoke</code>, prompt quicktest)</td><td>PASS</td><td>All produced expected artifacts and exit code 0.</td></tr>
-    <tr><td><code>live</code> command</td><td>SKIPPED</td><td>Long-running server mode; verified manually in targeted runs.</td></tr>
-  </tbody>
-</table>
-
----
-
-## 🧭 Core Commands
-
-* `profile <username...> [flags]`
-* `surface <domain> [flags]`
-* `fusion <username> <domain> [flags]`
-* `orchestrate <profile|surface|fusion> <target> [--secondary-target ...] [flags]`
-* `plugins [--scope all|profile|surface|fusion]`
-* `filters [--scope all|profile|surface|fusion]`
-* `modules [--sync] [--kind all|plugin|filter] [--scope all|profile|surface|fusion]`
-* `history [--limit N]` (aliases: `targets`, `scans`)
-* `anonymity [--tor|--no-tor] [--proxy|--no-proxy] [--check] [--prompt]`
-* `live <target> [--port PORT] [--no-browser]`
-* `wizard [--profile-phase|--no-profile-phase] [--surface-phase|--no-surface-phase] [--fusion-phase|--no-fusion-phase] [--profile-preset ...] [--surface-preset ...] [--extension-control ...] [--plugin ...] [--filter ...] [--html|--no-html] [--csv|--no-csv] [--ct|--no-ct] [--rdap|--no-rdap] [--sync-modules]`
-* `capability-pack` (alias: `intel`)
-* `keywords`
-* `about`
-* `explain`
-* `help`
-
----
-
-## 🎛️ Key Flags
-
-### Global
-
-* `--about` → print framework description and exit
-* `--explain` → print plain-language command/plugin/filter guide and exit
-* `--about` and `--explain` must be used alone
-
-### Runtime
-
-* `--preset`, `--profile-preset`, `--surface-preset`
-* `--timeout`, `--max-concurrency`, `--max-subdomains`
-* `--max-workers`, `--source-profile`, `--max-platforms`, `--min-confidence`
-
-### Output
-
-* `--html`, `--csv`, `--live`, `--live-port`, `--no-browser`
-
-### Routing
-
-* `--tor`, `--no-tor`, `--proxy`, `--no-proxy`, `--check`, `--prompt`
-
-### Plugin / Filter
-
-* `--plugin`, `--list-plugins`
-* `--filter`, `--list-filters`
-* `--info-template <id>` (curated plugin/filter/module arrangement; consent-only targets)
-* `--extension-control auto|manual|hybrid`
-* Plugin inventory lists cryptography plugins in a separate `Cryptography Plugin Set` section
-
----
-
-## 🧙 Wizard Workflow
-
-`wizard` supports both fully guided operation and flag-seeded operation.
-
-When you provide wizard flags, those values are used directly.  
-When flags are omitted, wizard prompts for the missing decisions.
-
-Wizard supports:
-
-* Phase toggles: `--profile-phase|--no-profile-phase`, `--surface-phase|--no-surface-phase`, `--fusion-phase|--no-fusion-phase`
-* Targets: `--usernames <a,b,c>`, `--domain <domain>`
-* Runtime control: `--profile-preset`, `--surface-preset`, `--extension-control auto|manual|hybrid`
-* Extension selection: `--plugin`, `--list-plugins`, `--filter`, `--list-filters`, `--info-template`
-* Output toggles: `--html|--no-html`, `--csv|--no-csv`
-* Surface toggles: `--ct|--no-ct`, `--rdap|--no-rdap`
-* Catalog refresh: `--sync-modules`
-
-Wizard includes extension compatibility preflight across selected scopes.  
-If selectors conflict or are incompatible, wizard stops before scanning and prints recovery hints.
-
-Example:
-
-```bash
-python silica-x.py wizard \
-  --profile-phase --surface-phase --fusion-phase \
-  --usernames alice,bob --domain example.com \
-  --profile-preset deep --surface-preset balanced \
-  --extension-control hybrid \
-  --plugin threat_conductor --filter triage_priority_filter \
-  --html --csv --ct --rdap
-```
-
----
-
-## 🔐 Crypto Plugin Operations
-
-Crypto plugin set:
-
-* `crypto_aes_attachment`
-* `crypto_xor_attachment`
-* `crypto_rot13_attachment`
-
-Selection:
-
-```bash
-python silica-x.py profile alice --plugin crypto_aes_attachment --html
-python silica-x.py fusion alice example.com --plugin crypto_xor_attachment --filter signal_lane_fusion --html
-```
-
-Runtime behavior:
-
-* Crypto plugins are discoverable under `plugins/crypto/` and listed in a dedicated `Cryptography Plugin Set`.
-* Crypto payload sources are scope-aware and collected from results/correlation/issues/domain/intelligence context.
-* Scan mode config drives crypto depth:
-  * `fast`: smaller payload budget
-  * `balanced`: baseline payload budget
-  * `deep` / `max`: larger payload budget + strict mode enabled
-* Reports include crypto configuration details (`crypto_profile`) and source coverage (`source_summary`) so selected behavior is transparent in CLI/HTML outputs.
-
----
-
-## 🖼️ OCR/Image Infrastructure
-
-Silica-X now ships both:
-
-* a public-media runtime lane through `media_recon_engine`, `post_signal_intel`, `stego_signal_probe`, and `media_intel_core`
-* a dedicated OCR image-scan lane through `ocr` / `ocr-scan` plus the `ocr_extractor`, `ocr_regex_filters`, `ocr_batch_processor`, and `ocr_signal_classifier` extension set
-
-The dedicated OCR lane covers local image paths, remote image URLs, preprocessing, batch execution, structured extraction, wizard integration, and JSON/CLI/CSV/HTML reporting.
-
-Reference docs:
-
-* [Media Recon Orchestration](docs/media-recon-orchestration.md)
-* [OCR/Image Infrastructure Plan](docs/ocr-image-scan-infrastructure.md)
-* [Self-Structuring Note](self-structuring/ocr-n-image/ocr-n-image-scan-infrastructure.txt)
-
----
-
-## 🖥️ Prompt Commands
-
-* `scan <username>`
-* `profile <username...>`
-* `surface <domain>`
-* `fusion <username> <domain>`
-* `ocr [image-paths...] [--url ...]`
-* `orchestrate <profile|surface|fusion> <target> [--secondary-target ...]`
-* `plugins`, `filters`, `modules`, `history`
-* `anonymity`, `config`
-* `about` (keywords: `about`, `info`, `details`)
-* `explain` (keywords: `explain`, `understand`, `describe`)
-* `banner` (prompt-only; reprints banner)
-* `use <profile|surface|fusion>`
-* `select module <profile|surface|fusion>` (alias for `use`)
-* `set plugins <none|all|selector1,selector2>` (module-compatible, id/alias/name-aware)
-* `set filters <none|all|selector1,selector2>` (module-compatible, id/alias/name-aware)
-* `select plugins <selector1,selector2>` / `select filters <selector1,selector2>` (name-based aliases)
-* `add plugins <selector1,selector2>` / `remove plugins <selector1,selector2>` (incremental controls)
-* `add filters <selector1,selector2>` / `remove filters <selector1,selector2>` (incremental controls)
-* `set profile_preset <fast|quick|balanced|deep|max>`
-* `set surface_preset <quick|balanced|deep>`
-* `help`, `clear`, `exit`
-
-**Prompt format**
-
-```
-(console <module> ec=<mode> plugins=<set> filters=<set>)>>
-```
-
----
-
-## 🌍 Platform Coverage
-
-Silica-X currently ships with **71 platform manifests** in `platforms/`.  
-Representative set:
-
-Behance • Bitbucket • Blogger • BuyMeACoffee • Codeforces • CodePen • Dev.to • DeviantArt • Discord • DockerHub • Dribbble • Facebook • Flickr • GitHub • GitLab • HackerOne • HackerRank • Instagram • Kaggle • Keybase • LeetCode • LinkedIn • Mastodon • Medium • NPM • Pastebin • Patreon • Pinterest • ProductHunt • PyPI • Quora • Reddit • Replit • Roblox • Snapchat • SoundCloud • SourceForge • Spotify • StackOverflow • SteamCommunity • Telegram • Threads • TikTok • TryHackMe • Twitch • Twitter/X • Unsplash • Vimeo • WordPress • YouTube
-
----
-
-## 📁 Output Structure
-
-```
-output/json/<target>-info-<timestamp>.json
-output/html/<target>-info-<timestamp>.html
-output/cli/<target>-info-<timestamp>.txt
-output/csv/<target>-info-<timestamp>.csv (when csv enabled)
-output/csv/<target>-info-<timestamp>.issues.csv (when csv enabled)
-output/csv/<target>-info-<timestamp>.plugins.csv (when csv enabled)
-output/csv/<target>-info-<timestamp>.filters.csv (when csv enabled)
-output/csv/<target>-info-<timestamp>.intel-entities.csv (when csv enabled)
-output/csv/<target>-info-<timestamp>.intel-contacts.csv (when csv enabled)
-output/logs/<target>-info-<timestamp>.log
-output/logs/framework.log.txt
-```
-
----
-
-## 🧪 Examples
-
-```bash
-python silica-x.py --about
-python silica-x.py --explain
-python silica-x.py anonymity --check
-python silica-x.py templates
-python silica-x.py plugins --scope all
-python silica-x.py filters --scope all
-python silica-x.py ocr ./captures/poster.png --plugin ocr_extractor --filter ocr_signal_classifier
-python silica-x.py profile alice --plugin media_recon_engine --plugin post_signal_intel --plugin stego_signal_probe --html
-python silica-x.py modules --sync --kind plugin --scope profile --limit 30
-python silica-x.py profile alice --info-template contact-discovery --html
-python silica-x.py profile alice --tor --plugin orbit_link_matrix --filter contact_canonicalizer --html
-python silica-x.py surface example.com --plugin header_hardening_probe --filter exposure_tier_matrix --html
-python silica-x.py fusion alice example.com --info-template fusion-coverage --html
-python silica-x.py fusion alice example.com --plugin signal_fusion_core --filter signal_lane_fusion --html
-python silica-x.py history --limit 20
-```
-
----
-
-## 🐳 Docker
-
-```bash
-docker compose -f docker/docker-compose.yml run --rm silica-x help
-docker compose -f docker/docker-compose.yml run --rm silica-x profile alice --html
-```
-
-### Tor-enabled compose profile
-
-```bash
-docker compose -f docker/docker-compose.yml --profile tor run --rm silica-x-tor anonymity --check
-docker compose -f docker/docker-compose.yml --profile tor run --rm silica-x-tor profile alice --tor --html
-```
-
-`silica-x-tor` is built from `docker/Dockerfile.tor`, includes `tor`, and uses a container-safe Tor config (`/etc/tor/torrc.sylica`) that writes under `/tmp`.
-Host-side Tor wrapper scripts for Linux/macOS/Termux/Windows are documented in `docker/README.md`.
-
-### Cross-platform Docker runners
-
-Use `docker-scripts/` for guided setup + launch (install checks, daemon checks, resource checks, prompt support):
-
-```bash
-chmod +x docker-scripts/run-docker-linux.sh docker-scripts/run-docker-macos.sh docker-scripts/run-docker-termux.sh
-
-# Linux
-./docker-scripts/run-docker-linux.sh
-./docker-scripts/run-docker-linux.sh profile alice --html
-./docker-scripts/run-docker-linux.sh --runner-upgrade
-./docker-scripts/run-docker-linux.sh --runner-upgrade-host --runner-upgrade
-./docker-scripts/run-docker-linux.sh --runner-show-contexts
-./docker-scripts/run-docker-linux.sh --runner-diagnose
-./docker-scripts/run-docker-linux.sh --runner-context remote-lab profile alice --html
-./docker-scripts/run-docker-linux.sh --runner-build --runner-python-version 3.13 profile alice --html
-./docker-scripts/run-docker-linux.sh --runner-stop
-./docker-scripts/run-docker-linux.sh --runner-stop-docker
-
-# macOS
-./docker-scripts/run-docker-macos.sh
-./docker-scripts/run-docker-macos.sh profile alice --tor --html
-./docker-scripts/run-docker-macos.sh --runner-upgrade
-./docker-scripts/run-docker-macos.sh --runner-upgrade-host --runner-upgrade
-./docker-scripts/run-docker-macos.sh --runner-show-contexts
-./docker-scripts/run-docker-macos.sh --runner-diagnose
-./docker-scripts/run-docker-macos.sh --runner-stop
-./docker-scripts/run-docker-macos.sh --runner-stop-docker
-
-# Termux
-./docker-scripts/run-docker-termux.sh
-./docker-scripts/run-docker-termux.sh profile alice --html
-./docker-scripts/run-docker-termux.sh --runner-upgrade
-./docker-scripts/run-docker-termux.sh --runner-upgrade-host --runner-upgrade
-./docker-scripts/run-docker-termux.sh --runner-show-contexts
-./docker-scripts/run-docker-termux.sh --runner-diagnose
-./docker-scripts/run-docker-termux.sh --runner-stop
-./docker-scripts/run-docker-termux.sh --runner-stop-docker
-
-# Windows (PowerShell)
-powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1
-powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 profile alice --html
-powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-upgrade
-powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-upgrade-host --runner-upgrade
-powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-show-contexts
-powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-diagnose
-powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop
-powershell -ExecutionPolicy Bypass -File .\docker-scripts\run-docker-windows.ps1 --runner-stop-docker
-```
-
-Detailed runner options are documented in `docker-scripts/README.md`.
-
-Runner behavior:
-
-* Script-only flags are namespaced as `--runner-*` to avoid collisions with Sylica flags.
-* Any non-`--runner-*` args are forwarded to `silica-x.py` (flag mode).
-* No forwarded args starts Sylica prompt mode automatically.
-* `--runner-upgrade` refreshes and rebuilds containers (`--pull` + `--no-cache`).
-* `--runner-upgrade-host` upgrades host Docker/Desktop packages (OS package manager).
-* `--runner-show-contexts` lists available Docker contexts.
-* `--runner-diagnose` runs a non-interactive compatibility check and exits.
-* `--runner-context <name>` runs against a selected Docker context.
-* `--runner-python-version <v>` lets you pin the Docker build runtime (defaults to `3.13`).
-* `--runner-stop` cleanly tears down Sylica containers when finished.
-* `--runner-stop-docker` also stops the local Docker daemon/Desktop (when supported).
-* Use `--` if you want to pass args like `--help` directly to Sylica.
-* If forwarded args include `--tor` (without `--no-tor`), runners auto-switch to `silica-x-tor`.
-
-### Compose Security Profile
-
-* read-only root filesystem
-* non-root runtime
-* dropped Linux capabilities
-* no-new-privileges
-* writable output volume (`../output:/app/output` in `docker/docker-compose.yml`)
-
----
-
-## 🧪 Quality Gates
-
-### Unit tests
+Useful local checks:
 
 ```bash
 python -m pytest -q
-```
-
-### Lint
-
-```bash
 python -m ruff check .
-```
-
-### Type checking
-
-```bash
-python -m mypy --follow-imports=skip core/intelligence core/artifacts core/reporting core/analyze core/adapters core/runner.py
-```
-
-### Repository compile pass
-
-```bash
+python -m mypy
 python -m compileall -q core filters modules plugins tests silica-x.py
 ```
 
-### Capability source scan
+Core package naming:
 
-```bash
-python -c "from core.intel.capability_matrix import write_capability_report; print(write_capability_report())"
-```
+- package install name: `silica-x`
+- CLI entrypoint: `silica-x`
+- Python import path: `silica_x`
 
-Writes a capability summary to `docs/sylica-capability-scan.md`.
+## Author
 
-```bash
-python silica-x.py capability-pack
-# same as: python silica-x.py intel
-```
-
-Generates/refreshes:
-- `intel/baseline/`
-- `intel/features/`
-- `intel/plans/`
-- `intel/wiring/`
-- `intel/index.json`
-- `plugins/_intel/index.json`
-- `plugins/_intel/plans/*.json`
-- `filters/_intel/index.json`
-- `filters/_intel/plans/*.json`
-- `modules/index.json`
-- `modules/plugin-modules.json`
-- `modules/filter-modules.json`
-
-### CI workflow
-
-* `.github/workflows/ci.yml`
-* Gates: unittest, Ruff, targeted mypy on critical runtime paths, compile smoke.
-
----
-
-**Author**: voltsparx<br>
-**Contact**: voltsparx@gmail.com<br>
-
----
-
-⭐ If you find Silica-X useful, consider starring the repository^^
+- Author: voltsparx
+- Contact: voltsparx@gmail.com
+- Repository: https://github.com/voltsparx/Silica-X

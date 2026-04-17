@@ -517,7 +517,7 @@ def display_results(
     _print_plugin_block(plugin_results, plugin_errors)
     _print_filter_block(filter_results, filter_errors)
     if narrative:
-        _section("Nano AI Brief", Colors.CYAN)
+        _section("Reporter Brief", Colors.CYAN)
         print(c(narrative, Colors.CYAN))
 
     print(c(f"\n{framework_signature()}", Colors.GREY))
@@ -694,7 +694,7 @@ def display_domain_results(
     _print_plugin_block(plugin_results, plugin_errors)
     _print_filter_block(filter_results, filter_errors)
     if narrative:
-        _section("Nano AI Brief", Colors.CYAN)
+        _section("Reporter Brief", Colors.CYAN)
         print(c(narrative, Colors.CYAN))
 
     print(c(f"\n{framework_signature()}", Colors.GREY))
@@ -779,7 +779,7 @@ def display_ocr_results(
     _print_plugin_block(plugin_results, plugin_errors)
     _print_filter_block(filter_results, filter_errors)
     if narrative:
-        _section("Nano AI Brief", Colors.CYAN)
+        _section("Reporter Brief", Colors.CYAN)
         print(c(narrative, Colors.CYAN))
     print(c(f"\n{framework_signature()}", Colors.GREY))
 
@@ -1070,7 +1070,7 @@ def _render_cli_report(payload: dict) -> str:
         lines.append("")
 
     narrative = str(payload.get("narrative") or "").strip()
-    lines.append("[Nano AI Brief]")
+    lines.append("[Reporter Brief]")
     lines.append(f"- {narrative or 'No narrative generated.'}")
     lines.append("")
     return "\n".join(lines).strip() + "\n"

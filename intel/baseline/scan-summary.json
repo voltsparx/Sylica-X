@@ -1,4 +1,4 @@
-{
+﻿{
   "generated_at_utc": "2026-03-14T09:38:31Z",
   "source_count": 8,
   "files_scanned": 1613,
@@ -30,7 +30,7 @@
   },
   "sylica": {
     "project": "Silica-X",
-    "version": "9.3.0",
+    "version": "10.0",
     "theme": "Ember",
     "component": "intel_pack"
   },
@@ -38,3 +38,4 @@
   "feature_count": 11,
   "feature_presence_total": 76
 }
+

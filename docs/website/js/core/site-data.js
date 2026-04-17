@@ -12,7 +12,7 @@ const DocsData = (() => {
   };
 
   const entries = [
-    { id: "home", title: "Overview", page: "index.html", hint: "Landing page, project identity, and release snapshot.", group: "Start Here" },
+    { id: "home", title: "Overview", page: "index.html", hint: "Landing page, project identity, and v10.0 snapshot.", group: "Start Here" },
     { id: "core-idea", title: "What Silica-X Is", page: "index.html", hint: "The actual problem the framework is solving.", group: "Start Here" },
     { id: "how-it-works", title: "How It Works", page: "index.html", hint: "Execution flow from commands to outputs.", group: "Start Here" },
     { id: "quickstart-30", title: "Quick Start", page: "index.html", hint: "Five-line path from clone to prompt mode.", group: "Start Here" },
@@ -34,13 +34,13 @@ const DocsData = (() => {
     { id: "wizard-mode", title: "Wizard Mode", page: "modes.html", hint: "Guided interactive workflow for multi-step scans.", group: "Runtime" },
     { id: "live-dashboard", title: "Live Dashboard", page: "modes.html", hint: "Local browser dashboard for saved results.", group: "Runtime" },
     { id: "source-study", title: "Source-Study Modes", page: "modes.html", hint: "Frameworks and surface-kit commands for local source translation.", group: "Runtime" },
-    { id: "outputs", title: "Output Formats", page: "reporting.html", hint: "CLI, JSON, CSV, HTML, and run logs.", group: "Reports" },
+    { id: "outputs", title: "Output Formats", page: "reporting.html", hint: "CLI, JSON, CSV, HTML Reporter, and run logs.", group: "Reports" },
     { id: "storage", title: "Storage Layout", page: "reporting.html", hint: "How output directories and filenames are generated.", group: "Reports" },
     { id: "history", title: "History & Inventory", page: "reporting.html", hint: "History commands, capability packs, and runtime snapshots.", group: "Reports" },
     { id: "testing", title: "Verification", page: "reporting.html", hint: "Unit tests, Ruff, mypy, compile checks, and package smoke.", group: "Reports" },
     { id: "development-home", title: "Development", page: "development.html", hint: "Repository health, architecture slices, and automation posture.", group: "Project" },
     { id: "repo-activity", title: "Repository Activity", page: "development.html", hint: "Live GitHub repository data and recent commits.", group: "Project" },
-    { id: "release-radar", title: "Release Radar", page: "development.html", hint: "Release theme, docs, roadmap, and raw signals.", group: "Project" },
+    { id: "release-radar", title: "Docs Radar", page: "development.html", hint: "v10 docs, runtime files, and raw project signals.", group: "Project" },
     { id: "author", title: "Project Context", page: "project.html", hint: "Maintainer, naming, license, and usage boundaries.", group: "Project" },
     { id: "signals", title: "Roadmap Signals", page: "project.html", hint: "Current strengths, known gaps, and where the project is heading.", group: "Project" }
   ];
@@ -101,9 +101,9 @@ const DocsData = (() => {
       key: "reporting",
       label: "Stage 06",
       title: "Reporting + Artifacts",
-      summary: "Results are rendered to CLI, JSON, CSV, HTML, logs, and capability-pack snapshots.",
-      detail: "The reporting layer is presentation-only. It writes artifact files under the configured output root, keeps run logs, supports history listing, and can generate capability-pack intel artifacts so the repo can reason about its own inventory and wiring.",
-      pills: ["cli", "json", "csv", "html", "history"]
+      summary: "Results are rendered to CLI, JSON, CSV, Reporter HTML, logs, and capability-pack snapshots.",
+      detail: "The reporting layer is presentation-only. It writes artifact files under the configured output root, keeps run logs, supports history listing, and now emphasizes Reporter as the main case-view surface for operators.",
+      pills: ["cli", "json", "csv", "Reporter", "history"]
     }
   ];
 

@@ -133,6 +133,6 @@ def build_explain_text() -> str:
         f"{symbol('bullet')} wizard supports phase toggles, preset selection, extension preflight validation, and seeded/non-seeded execution."
     )
     lines.append(
-        f"{symbol('bullet')} OCR image scanning now ships as a first-class workflow; docs/ocr-image-scan-infrastructure.md documents the full lane."
+        f"{symbol('bullet')} OCR image scanning now ships as a first-class workflow; docs/media-intelligence.md documents the full lane."
     )
     return "\n".join(lines)
