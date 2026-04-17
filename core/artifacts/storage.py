@@ -46,6 +46,18 @@ def csv_dir() -> Path:
     return output_root() / "csv"
 
 
+def docx_dir() -> Path:
+    return output_root() / "docx"
+
+
+def pdf_dir() -> Path:
+    return output_root() / "pdf"
+
+
+def sql_dir() -> Path:
+    return output_root() / "sql"
+
+
 def log_dir() -> Path:
     return output_root() / "logs"
 
@@ -74,6 +86,12 @@ def ensure_output_tree(types: Iterable[str] | None = None) -> None:
             cli_dir().mkdir(parents=True, exist_ok=True)
         if "csv" in selected:
             csv_dir().mkdir(parents=True, exist_ok=True)
+        if "docx" in selected:
+            docx_dir().mkdir(parents=True, exist_ok=True)
+        if "pdf" in selected:
+            pdf_dir().mkdir(parents=True, exist_ok=True)
+        if "sql" in selected:
+            sql_dir().mkdir(parents=True, exist_ok=True)
     except OSError as exc:
         raise OutputConfigError(f"Unable to create output directories under {root}: {exc}") from exc
 
@@ -123,6 +141,18 @@ def cli_report_path(target: str, *, stamp: str | None = None) -> Path:
 
 def csv_report_path(target: str, *, stamp: str | None = None) -> Path:
     return csv_dir() / f"{build_output_basename(target, stamp)}.csv"
+
+
+def docx_report_path(target: str, *, stamp: str | None = None) -> Path:
+    return docx_dir() / f"{build_output_basename(target, stamp)}.docx"
+
+
+def pdf_report_path(target: str, *, stamp: str | None = None) -> Path:
+    return pdf_dir() / f"{build_output_basename(target, stamp)}.pdf"
+
+
+def sql_report_path(target: str, *, stamp: str | None = None) -> Path:
+    return sql_dir() / f"{build_output_basename(target, stamp)}.sqlite3"
 
 
 def run_log_path(target: str, *, stamp: str | None = None) -> Path:

@@ -29,6 +29,7 @@ from core.interface.command_spec import (
 )
 from core.foundation.colors import Colors, c
 from core.extensions.control_plane import merge_scan_modes, resolve_extension_control
+from core.extensions.attachables import resolve_module_attachments
 from core.extensions.selector_keys import selector_keys
 from core.foundation.session_state import PromptSessionState
 from core.extensions.signal_forge import list_plugin_descriptors
@@ -211,6 +212,20 @@ def _resolve_filters_for_scope(names: list[str], scope: str) -> tuple[list[str],
     return _resolve_compatible_names(names, descriptors=descriptors)
 
 
+def _resolve_modules_for_scope(names: list[str], scope: str) -> tuple[list[str], list[str], tuple[str, ...]]:
+    selected: list[str] = []
+    rejected: list[str] = []
+    warnings: list[str] = []
+    for raw_name in names:
+        plan = resolve_module_attachments(scope=scope, requested_modules=[raw_name])
+        if plan.errors:
+            rejected.append(raw_name)
+            continue
+        selected.extend(plan.module_ids)
+        warnings.extend(plan.warnings)
+    return _dedupe_names(selected), _dedupe_names(rejected), tuple(dict.fromkeys(warnings))
+
+
 def _mutate_selection(
     *,
     session: PromptSessionState,
@@ -263,6 +278,33 @@ def _mutate_selection(
         emit(f"Plugins set to: {session.plugins_label()} (module={scope})", Colors.GREEN)
         return True
 
+    if kind == "modules":
+        current = _dedupe_names(session.attached_module_names)
+        selected, rejected, warnings = _resolve_modules_for_scope(requested, scope)
+        if rejected:
+            emit(
+                f"Module selection blocked for module '{scope}'. "
+                f"Incompatible or unknown selectors: {', '.join(rejected)}",
+                Colors.RED,
+            )
+            emit("Use `modules --scope ...` to inspect compatible selectors.", Colors.EMBER)
+            return True
+        if action == "add":
+            updated = _dedupe_names([*current, *selected])
+        else:
+            remove_set = set(_dedupe_names(selected))
+            updated = [item for item in current if item not in remove_set]
+        module_plan = resolve_module_attachments(scope=scope, requested_modules=updated)
+        if module_plan.errors:
+            for item in module_plan.errors:
+                emit(f"Module selection blocked: {item}", Colors.RED)
+            return True
+        session.attached_module_names = list(module_plan.module_ids)
+        for item in warnings:
+            emit(item, Colors.GREY)
+        emit(f"Modules set to: {session.modules_label()} (module={scope})", Colors.GREEN)
+        return True
+
     selected, rejected = _resolve_filters_for_scope(requested, scope)
     if rejected:
         emit(
@@ -306,6 +348,9 @@ def apply_prompt_defaults(args: argparse.Namespace, session: PromptSessionState)
 
     if not getattr(args, "filter", None):
         args.filter, _ = _resolve_filters_for_scope(session.filter_names, scope)
+
+    if not getattr(args, "module", None):
+        args.module, _, _ = _resolve_modules_for_scope(session.attached_module_names, scope)
 
     if hasattr(args, "extension_control") and "--extension-control" not in explicit_flags:
         if command in ORCHESTRATE_ALIASES:
@@ -351,7 +396,7 @@ def handle_prompt_set_command(
     tokens = command_text.strip().split(maxsplit=2)
     if len(tokens) != 3:
         _emit(
-            "Usage: set <template|plugins|filters|profile_preset|surface_preset|extension_control|orchestrate_extension_control> <value>",
+            "Usage: set <template|plugins|filters|modules|profile_preset|surface_preset|extension_control|orchestrate_extension_control> <value>",
             Colors.EMBER,
         )
         return True
@@ -507,6 +552,27 @@ def handle_prompt_set_command(
         _emit(f"Filters set to: {session.filters_label()} (module={scope})", Colors.GREEN)
         return True
 
+    if key == "modules":
+        lower = value.lower()
+        if lower in {"none", "off"}:
+            session.attached_module_names = []
+            _emit(f"Modules set to: {session.modules_label()} (module={scope})", Colors.GREEN)
+            return True
+        requested = _split_csv_values(value)
+        if not requested:
+            _emit("Provide at least one module selector (id/file/path).", Colors.EMBER)
+            return True
+        plan = resolve_module_attachments(scope=scope, requested_modules=requested)
+        if plan.errors:
+            for item in plan.errors:
+                _emit(f"Module selection blocked: {item}", Colors.RED)
+            return True
+        session.attached_module_names = list(plan.module_ids)
+        for item in plan.warnings:
+            _emit(item, Colors.GREY)
+        _emit(f"Modules set to: {session.modules_label()} (module={scope})", Colors.GREEN)
+        return True
+
     if key == "profile_preset":
         normalized_value = value.lower()
         if normalized_value not in PROFILE_PRESETS:
@@ -580,48 +646,73 @@ def handle_prompt_control_command(
         return False
 
     verb = tokens[0].strip().lower()
-    if verb not in {"select", "add", "remove"}:
+    if verb not in {"select", "add", "remove", "enable", "disable"}:
         return False
     if len(tokens) < 3:
-        _emit("Usage: select|add|remove <module|plugins|filters> <value>", Colors.EMBER)
+        _emit("Usage: select|add|remove|enable|disable <module|plugins|filters|modules> <value>", Colors.EMBER)
         return True
+
+    normalized_verb = {"enable": "add", "disable": "remove"}.get(verb, verb)
 
     target = tokens[1].strip().lower().replace("-", "_")
     value = tokens[2].strip()
+    if target in {"module", "mode"} and normalized_verb == "select":
+        return handle_prompt_use_command(f"use {value}", session, on_message=on_message)
     if target in {"module", "mode"}:
-        if verb != "select":
+        if normalized_verb not in {"add", "remove"}:
             _emit("Only `select module <profile|surface|fusion>` is supported for module controls.", Colors.EMBER)
             return True
-        return handle_prompt_use_command(f"use {value}", session, on_message=on_message)
+        scope = _normalize_module(session.module)
+        return _mutate_selection(
+            session=session,
+            scope=scope,
+            kind="modules",
+            action=normalized_verb,
+            value=value,
+            emit=_emit,
+        )
 
     if target in {"template", "info_template", "info-template"}:
-        if verb != "select":
+        if normalized_verb != "select":
             _emit("Only `select template <id>` is supported for template controls.", Colors.EMBER)
             return True
         return handle_prompt_set_command(f"set template {value}", session, on_message=on_message)
 
     if target in {"plugins", "plugin"}:
-        if verb == "select":
+        if normalized_verb == "select":
             return handle_prompt_set_command(f"set plugins {value}", session, on_message=on_message)
         scope = _normalize_module(session.module)
         return _mutate_selection(
             session=session,
             scope=scope,
             kind="plugins",
-            action=verb,
+            action=normalized_verb,
             value=value,
             emit=_emit,
         )
 
     if target in {"filters", "filter"}:
-        if verb == "select":
+        if normalized_verb == "select":
             return handle_prompt_set_command(f"set filters {value}", session, on_message=on_message)
         scope = _normalize_module(session.module)
         return _mutate_selection(
             session=session,
             scope=scope,
             kind="filters",
-            action=verb,
+            action=normalized_verb,
+            value=value,
+            emit=_emit,
+        )
+
+    if target in {"modules"}:
+        if normalized_verb == "select":
+            return handle_prompt_set_command(f"set modules {value}", session, on_message=on_message)
+        scope = _normalize_module(session.module)
+        return _mutate_selection(
+            session=session,
+            scope=scope,
+            kind="modules",
+            action=normalized_verb,
             value=value,
             emit=_emit,
         )
@@ -668,6 +759,16 @@ def handle_prompt_use_command(
             f"Removed incompatible filters for module '{module}': {', '.join(rejected_filters)}",
             Colors.EMBER,
         )
+
+    selected_modules, rejected_modules, warnings = _resolve_modules_for_scope(session.attached_module_names, module)
+    session.attached_module_names = selected_modules
+    if rejected_modules:
+        _emit(
+            f"Removed incompatible modules for module '{module}': {', '.join(rejected_modules)}",
+            Colors.EMBER,
+        )
+    for item in warnings:
+        _emit(item, Colors.GREY)
 
     return True
 

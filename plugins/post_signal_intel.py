@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from plugins._media_recon_shared import resolve_media_recon_payload
+from plugins.media_recon_shared import resolve_media_recon_payload
 
 
 PLUGIN_SPEC = {

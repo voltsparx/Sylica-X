@@ -59,6 +59,7 @@ from core.engines.fusion_engine import FusionEngine
 from core.intel.advisor import IntelligenceAdvisor
 from core.intel.hybrid_architecture import build_hybrid_architecture_snapshot, render_hybrid_inventory_lines
 from core.extensions.control_plane import merge_scan_modes, resolve_extension_control
+from core.extensions.attachables import resolve_module_attachments
 from core.interface.symbols import symbol
 from core.orchestrator import Orchestrator
 from core.foundation.metadata import PROJECT_NAME, VERSION, framework_signature, utc_timestamp
@@ -1621,6 +1622,94 @@ def _resolve_extension_plan_or_fail(
     return plan.plugins, plan.filters, plan.warnings, True
 
 
+def _resolve_module_plan_or_fail(
+    *,
+    scope: str,
+    requested_modules: list[str],
+) -> tuple[tuple[str, ...], tuple[dict[str, Any], ...], tuple[str, ...], bool]:
+    plan = resolve_module_attachments(scope=scope, requested_modules=requested_modules)
+    if plan.errors:
+        print(c(f"{symbol('error')} Module attachment errors:", Colors.RED))
+        for item in plan.errors:
+            print(c(f" {symbol('error')} {item}", Colors.RED))
+        print(c(f"{symbol('warn')} Stop: module attachment plan invalid; scan was not started.", Colors.RED))
+        print(c(f"{symbol('tip')} Inspect compatible module entries with: `modules --scope {scope}`.", Colors.EMBER))
+        return (), (), (), False
+    for item in plan.warnings:
+        print(c(f"{symbol('tip')} {item}", Colors.GREY))
+    return plan.module_ids, plan.entries, plan.warnings, True
+
+
+def _preflight_attachable_payload(
+    *,
+    plugin_ids: Sequence[str],
+    filter_ids: Sequence[str],
+    module_entries: Sequence[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "selected_plugins": list(plugin_ids),
+        "selected_filters": list(filter_ids),
+        "selected_modules": [str(row.get("id", "")) for row in module_entries if isinstance(row, dict)],
+        "attached_modules": [dict(row) for row in module_entries if isinstance(row, dict)],
+    }
+
+
+def _print_execution_preview(
+    *,
+    heading: str,
+    scope: str,
+    target: str,
+    state: RunnerState,
+    scan_mode: str,
+    extension_control: str,
+    plugin_ids: Sequence[str],
+    filter_ids: Sequence[str],
+    module_entries: Sequence[dict[str, Any]],
+    output_types: Sequence[str],
+    output_root: str,
+    extra_lines: Sequence[str] | None = None,
+) -> None:
+    print(c(f"\n{symbol('major')} {heading}", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
+    print(c(f"scope: {scope}", Colors.CYAN))
+    print(c(f"target: {target}", Colors.CYAN))
+    print(c(f"scan mode: {scan_mode}", Colors.CYAN))
+    print(c(f"extension control: {extension_control}", Colors.CYAN))
+    print(c(f"anonymity: {get_anonymity_status(state)}", Colors.CYAN))
+    print(c("enabled attachables:", Colors.BLUE))
+    print(c(f"  plugins: {', '.join(plugin_ids) or 'none'}", Colors.CYAN))
+    print(c(f"  filters: {', '.join(filter_ids) or 'none'}", Colors.CYAN))
+    if module_entries:
+        module_labels = ", ".join(str(row.get("id", "module")) for row in module_entries[:8])
+        if len(module_entries) > 8:
+            module_labels += f", +{len(module_entries) - 8} more"
+    else:
+        module_labels = "none"
+    print(c(f"  modules: {module_labels}", Colors.CYAN))
+    print(c(f"output types: {', '.join(output_types) or 'none'}", Colors.CYAN))
+    print(c(f"output root: {output_root}", Colors.CYAN))
+    for line in extra_lines or ():
+        print(c(line, Colors.GREY))
+    print()
+
+
+def _confirm_execution(*, prompt_mode: bool) -> bool:
+    if not _can_prompt_user():
+        return True
+    try:
+        if prompt_mode:
+            answer = input(c("Press Enter to start or press c to stop this configured command: ", Colors.EMBER))
+            if str(answer).strip().lower() == "c":
+                print(c(f"{symbol('warn')} Command cancelled; prompt session is still active.", Colors.EMBER))
+                return False
+            return True
+        input(c("Press Enter to start or press Ctrl+C to cancel: ", Colors.EMBER))
+        return True
+    except KeyboardInterrupt:
+        print(c(f"\n{symbol('warn')} Execution cancelled before start.", Colors.EMBER))
+        return False
+
+
 def _wizard_preflight_extension_plan(
     *,
     scopes: Sequence[str],
@@ -2571,7 +2660,7 @@ def _split_csv_tokens(values: list[str]) -> list[str]:
 
 
 def _normalize_multi_select_args(args: argparse.Namespace) -> None:
-    for field in ("plugin", "filter", "tag", "scan_type", "url"):
+    for field in ("plugin", "filter", "module", "tag", "scan_type", "url"):
         value = getattr(args, field, None)
         if isinstance(value, list):
             setattr(args, field, _split_csv_tokens(value))
@@ -2617,8 +2706,10 @@ def _print_prompt_config(session: PromptSessionState, state: RunnerState) -> Non
     print(c("-" * 36, Colors.BLUE))
     print(c(f"prompt: {session.module_prompt()}", Colors.CYAN))
     print(c(f"context: {session.context_summary()}", Colors.CYAN))
-    print(c(f"plugins: {session.plugins_label()}", Colors.CYAN))
-    print(c(f"filters: {session.filters_label()}", Colors.CYAN))
+    print(c("enabled attachables:", Colors.BLUE))
+    print(c(f"  plugins: {session.plugins_label()}", Colors.CYAN))
+    print(c(f"  filters: {session.filters_label()}", Colors.CYAN))
+    print(c(f"  modules: {session.modules_label()}", Colors.CYAN))
     print(c(f"profile preset: {session.profile_preset}", Colors.CYAN))
     print(c(f"surface preset: {session.surface_preset}", Colors.CYAN))
     print(c(f"profile extension control: {session.profile_extension_control}", Colors.CYAN))
@@ -2666,7 +2757,7 @@ def _handle_prompt_control_command(command_text: str, session: PromptSessionStat
     return _handle_prompt_control_command_impl(command_text, session)
 
 
-async def _handle_ocr_command(args: argparse.Namespace, state: RunnerState) -> int:
+async def _handle_ocr_command(args: argparse.Namespace, state: RunnerState, prompt_mode: bool = False) -> int:
     if args.list_plugins:
         _print_plugin_inventory(scope="ocr")
         return EXIT_SUCCESS
@@ -2686,6 +2777,13 @@ async def _handle_ocr_command(args: argparse.Namespace, state: RunnerState) -> i
     if not ok_plan:
         return EXIT_USAGE
 
+    module_ids, module_entries, _, ok_modules = _resolve_module_plan_or_fail(
+        scope="ocr",
+        requested_modules=list(getattr(args, "module", []) or []),
+    )
+    if not ok_modules:
+        return EXIT_USAGE
+
     override_types, error = _parse_output_type_override(getattr(args, "out_type", None))
     if error:
         print(c(f"{symbol('warn')} {error}", Colors.RED))
@@ -2702,6 +2800,29 @@ async def _handle_ocr_command(args: argparse.Namespace, state: RunnerState) -> i
     if getattr(args, "out_print", None) and not override_applied and override_prev:
         print(c(f"{symbol('warn')} {override_prev}", Colors.RED))
         return EXIT_FAILURE
+
+    preview_root = str(get_output_settings().output_root)
+    _print_execution_preview(
+        heading="Execution Review",
+        scope="ocr",
+        target=str(getattr(args, "target", "ocr-scan") or "ocr-scan"),
+        state=state,
+        scan_mode=str(args.preset),
+        extension_control=str(getattr(args, "extension_control", "manual")),
+        plugin_ids=plugin_ids,
+        filter_ids=filter_ids,
+        module_entries=module_entries,
+        output_types=sorted(selected_types),
+        output_root=preview_root,
+        extra_lines=(
+            f"image paths: {len(list(getattr(args, 'paths', []) or []))}",
+            f"image urls: {len(list(getattr(args, 'url', []) or []))}",
+        ),
+    )
+    if not _confirm_execution(prompt_mode=prompt_mode):
+        if override_applied:
+            _restore_output_base_override(override_prev)
+        return EXIT_SUCCESS
 
     try:
         timeout_seconds, max_concurrency, preprocess_mode, max_bytes, max_edge, threshold = _resolve_ocr_runtime(args)
@@ -2723,6 +2844,11 @@ async def _handle_ocr_command(args: argparse.Namespace, state: RunnerState) -> i
             include_all_plugins=False,
             filter_names=list(filter_ids),
             include_all_filters=False,
+            extra_payload=_preflight_attachable_payload(
+                plugin_ids=plugin_ids,
+                filter_ids=filter_ids,
+                module_entries=module_entries,
+            ),
             output_types=selected_types,
             output_stamp=datetime.now().strftime("%Y%m%d_%H%M%S"),
         )
@@ -2772,6 +2898,13 @@ async def _handle_profile_command(
     if not ok_plan:
         return EXIT_USAGE
 
+    module_ids, module_entries, _, ok_modules = _resolve_module_plan_or_fail(
+        scope="profile",
+        requested_modules=list(getattr(args, "module", []) or []),
+    )
+    if not ok_modules:
+        return EXIT_USAGE
+
     effective_state = compute_effective_state(state, args.tor, args.proxy)
     ok, error = _validate_network_settings(effective_state, prompt_user=True)
     if not ok:
@@ -2796,6 +2929,32 @@ async def _handle_profile_command(
     if getattr(args, "out_print", None) and not override_applied and override_prev:
         print(c(f"{symbol('warn')} {override_prev}", Colors.RED))
         return EXIT_FAILURE
+    preview_root = str(get_output_settings().output_root)
+    usernames_label = ", ".join(str(item).strip() for item in args.usernames[:4])
+    if len(args.usernames) > 4:
+        usernames_label += f", +{len(args.usernames) - 4} more"
+    _print_execution_preview(
+        heading="Execution Review",
+        scope="profile",
+        target=usernames_label,
+        state=effective_state,
+        scan_mode=str(args.preset),
+        extension_control=str(getattr(args, "extension_control", "manual")),
+        plugin_ids=plugin_ids,
+        filter_ids=filter_ids,
+        module_entries=module_entries,
+        output_types=sorted(selected_types),
+        output_root=preview_root,
+        extra_lines=(
+            f"timeout seconds: {timeout_seconds}",
+            f"max concurrency: {max_concurrency}",
+            f"source profile: {source_profile}",
+        ),
+    )
+    if not _confirm_execution(prompt_mode=prompt_mode):
+        if override_applied:
+            _restore_output_base_override(override_prev)
+        return EXIT_SUCCESS
     failures = 0
     try:
         for username in args.usernames:
@@ -2823,6 +2982,11 @@ async def _handle_profile_command(
                 include_all_plugins=False,
                 filter_names=list(filter_ids),
                 include_all_filters=False,
+                extra_payload=_preflight_attachable_payload(
+                    plugin_ids=plugin_ids,
+                    filter_ids=filter_ids,
+                    module_entries=module_entries,
+                ),
                 output_types=selected_types,
                 output_stamp=stamp,
             )
@@ -2834,7 +2998,7 @@ async def _handle_profile_command(
     return EXIT_FAILURE if failures else EXIT_SUCCESS
 
 
-async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) -> int:
+async def _handle_surface_command(args: argparse.Namespace, state: RunnerState, prompt_mode: bool = False) -> int:
     if args.list_scan_types:
         _print_surface_scan_type_inventory()
         return EXIT_SUCCESS
@@ -2869,6 +3033,13 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
     if not ok_plan:
         return EXIT_USAGE
 
+    module_ids, module_entries, _, ok_modules = _resolve_module_plan_or_fail(
+        scope="surface",
+        requested_modules=list(getattr(args, "module", []) or []),
+    )
+    if not ok_modules:
+        return EXIT_USAGE
+
     effective_state = compute_effective_state(state, args.tor, args.proxy)
     ok, error = _validate_network_settings(effective_state, prompt_user=True)
     if not ok:
@@ -2899,6 +3070,29 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
     if getattr(args, "out_print", None) and not override_applied and override_prev:
         print(c(f"{symbol('warn')} {override_prev}", Colors.RED))
         return EXIT_FAILURE
+    preview_root = str(get_output_settings().output_root)
+    _print_execution_preview(
+        heading="Execution Review",
+        scope="surface",
+        target=str(args.domain),
+        state=effective_state,
+        scan_mode=str(args.preset),
+        extension_control=str(getattr(args, "extension_control", "manual")),
+        plugin_ids=plugin_ids,
+        filter_ids=filter_ids,
+        module_entries=module_entries,
+        output_types=sorted(selected_types),
+        output_root=preview_root,
+        extra_lines=(
+            f"timeout seconds: {timeout_seconds}",
+            f"max subdomains: {max_subdomains}",
+            f"recon mode: {scan_directives.recon_mode}",
+        ),
+    )
+    if not _confirm_execution(prompt_mode=prompt_mode):
+        if override_applied:
+            _restore_output_base_override(override_prev)
+        return EXIT_SUCCESS
     try:
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         status, _ = await run_surface_scan(
@@ -2917,6 +3111,11 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
             include_all_plugins=False,
             filter_names=list(filter_ids),
             include_all_filters=False,
+            extra_payload=_preflight_attachable_payload(
+                plugin_ids=plugin_ids,
+                filter_ids=filter_ids,
+                module_entries=module_entries,
+            ),
             output_types=selected_types,
             output_stamp=stamp,
         )
@@ -2929,6 +3128,7 @@ async def _handle_surface_command(args: argparse.Namespace, state: RunnerState) 
 async def _handle_fusion_command(
     args: argparse.Namespace,
     state: RunnerState,
+    prompt_mode: bool = False,
 ) -> int:
     if args.list_scan_types:
         _print_surface_scan_type_inventory()
@@ -3233,7 +3433,7 @@ async def _handle_fusion_command(
     return EXIT_SUCCESS
 
 
-async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerState) -> int:
+async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerState, prompt_mode: bool = False) -> int:
     mode = str(args.mode).strip().lower()
     if args.list_scan_types:
         _print_surface_scan_type_inventory()
@@ -4626,13 +4826,13 @@ async def _dispatch(args: argparse.Namespace, state: RunnerState, prompt_mode: b
     if args.command in {"profile", "scan", "persona", "social"}:
         return await _handle_profile_command(args, state=state, prompt_mode=prompt_mode)
     if args.command in {"surface", "domain", "asset"}:
-        return await _handle_surface_command(args, state=state)
+        return await _handle_surface_command(args, state=state, prompt_mode=prompt_mode)
     if args.command in {"fusion", "full", "combo"}:
-        return await _handle_fusion_command(args, state=state)
+        return await _handle_fusion_command(args, state=state, prompt_mode=prompt_mode)
     if args.command in set(OCR_COMMAND_ALIASES):
-        return await _handle_ocr_command(args, state=state)
+        return await _handle_ocr_command(args, state=state, prompt_mode=prompt_mode)
     if args.command in {"orchestrate", "orch"}:
-        return await _handle_orchestrate_command(args, state=state)
+        return await _handle_orchestrate_command(args, state=state, prompt_mode=prompt_mode)
     if args.command == "frameworks":
         return await _handle_frameworks_command(args)
     if args.command == "surface-kit":

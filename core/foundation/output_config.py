@@ -25,7 +25,8 @@ from typing import Iterable
 
 CONFIG_FILENAME = ".silica-x-config"
 DEFAULT_OUTPUT_TYPES = ("cli", "html", "csv", "json")
-ALLOWED_OUTPUT_TYPES = set(DEFAULT_OUTPUT_TYPES)
+EXTRA_OUTPUT_TYPES = ("sql", "docx", "pdf")
+ALLOWED_OUTPUT_TYPES = set(DEFAULT_OUTPUT_TYPES + EXTRA_OUTPUT_TYPES)
 
 _SESSION_BASE_DIR: Path | None = None
 _SESSION_TYPES: tuple[str, ...] | None = None
@@ -87,7 +88,7 @@ def parse_output_types(raw: Iterable[str] | str | None) -> tuple[tuple[str, ...]
     if not tokens:
         return DEFAULT_OUTPUT_TYPES, ()
     if any(token in {"all", "*"} for token in tokens):
-        return DEFAULT_OUTPUT_TYPES, ()
+        return (DEFAULT_OUTPUT_TYPES + EXTRA_OUTPUT_TYPES), ()
 
     ordered: list[str] = []
     seen: set[str] = set()

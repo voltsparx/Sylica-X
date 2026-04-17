@@ -35,6 +35,7 @@ class PromptSessionState:
     module: str = "profile"
     plugin_names: list[str] = field(default_factory=list)
     filter_names: list[str] = field(default_factory=list)
+    attached_module_names: list[str] = field(default_factory=list)
     history: list[str] = field(default_factory=list)
     all_plugins: bool = False
     all_filters: bool = False
@@ -49,6 +50,7 @@ class PromptSessionState:
         return bool(
             self.plugin_names
             or self.filter_names
+            or self.attached_module_names
             or self.all_plugins
             or self.all_filters
             or self.extension_control_for_module(self.module) != "manual"
@@ -63,6 +65,11 @@ class PromptSessionState:
         if not self.filter_names:
             return "none"
         return ",".join(self.filter_names)
+
+    def modules_label(self) -> str:
+        if not self.attached_module_names:
+            return "none"
+        return ",".join(self.attached_module_names)
 
     def extension_control_for_module(self, module: str) -> str:
         normalized = str(module or "").strip().lower()
@@ -97,7 +104,8 @@ class PromptSessionState:
             f"preset={self.active_preset_label()} "
             f"ext={self.extension_control_for_module(self.module)} "
             f"plugins={len(self.plugin_names)} "
-            f"filters={len(self.filter_names)}"
+            f"filters={len(self.filter_names)} "
+            f"modules={len(self.attached_module_names)}"
         )
 
     def module_prompt(self) -> str:

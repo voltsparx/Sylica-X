@@ -167,6 +167,15 @@ def _add_filter_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_module_attach_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--module",
+        action="append",
+        default=[],
+        help="Attach module-catalog selectors (id/file/path), repeatable or comma-separated.",
+    )
+
+
 def _add_ocr_preprocess_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--preprocess",
@@ -640,6 +649,7 @@ def _add_profile_args(parser: argparse.ArgumentParser, *, default_dashboard_port
     _add_info_template_args(parser)
     _add_plugin_args(parser)
     _add_filter_args(parser)
+    _add_module_attach_args(parser)
     _add_extension_control_args(parser, default_mode="manual")
 
 
@@ -697,6 +707,7 @@ def _add_surface_args(parser: argparse.ArgumentParser) -> None:
     _add_info_template_args(parser)
     _add_plugin_args(parser)
     _add_filter_args(parser)
+    _add_module_attach_args(parser)
     _add_extension_control_args(parser, default_mode="manual")
 
 
@@ -747,6 +758,7 @@ def _add_fusion_args(parser: argparse.ArgumentParser) -> None:
     _add_info_template_args(parser)
     _add_plugin_args(parser)
     _add_filter_args(parser)
+    _add_module_attach_args(parser)
     _add_extension_control_args(parser, default_mode="manual")
 
 
@@ -903,6 +915,7 @@ def _add_orchestrate_args(parser: argparse.ArgumentParser) -> None:
     _add_info_template_args(parser)
     _add_plugin_args(parser)
     _add_filter_args(parser)
+    _add_module_attach_args(parser)
     _add_extension_control_args(parser, default_mode="auto")
 
 
@@ -987,6 +1000,7 @@ def _add_wizard_args(parser: argparse.ArgumentParser) -> None:
     _add_info_template_args(parser)
     _add_plugin_args(parser)
     _add_filter_args(parser)
+    _add_module_attach_args(parser)
 
 
 def build_root_parser(

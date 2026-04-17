@@ -35,15 +35,21 @@ from core.analyze.profile_summary import (
 from core.artifacts.storage import (
     cli_report_path,
     data_target_dir,
+    docx_report_path,
     ensure_output_tree,
     framework_log_path,
+    pdf_report_path,
     legacy_results_json_path,
     list_targets,
     results_json_path,
     run_log_path,
     sanitize_target,
+    sql_report_path,
 )
 from core.foundation.output_config import OutputConfigError, get_output_settings
+from core.artifacts.docx_report import generate_docx_report
+from core.artifacts.pdf_report import generate_pdf_report
+from core.artifacts.sql_store import write_sqlite_report
 
 
 def _safe_dict_rows(value: object) -> list[dict]:
@@ -1215,8 +1221,38 @@ def save_results(
             cli_path.write_text(_render_cli_report(payload), encoding="utf-8")
         except OSError as exc:
             append_framework_log("save_results_failed", f"cli_write_failed target={target_key} reason={exc}", level="WARN")
-            print(c(f"{symbol('warn')} Failed to write CLI report: {exc}", Colors.EMBER))
-            cli_path = None
+              print(c(f"{symbol('warn')} Failed to write CLI report: {exc}", Colors.EMBER))
+              cli_path = None
+
+    sql_path: Path | None = None
+    if output_ready and "sql" in selected_types:
+        sql_path = sql_report_path(target_key, stamp=stamp)
+        try:
+            write_sqlite_report(sql_path, payload)
+        except Exception as exc:
+            append_framework_log("save_results_failed", f"sql_write_failed target={target_key} reason={exc}", level="WARN")
+            print(c(f"{symbol('warn')} Failed to write SQL report: {exc}", Colors.EMBER))
+            sql_path = None
+
+    docx_path: Path | None = None
+    if output_ready and "docx" in selected_types:
+        docx_path = docx_report_path(target_key, stamp=stamp)
+        try:
+            generate_docx_report(docx_path, payload)
+        except Exception as exc:
+            append_framework_log("save_results_failed", f"docx_write_failed target={target_key} reason={exc}", level="WARN")
+            print(c(f"{symbol('warn')} Failed to write DOCX report: {exc}", Colors.EMBER))
+            docx_path = None
+
+    pdf_path: Path | None = None
+    if output_ready and "pdf" in selected_types:
+        pdf_path = pdf_report_path(target_key, stamp=stamp)
+        try:
+            generate_pdf_report(pdf_path, payload)
+        except Exception as exc:
+            append_framework_log("save_results_failed", f"pdf_write_failed target={target_key} reason={exc}", level="WARN")
+            print(c(f"{symbol('warn')} Failed to write PDF report: {exc}", Colors.EMBER))
+            pdf_path = None
 
     run_log: Path | None = None
     if output_ready:
@@ -1255,7 +1291,8 @@ def save_results(
         "scan_saved",
         (
             f"target={target_display or target_key} target_key={target_key} "
-            f"mode={mode} json={json_path or '-'} cli={cli_path or '-'} log={run_log or '-'}"
+            f"mode={mode} json={json_path or '-'} cli={cli_path or '-'} "
+            f"sql={sql_path or '-'} docx={docx_path or '-'} pdf={pdf_path or '-'} log={run_log or '-'}"
         ),
     )
 
@@ -1263,6 +1300,12 @@ def save_results(
         print(c(f"\n{symbol('ok')} Results JSON saved to {json_path}", Colors.GREEN))
     if cli_path is not None:
         print(c(f"{symbol('ok')} CLI report saved to {cli_path}", Colors.GREEN))
+    if sql_path is not None:
+        print(c(f"{symbol('ok')} SQL report saved to {sql_path}", Colors.GREEN))
+    if docx_path is not None:
+        print(c(f"{symbol('ok')} DOCX report saved to {docx_path}", Colors.GREEN))
+    if pdf_path is not None:
+        print(c(f"{symbol('ok')} PDF report saved to {pdf_path}", Colors.GREEN))
     if run_log is not None:
         print(c(f"{symbol('ok')} Run log saved to {run_log}", Colors.GREEN))
     if return_payload:
