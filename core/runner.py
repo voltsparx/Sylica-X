@@ -36,8 +36,9 @@ from core.interface.banner import show_banner
 from core.collect.anonymity import TOR_HOST, TOR_SOCKS_PORT, install_tor, probe_tor_status, start_tor
 from core.interface.about import build_about_text
 from core.interface.explain import build_explain_text
-from core.interface.cli_config import EXTENSION_CONTROL_MODES, PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
+from core.interface.cli_config import EXTENSION_CONTROL_MODES, OCR_PRESETS, PROFILE_PRESETS, PROMPT_KEYWORDS, SURFACE_PRESETS
 from core.interface.command_spec import (
+    OCR_COMMAND_ALIASES,
     SurfaceScanDirectives,
     invalid_surface_scan_types,
     resolve_surface_scan_directives,
@@ -82,6 +83,7 @@ from modules.catalog import ensure_module_catalog, query_module_catalog, summari
 from core.artifacts.output import (
     append_framework_log,
     display_domain_results,
+    display_ocr_results,
     display_results,
     list_scanned_targets,
     save_results,
@@ -111,6 +113,8 @@ from core.analyze.profile_summary import error_profile_rows, found_profile_rows,
 from core.analyze.surface_map import build_surface_map, build_surface_next_steps
 from core.analyze.digital_footprint import build_digital_footprint_map
 from core.collect.scanner import scan_username
+from core.collect.ocr_image_scan import OCRImageScanResult
+from core.engines.ocr_image_scan_engine import OCRImageScanEngine
 from core.domain import BaseEntity
 from core.foundation.session_state import PromptSessionState
 from core.intelligence import IntelligenceEngine
@@ -164,6 +168,7 @@ def _prompt_command_catalog() -> list[str]:
         "keywords",
         "live",
         "modules",
+        "ocr",
         "orchestrate",
         "out-print",
         "out-type",
@@ -1490,6 +1495,22 @@ def _resolve_surface_runtime(args: argparse.Namespace) -> tuple[int, int, Surfac
     return timeout_seconds, max_subdomains, directives
 
 
+def _resolve_ocr_runtime(args: argparse.Namespace) -> tuple[int, int, str, int, int | None, int | None]:
+    preset = OCR_PRESETS[args.preset]
+    timeout_seconds = _int_from_value(args.timeout, preset["timeout"])
+    max_concurrency = _int_from_value(args.max_concurrency, preset["max_concurrency"])
+    preprocess_mode = str(getattr(args, "preprocess", None) or preset.get("preprocess_mode", "balanced"))
+    max_bytes = _int_from_value(getattr(args, "max_bytes", None), preset["max_bytes"])
+    max_edge = (
+        _int_from_value(getattr(args, "max_edge", None), preset["max_edge"])
+        if getattr(args, "max_edge", None) is not None
+        else int(preset["max_edge"])
+    )
+    threshold_value = getattr(args, "threshold", None)
+    threshold = int(threshold_value) if threshold_value is not None else None
+    return timeout_seconds, max_concurrency, preprocess_mode, max_bytes, max_edge, threshold
+
+
 def _resolve_surface_scan_directives_from_args(
     args: argparse.Namespace,
     *,
@@ -1605,6 +1626,7 @@ def _wizard_preflight_extension_plan(
     scopes: Sequence[str],
     profile_preset: str,
     surface_preset: str,
+    ocr_preset: str,
     extension_control: str,
     plugin_names: list[str],
     filter_names: list[str],
@@ -1617,12 +1639,14 @@ def _wizard_preflight_extension_plan(
 
     has_errors = False
     for scope in unique_scopes:
-        if scope not in {"profile", "surface", "fusion"}:
+        if scope not in {"profile", "surface", "fusion", "ocr"}:
             continue
         if scope == "surface":
             mode = surface_preset
         elif scope == "fusion":
             mode = merge_scan_modes(profile_preset, surface_preset)
+        elif scope == "ocr":
+            mode = ocr_preset
         else:
             mode = profile_preset
 
@@ -2313,6 +2337,192 @@ async def run_surface_scan(
     }
 
 
+async def run_ocr_scan(
+    *,
+    target: str,
+    image_paths: list[str],
+    image_urls: list[str],
+    state: RunnerState,
+    timeout_seconds: int,
+    max_concurrency: int,
+    preprocess_mode: str,
+    max_bytes: int,
+    max_edge: int | None,
+    threshold: int | None,
+    scan_mode: str = "balanced",
+    write_csv: bool = False,
+    write_html: bool = False,
+    plugin_names: list[str] | None = None,
+    include_all_plugins: bool = False,
+    filter_names: list[str] | None = None,
+    include_all_filters: bool = False,
+    output_types: set[str] | None = None,
+    output_stamp: str | None = None,
+) -> tuple[int, dict | None]:
+    target_label = str(target or "ocr-scan").strip() or "ocr-scan"
+    sources_present = bool(image_paths or image_urls)
+    if not sources_present:
+        print(c(f"{symbol('warn')} OCR scan requires at least one local image path or remote image URL.", Colors.RED))
+        return EXIT_USAGE, None
+
+    append_framework_log("ocr_scan_start", f"target={target_label}")
+    proxy_url: str | None = None
+    if image_urls:
+        ok, error = _validate_network_settings(state, prompt_user=False)
+        if not ok:
+            print(c(f"{symbol('warn')} {error}", Colors.RED))
+            append_framework_log("ocr_scan_failed", f"target={target_label} reason={error}", level="WARN")
+            return EXIT_FAILURE, None
+        try:
+            proxy_url = get_network_settings(state.use_proxy, state.use_tor)
+        except RuntimeError as exc:
+            print(c(f"{symbol('warn')} {exc}", Colors.RED))
+            append_framework_log("ocr_scan_failed", f"target={target_label} reason={exc}", level="WARN")
+            return EXIT_FAILURE, None
+
+    print(c(f"\n{symbol('action')} OCR image-scan target: {target_label}\n", Colors.CYAN))
+    _print_runtime_guidance_checks(
+        mode="ocr",
+        target=target_label,
+        state=state,
+        timeout_seconds=timeout_seconds,
+        worker_budget=max_concurrency,
+        plugin_names=plugin_names,
+        filter_names=filter_names,
+        include_all_plugins=include_all_plugins,
+        include_all_filters=include_all_filters,
+    )
+    print(c(f"{symbol('feature')} preprocess={preprocess_mode} max_bytes={max_bytes} max_edge={max_edge or '-'} threshold={threshold if threshold is not None else '-'}", Colors.CYAN))
+
+    try:
+        ocr_result = await OCRImageScanEngine().run_ocr_scan(
+            paths=list(image_paths),
+            urls=list(image_urls),
+            preprocess_mode=preprocess_mode,
+            timeout_seconds=timeout_seconds,
+            max_concurrency=max_concurrency,
+            max_bytes=max_bytes,
+            max_edge=max_edge,
+            threshold=threshold,
+            proxy_url=proxy_url,
+        )
+    except Exception as exc:
+        print(c(f"{symbol('warn')} OCR image scan failed: {exc}", Colors.RED))
+        append_framework_log("ocr_scan_failed", f"target={target_label} reason={exc}", level="WARN")
+        return EXIT_FAILURE, None
+
+    summary = ocr_result.summary
+    signal_totals = summary.signal_totals
+    narrative = (
+        f"OCR image scan processed {summary.processed_count} of {summary.image_count} supplied image sources, "
+        f"recovered text from {summary.ocr_hits} item(s), and extracted "
+        f"emails={signal_totals.get('emails', 0)}, urls={signal_totals.get('urls', 0)}, "
+        f"phones={signal_totals.get('phones', 0)}, mentions={signal_totals.get('mentions', 0)}."
+    )
+    payload = ocr_result.as_dict()
+    payload["target"] = target_label
+
+    plugin_results, plugin_errors = await PLUGIN_MANAGER.run_plugins(
+        {
+            "target": target_label,
+            "mode": "ocr",
+            "ocr_scan": payload,
+            "image_paths": list(image_paths),
+            "image_urls": list(image_urls),
+            "preprocess_mode": preprocess_mode,
+            "timeout": timeout_seconds,
+            "max_bytes": max_bytes,
+            "max_edge": max_edge,
+            "threshold": threshold,
+            "proxy_url": proxy_url or "",
+            "use_tor": state.use_tor,
+            "use_proxy": state.use_proxy,
+        },
+        scope="ocr",
+        requested_plugins=plugin_names,
+        include_all=include_all_plugins,
+        chain=True,
+    )
+    filter_results, filter_errors = execute_filters(
+        scope="ocr",
+        requested_filters=filter_names,
+        include_all=include_all_filters,
+        context={
+            "target": target_label,
+            "mode": "ocr",
+            "ocr_scan": payload,
+            "plugins": plugin_results,
+            "plugin_errors": plugin_errors,
+        },
+    )
+
+    display_ocr_results(
+        payload,
+        plugin_results=plugin_results,
+        plugin_errors=plugin_errors,
+        filter_results=filter_results,
+        filter_errors=filter_errors,
+        narrative=narrative,
+    )
+
+    selected_types = output_types or _resolve_output_types(html_flag=None, csv_flag=None)
+    stamp = output_stamp or datetime.now().strftime("%Y%m%d_%H%M%S")
+    write_csv = write_csv or ("csv" in selected_types)
+    write_html = write_html or ("html" in selected_types)
+
+    saved = save_results(
+        target_label,
+        [],
+        {},
+        narrative=narrative,
+        mode="ocr",
+        plugin_results=plugin_results,
+        plugin_errors=plugin_errors,
+        filter_results=filter_results,
+        filter_errors=filter_errors,
+        extra_payload={"ocr_scan": payload},
+        output_types=selected_types,
+        output_stamp=stamp,
+        return_payload=write_csv,
+    )
+
+    report_path = ""
+    try:
+        if write_html:
+            report_path = generate_html(
+                target=target_label,
+                results=[],
+                correlation={},
+                narrative=narrative,
+                mode="ocr",
+                plugin_results=plugin_results,
+                plugin_errors=plugin_errors,
+                filter_results=filter_results,
+                filter_errors=filter_errors,
+                ocr_scan=payload,
+                output_stamp=stamp,
+            )
+            print(c(f"HTML report generated -> {report_path}", Colors.GREEN))
+    except Exception as exc:  # pragma: no cover - defensive
+        append_framework_log("ocr_html_failed", f"target={target_label} reason={exc}", level="WARN")
+        print(c(f"{symbol('warn')} HTML report generation failed: {exc}", Colors.EMBER))
+
+    if write_csv:
+        csv_payload = saved[1] if isinstance(saved, tuple) and len(saved) > 1 else None
+        export_to_csv(target_label, payload=csv_payload, stamp=stamp)
+
+    append_framework_log("ocr_scan_done", f"target={target_label} report={report_path or '-'}")
+    return EXIT_SUCCESS, {
+        "target": target_label,
+        "ocr_scan": payload,
+        "narrative": narrative,
+        "plugins": plugin_results,
+        "plugin_errors": plugin_errors,
+        "filters": filter_results,
+        "filter_errors": filter_errors,
+    }
+
+
 def build_root_parser() -> argparse.ArgumentParser:
     return _build_root_parser(
         project_name=PROJECT_NAME,
@@ -2361,7 +2571,7 @@ def _split_csv_tokens(values: list[str]) -> list[str]:
 
 
 def _normalize_multi_select_args(args: argparse.Namespace) -> None:
-    for field in ("plugin", "filter", "tag", "scan_type"):
+    for field in ("plugin", "filter", "tag", "scan_type", "url"):
         value = getattr(args, field, None)
         if isinstance(value, list):
             setattr(args, field, _split_csv_tokens(value))
@@ -2454,6 +2664,72 @@ def _handle_prompt_use_command(command_text: str, session: PromptSessionState) -
 
 def _handle_prompt_control_command(command_text: str, session: PromptSessionState) -> bool:
     return _handle_prompt_control_command_impl(command_text, session)
+
+
+async def _handle_ocr_command(args: argparse.Namespace, state: RunnerState) -> int:
+    if args.list_plugins:
+        _print_plugin_inventory(scope="ocr")
+        return EXIT_SUCCESS
+    if args.list_filters:
+        _print_filter_inventory(scope="ocr")
+        return EXIT_SUCCESS
+
+    plugin_ids, filter_ids, _, ok_plan = _resolve_extension_plan_or_fail(
+        scope="ocr",
+        scan_mode=args.preset,
+        control_mode=getattr(args, "extension_control", "manual"),
+        requested_plugins=list(getattr(args, "plugin", []) or []),
+        requested_filters=list(getattr(args, "filter", []) or []),
+        include_all_plugins=False,
+        include_all_filters=False,
+    )
+    if not ok_plan:
+        return EXIT_USAGE
+
+    override_types, error = _parse_output_type_override(getattr(args, "out_type", None))
+    if error:
+        print(c(f"{symbol('warn')} {error}", Colors.RED))
+        return EXIT_USAGE
+    html_flag = _explicit_toggle(args, "html")
+    csv_flag = _explicit_toggle(args, "csv")
+    selected_types = _resolve_output_types(
+        html_flag=html_flag,
+        csv_flag=csv_flag,
+        base_types=override_types,
+    )
+
+    override_applied, override_prev = _apply_output_base_override(getattr(args, "out_print", None))
+    if getattr(args, "out_print", None) and not override_applied and override_prev:
+        print(c(f"{symbol('warn')} {override_prev}", Colors.RED))
+        return EXIT_FAILURE
+
+    try:
+        timeout_seconds, max_concurrency, preprocess_mode, max_bytes, max_edge, threshold = _resolve_ocr_runtime(args)
+        status, _ = await run_ocr_scan(
+            target=str(getattr(args, "target", "ocr-scan") or "ocr-scan"),
+            image_paths=list(getattr(args, "paths", []) or []),
+            image_urls=list(getattr(args, "url", []) or []),
+            state=state,
+            timeout_seconds=timeout_seconds,
+            max_concurrency=max_concurrency,
+            preprocess_mode=preprocess_mode,
+            max_bytes=max_bytes,
+            max_edge=max_edge,
+            threshold=threshold,
+            scan_mode=args.preset,
+            write_csv=bool(getattr(args, "csv", False)),
+            write_html=bool(getattr(args, "html", False)),
+            plugin_names=list(plugin_ids),
+            include_all_plugins=False,
+            filter_names=list(filter_ids),
+            include_all_filters=False,
+            output_types=selected_types,
+            output_stamp=datetime.now().strftime("%Y%m%d_%H%M%S"),
+        )
+        return status
+    finally:
+        if override_applied:
+            _restore_output_base_override(override_prev)
 
 
 async def _handle_profile_command(
@@ -3880,10 +4156,19 @@ async def _handle_wizard_command(
         "--no-surface-phase",
         "--fusion-phase",
         "--no-fusion-phase",
+        "--ocr-phase",
+        "--no-ocr-phase",
         "--usernames",
         "--domain",
+        "--image-paths",
+        "--image-urls",
         "--profile-preset",
         "--surface-preset",
+        "--ocr-preset",
+        "--preprocess",
+        "--threshold",
+        "--max-edge",
+        "--max-bytes",
         "--extension-control",
         "--plugin",
         "--filter",
@@ -3945,6 +4230,7 @@ async def _handle_wizard_command(
 
     run_profile_value = getattr(args, "run_profile", None)
     run_surface_value = getattr(args, "run_surface", None)
+    run_ocr_value = getattr(args, "run_ocr", None)
     if run_profile_value is not None:
         run_profile = bool(run_profile_value)
     elif seeded_wizard and str(getattr(args, "usernames", "")).strip():
@@ -3959,8 +4245,17 @@ async def _handle_wizard_command(
     else:
         run_surface = _prompt_yes_no("Run domain surface phase?", True)
 
-    if not run_profile and not run_surface:
-        print(c(f"{symbol('warn')} Both profile and surface phases are disabled.", Colors.RED))
+    if run_ocr_value is not None:
+        run_ocr = bool(run_ocr_value)
+    elif seeded_wizard and (
+        str(getattr(args, "image_paths", "")).strip() or str(getattr(args, "image_urls", "")).strip()
+    ):
+        run_ocr = True
+    else:
+        run_ocr = _prompt_yes_no("Run OCR image-scan phase?", False)
+
+    if not run_profile and not run_surface and not run_ocr:
+        print(c(f"{symbol('warn')} All wizard phases are disabled.", Colors.RED))
         return EXIT_USAGE
 
     profile_usernames: list[str] = []
@@ -3986,6 +4281,19 @@ async def _handle_wizard_command(
         if not normalize_domain(surface_domain):
             print(c(f"{symbol('warn')} Invalid domain; surface phase skipped.", Colors.EMBER))
             run_surface = False
+
+    image_paths = _split_csv_tokens([str(getattr(args, "image_paths", ""))])
+    image_urls = _split_csv_tokens([str(getattr(args, "image_urls", ""))])
+    if run_ocr and not image_paths and not image_urls:
+        raw_paths = ask("Enter local image paths (comma-separated, optional): ")
+        image_paths = _split_csv_tokens([raw_paths])
+        raw_urls = ask("Enter remote image URLs (comma-separated, optional): ")
+        image_urls = [item for item in _split_csv_tokens([raw_urls]) if item.startswith(("http://", "https://"))]
+    else:
+        image_urls = [item for item in image_urls if item.startswith(("http://", "https://"))]
+    if run_ocr and not image_paths and not image_urls:
+        print(c(f"{symbol('warn')} No OCR image sources supplied; OCR phase skipped.", Colors.EMBER))
+        run_ocr = False
 
     run_fusion_value = getattr(args, "run_fusion", None)
     run_fusion = False
@@ -4021,6 +4329,18 @@ async def _handle_wizard_command(
             print(c(f"{symbol('warn')} Invalid surface preset: {surface_preset}", Colors.RED))
             return EXIT_USAGE
 
+    ocr_preset = str(getattr(args, "ocr_preset", None) or "balanced").strip().lower()
+    if run_ocr:
+        if getattr(args, "ocr_preset", None) is None:
+            ocr_preset = _prompt_choice(
+                "OCR preset",
+                sorted(OCR_PRESETS.keys()),
+                ocr_preset,
+            )
+        if ocr_preset not in OCR_PRESETS:
+            print(c(f"{symbol('warn')} Invalid OCR preset: {ocr_preset}", Colors.RED))
+            return EXIT_USAGE
+
     extension_control = str(getattr(args, "extension_control", None) or "manual").strip().lower()
     if getattr(args, "extension_control", None) is None:
         extension_control = _prompt_choice(
@@ -4041,13 +4361,13 @@ async def _handle_wizard_command(
         write_html = _prompt_yes_no("Generate HTML reports?", True)
     write_csv = False
     csv_flag = getattr(args, "csv", None)
-    if run_profile or run_fusion:
+    if run_profile or run_fusion or run_ocr:
         if csv_flag is not None:
             write_csv = bool(csv_flag)
         elif seeded_wizard:
             write_csv = False
         else:
-            write_csv = _prompt_yes_no("Export profile/fusion CSV?", False)
+            write_csv = _prompt_yes_no("Export CSV companions?", False)
 
     include_ct = True
     include_rdap = True
@@ -4073,6 +4393,8 @@ async def _handle_wizard_command(
         selected_scopes.append("surface")
     if run_fusion:
         selected_scopes.append("fusion")
+    if run_ocr:
+        selected_scopes.append("ocr")
 
     template_id = str(getattr(args, "info_template", "") or "").strip()
     if template_id:
@@ -4137,6 +4459,7 @@ async def _handle_wizard_command(
         scopes=selected_scopes,
         profile_preset=profile_preset,
         surface_preset=surface_preset,
+        ocr_preset=ocr_preset,
         extension_control=extension_control,
         plugin_names=plugin_names,
         filter_names=filter_names,
@@ -4242,6 +4565,32 @@ async def _handle_wizard_command(
         if await _handle_fusion_command(fusion_args, state=state) != EXIT_SUCCESS:
             failures += 1
 
+    if run_ocr:
+        ocr_args = argparse.Namespace(
+            paths=image_paths,
+            url=image_urls,
+            target="wizard-ocr-scan",
+            preset=ocr_preset,
+            timeout=None,
+            max_concurrency=None,
+            preprocess=str(getattr(args, "preprocess", None) or OCR_PRESETS[ocr_preset].get("preprocess_mode", "balanced")),
+            threshold=getattr(args, "threshold", None),
+            max_edge=getattr(args, "max_edge", None),
+            max_bytes=getattr(args, "max_bytes", None),
+            html=write_html,
+            csv=write_csv,
+            plugin=plugin_names,
+            list_plugins=False,
+            filter=filter_names,
+            list_filters=False,
+            extension_control=extension_control,
+            out_type=str(getattr(args, "out_type", "") or ""),
+            out_print=str(getattr(args, "out_print", "") or ""),
+            _explicit_flags=tuple(explicit_output_flags),
+        )
+        if await _handle_ocr_command(ocr_args, state=state) != EXIT_SUCCESS:
+            failures += 1
+
     return EXIT_FAILURE if failures else EXIT_SUCCESS
 
 
@@ -4280,6 +4629,8 @@ async def _dispatch(args: argparse.Namespace, state: RunnerState, prompt_mode: b
         return await _handle_surface_command(args, state=state)
     if args.command in {"fusion", "full", "combo"}:
         return await _handle_fusion_command(args, state=state)
+    if args.command in set(OCR_COMMAND_ALIASES):
+        return await _handle_ocr_command(args, state=state)
     if args.command in {"orchestrate", "orch"}:
         return await _handle_orchestrate_command(args, state=state)
     if args.command == "frameworks":
@@ -4454,6 +4805,12 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
                 secondary_target = ask("Secondary domain target: ").strip()
                 if secondary_target:
                     tokens.extend(["--secondary-target", secondary_target])
+        if tokens and tokens[0] == "ocr" and len(tokens) == 1:
+            local_paths = ask("Local image paths (comma-separated, optional): ").strip()
+            remote_urls = ask("Remote image URLs (comma-separated, optional): ").strip()
+            tokens = ["ocr", *_split_csv_tokens([local_paths])]
+            for value in _split_csv_tokens([remote_urls]):
+                tokens.extend(["--url", value])
         if tokens and keyword_match in {"profile", "surface", "fusion", "orchestrate"} and len(tokens) == 1:
             if keyword_match == "profile":
                 target = ask("Username target: ")

@@ -63,6 +63,7 @@ class ReportGenerator(_BaseReportGenerator):
             filter_results=list(fused_data.get("filters", []) or []),
             filter_errors=list(fused_data.get("filter_errors", []) or []),
             intelligence_bundle=intelligence_bundle if isinstance(intelligence_bundle, dict) else {},
+            ocr_scan=fused_data.get("ocr_scan") if isinstance(fused_data.get("ocr_scan"), dict) else None,
             output_stamp=output_stamp,
         )
 

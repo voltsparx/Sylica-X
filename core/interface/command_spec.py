@@ -28,6 +28,7 @@ PROFILE_COMMAND_ALIASES: Final[tuple[str, ...]] = ("profile", "scan", "persona",
 SURFACE_COMMAND_ALIASES: Final[tuple[str, ...]] = ("surface", "domain", "asset")
 FUSION_COMMAND_ALIASES: Final[tuple[str, ...]] = ("fusion", "full", "combo")
 ORCHESTRATE_COMMAND_ALIASES: Final[tuple[str, ...]] = ("orchestrate", "orch")
+OCR_COMMAND_ALIASES: Final[tuple[str, ...]] = ("ocr", "ocr-scan", "image-scan")
 
 
 @dataclass(frozen=True)

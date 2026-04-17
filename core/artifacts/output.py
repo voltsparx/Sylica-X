@@ -25,6 +25,7 @@ from __future__ import annotations
 from core.output import (
     append_framework_log,
     display_domain_results,
+    display_ocr_results,
     display_results,
     list_scanned_targets,
     save_results,
@@ -33,6 +34,7 @@ from core.output import (
 __all__ = [
     "append_framework_log",
     "display_domain_results",
+    "display_ocr_results",
     "display_results",
     "list_scanned_targets",
     "save_results",

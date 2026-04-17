@@ -700,6 +700,90 @@ def display_domain_results(
     print(c(f"\n{framework_signature()}", Colors.GREY))
 
 
+def display_ocr_results(
+    ocr_scan: dict,
+    *,
+    plugin_results: list[dict] | None = None,
+    plugin_errors: list[str] | None = None,
+    filter_results: list[dict] | None = None,
+    filter_errors: list[str] | None = None,
+    narrative: str | None = None,
+) -> None:
+    summary = ocr_scan.get("summary", {}) if isinstance(ocr_scan, dict) else {}
+    items = [row for row in (ocr_scan.get("items", []) or []) if isinstance(row, dict)]
+    failures = [row for row in (ocr_scan.get("failures", []) or []) if isinstance(row, dict)]
+
+    _section("OCR Image Scan", Colors.BLUE)
+    print(c(f"{symbol('action')} target={ocr_scan.get('target', 'ocr_scan')}", Colors.CYAN))
+    print(
+        c(
+            f"{symbol('bullet')} images={summary.get('image_count', 0)} "
+            f"processed={summary.get('processed_count', 0)} "
+            f"failed={summary.get('failed_count', 0)} "
+            f"ocr_hits={summary.get('ocr_hits', 0)}",
+            Colors.CYAN,
+        )
+    )
+    print(c(f"{symbol('bullet')} engines={summary.get('engines', {})}", Colors.GREY))
+    print(c(f"{symbol('bullet')} languages={summary.get('languages', {})}", Colors.GREY))
+    print(c(f"{symbol('bullet')} signal_totals={summary.get('signal_totals', {})}", Colors.GREY))
+
+    if items:
+        _section("Recovered OCR Items", Colors.GREEN)
+        for item in items[:12]:
+            source = str(item.get("source") or item.get("display_name") or "image")
+            print(c(f"{symbol('ok')} {source}", Colors.GREEN))
+            print(
+                c(
+                    f"  {symbol('bullet')} kind={item.get('source_kind', '-')} "
+                    f"engine={item.get('ocr_engine', 'none')} "
+                    f"confidence={item.get('confidence_hint', 'low')}",
+                    Colors.GREY,
+                )
+            )
+            print(
+                c(
+                    f"  {symbol('bullet')} signals={item.get('extracted_signals', {})}",
+                    Colors.GREY,
+                )
+            )
+            text = " ".join(str(item.get("raw_text") or "").split())
+            if text:
+                print(c(f"  {symbol('bullet')} text: {text[:220]}", Colors.CYAN))
+    else:
+        print(c(f"{symbol('warn')} No OCR text was recovered from the supplied images.", Colors.GREY))
+
+    if failures:
+        _section("OCR Failures", Colors.RED)
+        for row in failures[:12]:
+            print(
+                c(
+                    f"{symbol('error')} {row.get('source', 'image')} "
+                    f"[{row.get('source_kind', '-')}] {row.get('error', '-')}",
+                    Colors.RED,
+                )
+            )
+
+    _print_extension_summary(
+        _build_payload_summary(
+            {
+                "results": [],
+                "issues": [],
+                "plugins": plugin_results or [],
+                "filters": filter_results or [],
+                "plugin_errors": plugin_errors or [],
+                "filter_errors": filter_errors or [],
+            }
+        )
+    )
+    _print_plugin_block(plugin_results, plugin_errors)
+    _print_filter_block(filter_results, filter_errors)
+    if narrative:
+        _section("Nano AI Brief", Colors.CYAN)
+        print(c(narrative, Colors.CYAN))
+    print(c(f"\n{framework_signature()}", Colors.GREY))
+
+
 def _render_cli_report(payload: dict) -> str:
     metadata = payload.get("metadata", {}) or {}
     summary = payload.get("summary", {}) if isinstance(payload.get("summary"), dict) else {}
@@ -886,6 +970,31 @@ def _render_cli_report(payload: dict) -> str:
             lines.append(f"- {symbol('error')} {err}")
     lines.append("")
 
+    ocr_scan = payload.get("ocr_scan", {}) if isinstance(payload.get("ocr_scan"), dict) else {}
+    if ocr_scan:
+        ocr_summary = ocr_scan.get("summary", {}) if isinstance(ocr_scan.get("summary"), dict) else {}
+        lines.append("[OCR Image Scan]")
+        lines.append(
+            f"- images={ocr_summary.get('image_count', 0)} "
+            f"processed={ocr_summary.get('processed_count', 0)} "
+            f"failed={ocr_summary.get('failed_count', 0)} "
+            f"ocr_hits={ocr_summary.get('ocr_hits', 0)}"
+        )
+        lines.append(f"- engines={ocr_summary.get('engines', {})}")
+        lines.append(f"- languages={ocr_summary.get('languages', {})}")
+        lines.append(f"- signal_totals={ocr_summary.get('signal_totals', {})}")
+        for row in _safe_dict_rows(ocr_scan.get("items"))[:10]:
+            lines.append(
+                f"- {row.get('source', 'image')} [{row.get('source_kind', '-')}] "
+                f"engine={row.get('ocr_engine', 'none')} confidence={row.get('confidence_hint', 'low')}"
+            )
+        for row in _safe_dict_rows(ocr_scan.get("failures"))[:10]:
+            lines.append(
+                f"- failure {row.get('source', 'image')} [{row.get('source_kind', '-')}] "
+                f"error={row.get('error', '-')}"
+            )
+        lines.append("")
+
     fused_intel = payload.get("fused_intel", {}) or {}
     fusion_graph = payload.get("fusion_graph", {}) or {}
     if fused_intel:
@@ -1011,6 +1120,7 @@ def save_results(
     fused_intel: dict | None = None,
     fusion_graph: dict | None = None,
     intelligence_bundle: dict | None = None,
+    extra_payload: dict[str, Any] | None = None,
     output_types: set[str] | None = None,
     output_stamp: str | None = None,
     return_payload: bool = False,
@@ -1051,6 +1161,8 @@ def save_results(
         "intelligence_bundle": intelligence_bundle or {},
         "narrative": narrative,
     }
+    if isinstance(extra_payload, dict):
+        payload.update({str(key): value for key, value in extra_payload.items()})
     payload["summary"] = _build_payload_summary(payload)
 
     results_count = len(payload["results"]) if isinstance(payload["results"], list) else 0

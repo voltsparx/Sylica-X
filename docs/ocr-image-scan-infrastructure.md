@@ -2,10 +2,9 @@
 
 ## Status
 
-Current state: partially shipped runtime lane plus deeper roadmap.  
-Silica-X now ships public-media reconnaissance plugins for image OCR/metadata, public post-text intelligence, lightweight video endpoint handling, and heuristic stego triage.  
-It is still not shipped as a dedicated default command or wizard phase in `silica-x.py`.
-Remaining expansion target: `v9.5` or `v10.0` for deeper packaging/orchestration work.
+Current state: shipped as a first-class OCR lane.  
+Silica-X now ships a dedicated `ocr` / `ocr-scan` command, wizard OCR phase controls, OCR-only plugins and filters, structured extraction, and report parity across JSON, CLI, CSV, and HTML.  
+The public-media reconnaissance lane still exists separately for profile-linked media and lightweight video/stego analysis.
 
 Source planning note:
 
@@ -23,9 +22,9 @@ Primary objectives:
 * Integrate with wizard/extension controls
 * Preserve output parity (JSON/CLI/CSV/HTML)
 
-## Proposed Plugin Layout
+## Plugin Layout
 
-Planned package:
+Shipped package:
 
 * `plugins/ocr/__init__.py`
 * `plugins/ocr/ocr_extractor.py`
@@ -34,7 +33,7 @@ Planned package:
 
 ## Dependency Profile
 
-Runtime candidates:
+Runtime dependencies:
 
 * `Pillow`
 * `pytesseract`
@@ -46,14 +45,14 @@ System dependency:
 
 ## Integration Model
 
-Expected integration points:
+Implemented integration points:
 
 * Plugin discovery via existing `Signal Forge` (`core/extensions/signal_forge.py`)
 * Selector compatibility via existing extension control plane (`auto/manual/hybrid`)
 * Wizard integration via current guided orchestration path (`wizard`)
 * Artifact rendering via existing output stack (`core/output.py`, `core/artifacts/html_report.py`, CSV companions)
 
-## Data Contract (Proposed)
+## Data Contract
 
 Per-image result payload:
 
@@ -92,15 +91,17 @@ Minimum safeguards:
 * size limits to prevent memory pressure
 * sanitized rendering in CLI/HTML outputs
 
-## Release Checklist (When Implementing)
+## Implemented Components
 
-1. Add OCR plugin package under `plugins/ocr/`.
-2. Register plugin specs with scope metadata.
-3. Wire wizard prompts/options for OCR phase selection.
-4. Add tests for parser, compatibility rules, and plugin execution.
-5. Add output rendering blocks for OCR-specific sections.
-6. Update `requirements.txt` and `requirements-dev.txt` as needed.
-7. Re-run full smoke suite and refresh documentation snapshots.
+1. `core/collect/ocr_image_scan.py`
+2. `core/engines/ocr_image_scan_engine.py`
+3. `plugins/ocr/ocr_extractor.py`
+4. `plugins/ocr/regex_filters.py`
+5. `plugins/ocr/batch_processor.py`
+6. `filters/ocr_signal_classifier.py`
+7. `ocr` / `ocr-scan` / `image-scan` CLI workflow
+8. `wizard --ocr-phase` plus `--image-paths` and `--image-urls`
+9. OCR-specific HTML and CSV companion sections
 
 ## Runtime Plugins Shipped Today
 
@@ -121,7 +122,6 @@ Current runtime scope:
 
 Still pending:
 
-* local batch OCR package
-* wizard/media phase controls
-* dedicated local image path ingestion UX
-* full frame extraction/video CV pipeline
+* deeper computer-vision classification beyond OCR-first extraction
+* frame-by-frame video OCR/CV as a dedicated video lane
+* optional language-hint routing into OCR backends

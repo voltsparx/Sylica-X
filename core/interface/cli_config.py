@@ -36,6 +36,14 @@ class SurfacePreset(TypedDict):
     recon_mode: str
 
 
+class OCRPreset(TypedDict):
+    timeout: int
+    max_concurrency: int
+    preprocess_mode: str
+    max_bytes: int
+    max_edge: int
+
+
 PROFILE_PRESETS: dict[str, ProfilePreset] = {
     "safe": {"timeout": 10, "max_concurrency": 8, "source_profile": "fast", "max_platforms": 25},
     "fast": {"timeout": 10, "max_concurrency": 8, "source_profile": "fast", "max_platforms": 25},
@@ -58,6 +66,13 @@ SURFACE_PRESETS: dict[str, SurfacePreset] = {
     "max": {"timeout": 40, "max_subdomains": 1200, "recon_mode": "hybrid"},
 }
 
+OCR_PRESETS: dict[str, OCRPreset] = {
+    "quick": {"timeout": 12, "max_concurrency": 2, "preprocess_mode": "light", "max_bytes": 8_000_000, "max_edge": 1600},
+    "balanced": {"timeout": 20, "max_concurrency": 4, "preprocess_mode": "balanced", "max_bytes": 15_000_000, "max_edge": 2200},
+    "deep": {"timeout": 35, "max_concurrency": 6, "preprocess_mode": "aggressive", "max_bytes": 25_000_000, "max_edge": 2800},
+    "max": {"timeout": 45, "max_concurrency": 8, "preprocess_mode": "aggressive", "max_bytes": 32_000_000, "max_edge": 3200},
+}
+
 SURFACE_RECON_MODES: tuple[str, ...] = RECON_MODES
 
 EXTENSION_CONTROL_MODES = ("auto", "manual", "hybrid")
@@ -66,6 +81,7 @@ PROMPT_KEYWORDS = {
     "profile": {"profile", "scan", "social", "persona", "identity", "username", "handle", "account"},
     "surface": {"surface", "domain", "asset", "infra", "recon", "footprint"},
     "fusion": {"fusion", "full", "combo", "allscan", "stack"},
+    "ocr": {"ocr", "ocr-scan", "image-scan", "imageocr", "ocrimage"},
     "orchestrate": {"orchestrate", "orch", "pipeline", "orchestration"},
     "surface-kit": {"surface-kit", "kit", "recipes"},
     "frameworks": {"frameworks", "framework", "temp", "sources"},

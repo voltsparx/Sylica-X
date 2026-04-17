@@ -50,6 +50,9 @@ class TestExtensionsRegistry(unittest.TestCase):
             "media_recon_engine",
             "post_signal_intel",
             "stego_signal_probe",
+            "ocr_extractor",
+            "ocr_regex_filters",
+            "ocr_batch_processor",
             "darkweb_tor_intel",
             "crypto_aes_attachment",
             "crypto_xor_attachment",
@@ -78,6 +81,7 @@ class TestExtensionsRegistry(unittest.TestCase):
             "link_hygiene_filter",
             "subdomain_attack_path_filter",
             "evidence_consistency_filter",
+            "ocr_signal_classifier",
         }
         self.assertTrue(expected.issubset(filter_ids))
 

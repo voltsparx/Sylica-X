@@ -252,7 +252,74 @@ def export_to_csv(target: str, *, payload: dict | None = None, stamp: str | None
     except OSError as exc:
         print(f"CSV export warning: unable to write {contacts_file} ({exc})")
 
+    ocr_scan = data.get("ocr_scan", {}) if isinstance(data.get("ocr_scan"), dict) else {}
+    if ocr_scan:
+        ocr_items_file = csv_file.with_suffix(".ocr-items.csv")
+        ocr_item_rows = [
+            [
+                target_name,
+                mode,
+                row.get("source", ""),
+                row.get("source_kind", ""),
+                row.get("ocr_engine", ""),
+                row.get("confidence_hint", ""),
+                row.get("language", ""),
+                "; ".join((row.get("extracted_signals", {}) or {}).get("emails", []) or []),
+                "; ".join((row.get("extracted_signals", {}) or {}).get("urls", []) or []),
+                "; ".join((row.get("extracted_signals", {}) or {}).get("phones", []) or []),
+                "; ".join((row.get("extracted_signals", {}) or {}).get("mentions", []) or []),
+                "; ".join((row.get("extracted_signals", {}) or {}).get("hashtags", []) or []),
+                "; ".join((row.get("preprocess_pipeline", []) or [])),
+                row.get("raw_text", ""),
+            ]
+            for row in _safe_rows(ocr_scan.get("items"))
+        ]
+        try:
+            _write_csv(
+                ocr_items_file,
+                [
+                    "Target",
+                    "Mode",
+                    "Source",
+                    "SourceKind",
+                    "OCREngine",
+                    "ConfidenceHint",
+                    "Language",
+                    "Emails",
+                    "URLs",
+                    "Phones",
+                    "Mentions",
+                    "Hashtags",
+                    "PreprocessPipeline",
+                    "RawText",
+                ],
+                ocr_item_rows,
+            )
+            companion_paths.append(str(ocr_items_file))
+        except OSError as exc:
+            print(f"CSV export warning: unable to write {ocr_items_file} ({exc})")
+
+        ocr_failures_file = csv_file.with_suffix(".ocr-failures.csv")
+        ocr_failure_rows = [
+            [
+                target_name,
+                mode,
+                row.get("source", ""),
+                row.get("source_kind", ""),
+                row.get("error", ""),
+            ]
+            for row in _safe_rows(ocr_scan.get("failures"))
+        ]
+        try:
+            _write_csv(
+                ocr_failures_file,
+                ["Target", "Mode", "Source", "SourceKind", "Error"],
+                ocr_failure_rows,
+            )
+            companion_paths.append(str(ocr_failures_file))
+        except OSError as exc:
+            print(f"CSV export warning: unable to write {ocr_failures_file} ({exc})")
+
     print(f"CSV exported -> {csv_file}")
     print(f"CSV companion exports -> {', '.join(companion_paths)}")
     return str(csv_file)
-

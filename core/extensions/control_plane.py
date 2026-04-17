@@ -24,7 +24,7 @@ from core.extensions.signal_forge import list_plugin_descriptors
 from core.extensions.signal_sieve import list_filter_descriptors
 
 
-VALID_SCOPES = {"profile", "surface", "fusion"}
+VALID_SCOPES = {"profile", "surface", "fusion", "ocr"}
 VALID_CONTROL_MODES = {"auto", "manual", "hybrid"}
 MODE_ALIASES = {
     "safe": "fast",
@@ -206,6 +206,24 @@ AUTO_EXTENSION_MATRIX: dict[str, dict[str, dict[str, tuple[str, ...]]]] = {
                 "subdomain_attack_path_filter",
                 "evidence_consistency_filter",
             ),
+        },
+    },
+    "ocr": {
+        "fast": {
+            "plugins": ("ocr_batch_processor",),
+            "filters": (),
+        },
+        "balanced": {
+            "plugins": ("ocr_extractor", "ocr_batch_processor"),
+            "filters": ("ocr_signal_classifier",),
+        },
+        "deep": {
+            "plugins": ("ocr_extractor", "ocr_regex_filters", "ocr_batch_processor"),
+            "filters": ("ocr_signal_classifier",),
+        },
+        "max": {
+            "plugins": ("ocr_extractor", "ocr_regex_filters", "ocr_batch_processor"),
+            "filters": ("ocr_signal_classifier",),
         },
     },
 }

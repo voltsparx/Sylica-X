@@ -187,6 +187,43 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.filter, ["exposure_tier_matrix"])
         self.assertEqual(args.extension_control, "manual")
 
+    def test_root_ocr_parser_parses_flags(self):
+        parser = build_root_parser()
+        args = parser.parse_args(
+            [
+                "ocr",
+                "image-one.png",
+                "image-two.jpg",
+                "--url",
+                "https://example.com/image.png",
+                "--preset",
+                "deep",
+                "--preprocess",
+                "aggressive",
+                "--threshold",
+                "170",
+                "--max-edge",
+                "2400",
+                "--max-bytes",
+                "2000000",
+                "--plugin",
+                "ocr_extractor",
+                "--filter",
+                "ocr_signal_classifier",
+            ]
+        )
+        self.assertEqual(args.command, "ocr")
+        self.assertEqual(args.paths, ["image-one.png", "image-two.jpg"])
+        self.assertEqual(args.url, ["https://example.com/image.png"])
+        self.assertEqual(args.preset, "deep")
+        self.assertEqual(args.preprocess, "aggressive")
+        self.assertEqual(args.threshold, 170)
+        self.assertEqual(args.max_edge, 2400)
+        self.assertEqual(args.max_bytes, 2000000)
+        self.assertEqual(args.plugin, ["ocr_extractor"])
+        self.assertEqual(args.filter, ["ocr_signal_classifier"])
+        self.assertEqual(args.extension_control, "manual")
+
     def test_root_orchestrate_parser_parses_flags(self):
         parser = build_root_parser()
         args = parser.parse_args(
@@ -392,6 +429,38 @@ class TestRunnerCli(unittest.TestCase):
         self.assertFalse(args.rdap)
         self.assertTrue(args.sync_modules)
 
+    def test_root_wizard_parser_parses_ocr_flags(self):
+        parser = build_root_parser()
+        args = parser.parse_args(
+            [
+                "wizard",
+                "--ocr-phase",
+                "--image-paths",
+                "one.png,two.jpg",
+                "--image-urls",
+                "https://example.com/one.png",
+                "--ocr-preset",
+                "deep",
+                "--preprocess",
+                "aggressive",
+                "--threshold",
+                "180",
+                "--max-edge",
+                "2048",
+                "--max-bytes",
+                "9000000",
+            ]
+        )
+        self.assertEqual(args.command, "wizard")
+        self.assertTrue(args.run_ocr)
+        self.assertEqual(args.image_paths, "one.png,two.jpg")
+        self.assertEqual(args.image_urls, "https://example.com/one.png")
+        self.assertEqual(args.ocr_preset, "deep")
+        self.assertEqual(args.preprocess, "aggressive")
+        self.assertEqual(args.threshold, 180)
+        self.assertEqual(args.max_edge, 2048)
+        self.assertEqual(args.max_bytes, 9000000)
+
     def test_capability_pack_parser_parses_command(self):
         parser = build_root_parser()
         args = parser.parse_args(["capability-pack"])
@@ -523,6 +592,26 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.scan_type, ["syn"])
         self.assertTrue(args.os_fingerprint)
         self.assertEqual(args.extension_control, "auto")
+
+    def test_prompt_parser_parses_ocr_command(self):
+        parser = build_prompt_parser()
+        args = parser.parse_args(
+            [
+                "ocr",
+                "one.png",
+                "--url",
+                "https://example.com/two.png",
+                "--preprocess",
+                "light",
+                "--max-edge",
+                "1600",
+            ]
+        )
+        self.assertEqual(args.command, "ocr")
+        self.assertEqual(args.paths, ["one.png"])
+        self.assertEqual(args.url, ["https://example.com/two.png"])
+        self.assertEqual(args.preprocess, "light")
+        self.assertEqual(args.max_edge, 1600)
 
     def test_prompt_parser_parses_wizard_command_with_extended_flags(self):
         parser = build_prompt_parser()

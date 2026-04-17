@@ -26,7 +26,7 @@ from core.extensions.sieve_schema import FilterExecutionResult, FilterSpec
 
 
 FILTER_PACKAGE = "filters"
-VALID_SCOPES = {"profile", "surface", "fusion"}
+VALID_SCOPES = {"profile", "surface", "fusion", "ocr"}
 
 
 def _normalize_data_payload(value: object) -> dict[str, Any]:
@@ -235,4 +235,3 @@ def execute_filters(
             errors.append(f"Filter '{spec.filter_id}' failed: {exc}")
 
     return results, errors
-

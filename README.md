@@ -480,10 +480,12 @@ Runtime behavior:
 
 ## 🖼️ OCR/Image Infrastructure
 
-Silica-X now ships a public-media runtime lane through `media_recon_engine`, `post_signal_intel`, `stego_signal_probe`, and `media_intel_core`.  
-That lane is powered by `core/engines/media_recon_engine.py` and covers public image OCR/metadata, post-text intelligence, visual frame profiling, lightweight video handling, and heuristic stego triage.
+Silica-X now ships both:
 
-Full local/batch OCR packaging, dedicated wizard phases, and deeper frame-by-frame video orchestration remain future-scope.
+* a public-media runtime lane through `media_recon_engine`, `post_signal_intel`, `stego_signal_probe`, and `media_intel_core`
+* a dedicated OCR image-scan lane through `ocr` / `ocr-scan` plus the `ocr_extractor`, `ocr_regex_filters`, `ocr_batch_processor`, and `ocr_signal_classifier` extension set
+
+The dedicated OCR lane covers local image paths, remote image URLs, preprocessing, batch execution, structured extraction, wizard integration, and JSON/CLI/CSV/HTML reporting.
 
 Reference docs:
 
@@ -499,6 +501,7 @@ Reference docs:
 * `profile <username...>`
 * `surface <domain>`
 * `fusion <username> <domain>`
+* `ocr [image-paths...] [--url ...]`
 * `orchestrate <profile|surface|fusion> <target> [--secondary-target ...]`
 * `plugins`, `filters`, `modules`, `history`
 * `anonymity`, `config`
@@ -560,6 +563,7 @@ python silica-x.py anonymity --check
 python silica-x.py templates
 python silica-x.py plugins --scope all
 python silica-x.py filters --scope all
+python silica-x.py ocr ./captures/poster.png --plugin ocr_extractor --filter ocr_signal_classifier
 python silica-x.py profile alice --plugin media_recon_engine --plugin post_signal_intel --plugin stego_signal_probe --html
 python silica-x.py modules --sync --kind plugin --scope profile --limit 30
 python silica-x.py profile alice --info-template contact-discovery --html

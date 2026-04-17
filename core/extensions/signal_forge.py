@@ -27,7 +27,7 @@ from core.extensions.selector_keys import selector_keys
 
 
 PLUGIN_PACKAGE = "plugins"
-VALID_SCOPES = {"profile", "surface", "fusion"}
+VALID_SCOPES = {"profile", "surface", "fusion", "ocr"}
 _CRYPTO_MARKERS: tuple[str, ...] = (
     "cryptography",
     "crypto",
@@ -394,4 +394,3 @@ def execute_plugins(
             errors.append(f"Plugin '{spec.plugin_id}' failed: {exc}")
 
     return results, errors
-

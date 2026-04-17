@@ -20,9 +20,11 @@ from __future__ import annotations
 import argparse
 from typing import NoReturn
 
-from core.interface.cli_config import EXTENSION_CONTROL_MODES, PROFILE_PRESETS, SURFACE_PRESETS, SURFACE_RECON_MODES
+from core.collect.ocr_image_scan import PREPROCESS_MODES
+from core.interface.cli_config import EXTENSION_CONTROL_MODES, OCR_PRESETS, PROFILE_PRESETS, SURFACE_PRESETS, SURFACE_RECON_MODES
 from core.interface.command_spec import (
     FUSION_COMMAND_ALIASES,
+    OCR_COMMAND_ALIASES,
     ORCHESTRATE_COMMAND_ALIASES,
     PROFILE_COMMAND_ALIASES,
     SURFACE_COMMAND_ALIASES,
@@ -84,6 +86,13 @@ def valid_port(value: str) -> int:
     if port > 65535:
         raise argparse.ArgumentTypeError("Port must be between 1 and 65535.")
     return port
+
+
+def image_threshold(value: str) -> int:
+    parsed = non_negative_int(value)
+    if parsed > 255:
+        raise argparse.ArgumentTypeError("Threshold must be between 0 and 255.")
+    return parsed
 
 
 def _add_toggle_flags(parser: argparse.ArgumentParser, name: str, label: str) -> None:
@@ -158,6 +167,33 @@ def _add_filter_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_ocr_preprocess_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--preprocess",
+        choices=list(PREPROCESS_MODES),
+        default="balanced",
+        help="Image preprocessing lane: off, light, balanced, or aggressive.",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=image_threshold,
+        default=None,
+        help="Optional binarization threshold override (0-255).",
+    )
+    parser.add_argument(
+        "--max-edge",
+        type=positive_int,
+        default=None,
+        help="Resize the longest image edge to this bound before OCR.",
+    )
+    parser.add_argument(
+        "--max-bytes",
+        type=positive_int,
+        default=None,
+        help="Maximum allowed bytes per local or remote image input.",
+    )
+
+
 def _add_info_template_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--info-template",
@@ -178,7 +214,7 @@ def _add_extension_control_args(parser: argparse.ArgumentParser, *, default_mode
 def _add_plugins_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--scope",
-        choices=["all", "profile", "surface", "fusion"],
+        choices=["all", "profile", "surface", "fusion", "ocr"],
         default="all",
         help="Filter inventory by workflow scope.",
     )
@@ -187,7 +223,7 @@ def _add_plugins_args(parser: argparse.ArgumentParser) -> None:
 def _add_filters_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--scope",
-        choices=["all", "profile", "surface", "fusion"],
+        choices=["all", "profile", "surface", "fusion", "ocr"],
         default="all",
         help="Filter inventory by workflow scope.",
     )
@@ -714,6 +750,63 @@ def _add_fusion_args(parser: argparse.ArgumentParser) -> None:
     _add_extension_control_args(parser, default_mode="manual")
 
 
+def _add_ocr_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("paths", nargs="*", help="Local image paths to scan with OCR.")
+    parser.add_argument(
+        "--url",
+        action="append",
+        default=[],
+        help="Remote image URL to scan with OCR (repeatable or comma-separated).",
+    )
+    parser.add_argument(
+        "--target",
+        default="ocr-scan",
+        help="Friendly target label for output artifacts.",
+    )
+    parser.add_argument(
+        "--preset",
+        choices=sorted(OCR_PRESETS.keys()),
+        default="balanced",
+        help="Runtime preset for OCR image scanning.",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=positive_int,
+        default=None,
+        help="Per-image timeout override in seconds.",
+    )
+    parser.add_argument(
+        "--max-concurrency",
+        type=positive_int,
+        default=None,
+        help="Maximum concurrent OCR image workers.",
+    )
+    _add_ocr_preprocess_args(parser)
+    _add_toggle_flags(
+        parser,
+        "html",
+        "HTML report output/html/<target>-info-<timestamp>.html",
+    )
+    _add_toggle_flags(
+        parser,
+        "csv",
+        "CSV export output/csv/<target>-info-<timestamp>.csv",
+    )
+    parser.add_argument(
+        "--out-type",
+        default="",
+        help="Override output formats for this run only (comma-separated, non-persistent).",
+    )
+    parser.add_argument(
+        "--out-print",
+        default="",
+        help="Override output base directory for this run only (non-persistent).",
+    )
+    _add_plugin_args(parser)
+    _add_filter_args(parser)
+    _add_extension_control_args(parser, default_mode="manual")
+
+
 def _add_orchestrate_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "mode",
@@ -819,6 +912,7 @@ def _add_wizard_args(parser: argparse.ArgumentParser) -> None:
     _add_phase_toggle(parser, flag_name="profile-phase", dest="run_profile", label="profile phase")
     _add_phase_toggle(parser, flag_name="surface-phase", dest="run_surface", label="surface phase")
     _add_phase_toggle(parser, flag_name="fusion-phase", dest="run_fusion", label="fusion phase")
+    _add_phase_toggle(parser, flag_name="ocr-phase", dest="run_ocr", label="OCR image phase")
     parser.add_argument(
         "--usernames",
         default="",
@@ -828,6 +922,16 @@ def _add_wizard_args(parser: argparse.ArgumentParser) -> None:
         "--domain",
         default="",
         help="Domain for surface phase (skip domain prompt).",
+    )
+    parser.add_argument(
+        "--image-paths",
+        default="",
+        help="Comma-separated local image paths for OCR phase (skip image path prompt).",
+    )
+    parser.add_argument(
+        "--image-urls",
+        default="",
+        help="Comma-separated remote image URLs for OCR phase (skip image URL prompt).",
     )
     parser.add_argument(
         "--profile-preset",
@@ -842,12 +946,19 @@ def _add_wizard_args(parser: argparse.ArgumentParser) -> None:
         help="Default surface preset inside wizard workflow.",
     )
     parser.add_argument(
+        "--ocr-preset",
+        choices=sorted(OCR_PRESETS.keys()),
+        default=None,
+        help="Default OCR preset inside wizard workflow.",
+    )
+    parser.add_argument(
         "--surface-recon-mode",
         choices=list(SURFACE_RECON_MODES),
         default=None,
         help="Default reconnaissance lane for wizard surface workflows.",
     )
     _add_surface_scan_args(parser)
+    _add_ocr_preprocess_args(parser)
     parser.add_argument(
         "--out-type",
         default="",
@@ -922,6 +1033,13 @@ def build_root_parser(
         help="Run profile + surface intelligence as one workflow.",
     )
     _add_fusion_args(fusion_parser)
+
+    ocr_parser = subparsers.add_parser(
+        OCR_COMMAND_ALIASES[0],
+        aliases=list(OCR_COMMAND_ALIASES[1:]),
+        help="Run OCR image scanning against local or remote image sources.",
+    )
+    _add_ocr_args(ocr_parser)
 
     orchestrate_parser = subparsers.add_parser(
         ORCHESTRATE_COMMAND_ALIASES[0],
@@ -1056,6 +1174,13 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
         add_help=False,
     )
     _add_fusion_args(fusion_parser)
+
+    ocr_parser = subparsers.add_parser(
+        OCR_COMMAND_ALIASES[0],
+        aliases=list(OCR_COMMAND_ALIASES[1:]),
+        add_help=False,
+    )
+    _add_ocr_args(ocr_parser)
 
     orchestrate_parser = subparsers.add_parser(
         ORCHESTRATE_COMMAND_ALIASES[0],

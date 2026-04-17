@@ -653,6 +653,62 @@ def _render_intelligence_bundle(intelligence_bundle: dict | None) -> str:
     )
 
 
+def _render_ocr_scan(ocr_scan: dict | None) -> str:
+    if not isinstance(ocr_scan, dict) or not ocr_scan:
+        return ""
+
+    summary = ocr_scan.get("summary") if isinstance(ocr_scan.get("summary"), dict) else {}
+    items = _safe_dict_rows(ocr_scan.get("items"))
+    failures = _safe_dict_rows(ocr_scan.get("failures"))
+
+    item_cards: list[str] = []
+    for item in items[:18]:
+        raw_text = html.escape(str(item.get("raw_text") or "")).replace("\n", "<br>")
+        item_cards.append(
+            "<div class='subpanel'>"
+            f"<h4>{html.escape(str(item.get('display_name') or item.get('source') or 'image'))}</h4>"
+            f"<p><strong>Kind:</strong> {html.escape(str(item.get('source_kind', '-')))} | "
+            f"<strong>Engine:</strong> {html.escape(str(item.get('ocr_engine', 'none')))} | "
+            f"<strong>Confidence:</strong> {html.escape(str(item.get('confidence_hint', 'low')))}</p>"
+            f"<p><strong>Signals:</strong> {html.escape(str(item.get('extracted_signals', {})))}</p>"
+            f"<p><strong>Preprocess:</strong> {html.escape(', '.join(item.get('preprocess_pipeline', []) or []) or 'none')}</p>"
+            "<details><summary>Recovered text</summary>"
+            f"<pre>{raw_text or '-'}</pre>"
+            "</details>"
+            "</div>"
+        )
+    if not item_cards:
+        item_cards.append("<p class='muted'>No OCR text was recovered from the supplied image sources.</p>")
+
+    failure_html = ""
+    if failures:
+        failure_html = (
+            "<h4>Failures</h4><ul>"
+            + "".join(
+                f"<li>{html.escape(str(row.get('source', 'image')))} "
+                f"[{html.escape(str(row.get('source_kind', '-')))}] "
+                f"{html.escape(str(row.get('error', '-')))}</li>"
+                for row in failures[:20]
+            )
+            + "</ul>"
+        )
+
+    return (
+        "<section class='panel' id='ocr-scan'>"
+        "<h3>OCR Image Scan</h3>"
+        f"<p><strong>Images:</strong> {html.escape(str(summary.get('image_count', 0)))} | "
+        f"<strong>Processed:</strong> {html.escape(str(summary.get('processed_count', 0)))} | "
+        f"<strong>Failed:</strong> {html.escape(str(summary.get('failed_count', 0)))} | "
+        f"<strong>OCR Hits:</strong> {html.escape(str(summary.get('ocr_hits', 0)))}</p>"
+        f"<p><strong>Engines:</strong> {html.escape(str(summary.get('engines', {})))} | "
+        f"<strong>Languages:</strong> {html.escape(str(summary.get('languages', {})))}</p>"
+        f"<p><strong>Signal Totals:</strong> {html.escape(str(summary.get('signal_totals', {})))}</p>"
+        f"{''.join(item_cards)}"
+        f"{failure_html}"
+        "</section>"
+    )
+
+
 def generate_html(
     target: str,
     results: list[dict] | None,
@@ -668,6 +724,7 @@ def generate_html(
     filter_results: list[dict] | None = None,
     filter_errors: list[str] | None = None,
     intelligence_bundle: dict | None = None,
+    ocr_scan: dict | None = None,
     output_stamp: str | None = None,
 ) -> str:
     results = results or []
@@ -679,6 +736,7 @@ def generate_html(
     filter_results = filter_results or []
     filter_errors = filter_errors or []
     intelligence_bundle = intelligence_bundle or {}
+    ocr_scan = ocr_scan or {}
 
     display_target = str(target or "").strip()
     target_display = display_target or sanitize_target(target)
@@ -903,6 +961,7 @@ def generate_html(
           <a href="#errors">Errors</a>
           <a href="#correlation">Correlation</a>
           <a href="#exposure">Exposure</a>
+          {"<a href='#ocr-scan'>OCR Scan</a>" if ocr_scan else ""}
           <a href="#plugins">Plugins</a>
           <a href="#filters">Filters</a>
           <a href="#intelligence">Intelligence</a>
@@ -948,6 +1007,8 @@ def generate_html(
           <h3>Exposure & Vulnerability Signals</h3>
           {_render_issues(issues, issue_summary)}
         </section>
+
+        {_render_ocr_scan(ocr_scan)}
 
         <section class="panel" id="plugins">
           <h3>Plugin Intelligence</h3>

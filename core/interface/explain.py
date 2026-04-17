@@ -27,6 +27,7 @@ COMMAND_EXPLANATIONS: dict[str, str] = {
     "profile": "Checks usernames across platform manifests, extracts public signals, and correlates matches.",
     "surface": "Scans domain-facing assets (HTTP/HTTPS, CT, RDAP, headers) and summarizes exposure risk.",
     "fusion": "Runs profile + surface flows together and outputs one combined intelligence bundle.",
+    "ocr": "Scans local image paths or remote image URLs with OCR, preprocessing, structured extraction, and batch reporting.",
     "orchestrate": (
         "Runs the policy-driven layered pipeline (capabilities -> filters -> fusion -> reporting) "
         "using entity contracts."
@@ -123,6 +124,7 @@ def build_explain_text() -> str:
     lines.append("")
     lines.append(f"{symbol('major')} Flag parity notes")
     lines.append(f"{symbol('bullet')} profile/surface/fusion share plugin/filter flags: --plugin, --list-plugins.")
+    lines.append(f"{symbol('bullet')} ocr ships as a dedicated image-scan lane with OCR-only plugins and filters.")
     lines.append(f"{symbol('bullet')} profile/surface/fusion share filter flags: --filter, --list-filters.")
     lines.append(f"{symbol('bullet')} --info-template applies a curated plugin/filter/module arrangement.")
     lines.append(f"{symbol('bullet')} extension controls: --extension-control auto|manual|hybrid with conflict validation.")
@@ -131,6 +133,6 @@ def build_explain_text() -> str:
         f"{symbol('bullet')} wizard supports phase toggles, preset selection, extension preflight validation, and seeded/non-seeded execution."
     )
     lines.append(
-        f"{symbol('bullet')} Media reconnaissance now ships through runtime plugins; docs/ocr-image-scan-infrastructure.md covers the remaining expansion roadmap."
+        f"{symbol('bullet')} OCR image scanning now ships as a first-class workflow; docs/ocr-image-scan-infrastructure.md documents the full lane."
     )
     return "\n".join(lines)
