@@ -89,6 +89,11 @@ def _compact_data_snapshot(data: object, *, max_items: int = 5) -> str:
     return ", ".join(pairs) if pairs else "-"
 
 
+def _selected_count(payload: dict[str, Any], key: str) -> int:
+    value = payload.get(key)
+    return len(value) if isinstance(value, list) else 0
+
+
 def _crypto_profile_summary(data: object) -> str | None:
     if not isinstance(data, dict):
         return None
@@ -346,10 +351,22 @@ def _build_payload_summary(payload: dict[str, Any]) -> dict[str, Any]:
         "filter_count": len(filters),
         "plugin_error_count": len(payload.get("plugin_errors") or []),
         "filter_error_count": len(payload.get("filter_errors") or []),
+        "selected_plugin_count": _selected_count(payload, "selected_plugins"),
+        "selected_filter_count": _selected_count(payload, "selected_filters"),
+        "selected_module_count": _selected_count(payload, "selected_modules"),
+        "attached_module_count": len(_safe_dict_rows(payload.get("attached_modules"))),
         "issue_severity": _severity_breakdown(issues),
         "plugin_severity": _severity_breakdown(plugins),
         "filter_severity": _severity_breakdown(filters),
     }
+    ocr_tooling = payload.get("ocr_tooling", {}) if isinstance(payload.get("ocr_tooling"), dict) else {}
+    if ocr_tooling:
+        summary["ocr_preferred_engine"] = ocr_tooling.get("preferred_engine", "none")
+        summary["ocr_backends"] = {
+            "easyocr": bool((ocr_tooling.get("easyocr") or {}).get("available")),
+            "pytesseract": bool((ocr_tooling.get("pytesseract") or {}).get("available")),
+            "pillow": bool((ocr_tooling.get("pillow") or {}).get("available")),
+        }
     return summary
 
 
@@ -976,7 +993,38 @@ def _render_cli_report(payload: dict) -> str:
             lines.append(f"- {symbol('error')} {err}")
     lines.append("")
 
+    attached_modules = _safe_dict_rows(payload.get("attached_modules"))
+    selected_plugins = payload.get("selected_plugins", []) if isinstance(payload.get("selected_plugins"), list) else []
+    selected_filters = payload.get("selected_filters", []) if isinstance(payload.get("selected_filters"), list) else []
+    selected_modules = payload.get("selected_modules", []) if isinstance(payload.get("selected_modules"), list) else []
+    if selected_plugins or selected_filters or selected_modules or attached_modules:
+        lines.append("[Attachables]")
+        lines.append(f"- selected_plugins: {', '.join(str(item) for item in selected_plugins) or 'none'}")
+        lines.append(f"- selected_filters: {', '.join(str(item) for item in selected_filters) or 'none'}")
+        lines.append(f"- selected_modules: {', '.join(str(item) for item in selected_modules) or 'none'}")
+        for row in attached_modules[:12]:
+            lines.append(
+                f"- module {row.get('id', 'module')} "
+                f"[kind={row.get('kind', '-')} power={row.get('power_score', 0)}]"
+            )
+        lines.append("")
+
     ocr_scan = payload.get("ocr_scan", {}) if isinstance(payload.get("ocr_scan"), dict) else {}
+    ocr_tooling = payload.get("ocr_tooling", {}) if isinstance(payload.get("ocr_tooling"), dict) else {}
+    if ocr_tooling:
+        pytesseract_info = ocr_tooling.get("pytesseract", {}) if isinstance(ocr_tooling.get("pytesseract"), dict) else {}
+        lines.append("[OCR Tooling]")
+        lines.append(f"- preferred_engine={ocr_tooling.get('preferred_engine', 'none')}")
+        lines.append(
+            f"- pillow={bool((ocr_tooling.get('pillow') or {}).get('available'))} "
+            f"easyocr={bool((ocr_tooling.get('easyocr') or {}).get('available'))} "
+            f"pytesseract={bool(pytesseract_info.get('available'))}"
+        )
+        lines.append(
+            f"- tesseract_binary_found={bool(pytesseract_info.get('tesseract_binary_found'))} "
+            f"path={pytesseract_info.get('tesseract_binary', '-') or '-'}"
+        )
+        lines.append("")
     if ocr_scan:
         ocr_summary = ocr_scan.get("summary", {}) if isinstance(ocr_scan.get("summary"), dict) else {}
         lines.append("[OCR Image Scan]")
@@ -1221,8 +1269,8 @@ def save_results(
             cli_path.write_text(_render_cli_report(payload), encoding="utf-8")
         except OSError as exc:
             append_framework_log("save_results_failed", f"cli_write_failed target={target_key} reason={exc}", level="WARN")
-              print(c(f"{symbol('warn')} Failed to write CLI report: {exc}", Colors.EMBER))
-              cli_path = None
+            print(c(f"{symbol('warn')} Failed to write CLI report: {exc}", Colors.EMBER))
+            cli_path = None
 
     sql_path: Path | None = None
     if output_ready and "sql" in selected_types:

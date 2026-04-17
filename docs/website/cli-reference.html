@@ -97,7 +97,7 @@
         <div class="command-card-head"><span class="icon-chip">O</span><div class="command-name">orchestrate</div></div>
         <div class="command-aliases">alias: <span class="mono">orch</span></div>
         <div class="card-copy"><p>Run the policy-driven layered orchestration pipeline directly.</p></div>
-        <div class="command-snippet mono">silica-x orchestrate example.com</div>
+        <div class="command-snippet mono">silica-x orchestrate surface example.com</div>
       </article>
       <article class="card">
         <div class="command-card-head"><span class="icon-chip">Q</span><div class="command-name">quicktest</div></div>
@@ -141,7 +141,7 @@
     </div>
     <div class="table-mini">
       <div class="table-mini-row"><div class="table-mini-key"><span class="mono">--html</span> / <span class="mono">--csv</span></div><div>Request additional report artifacts beyond CLI output.</div></div>
-      <div class="table-mini-row"><div class="table-mini-key"><span class="mono">--plugin</span> / <span class="mono">--filter</span></div><div>Explicitly select or constrain extension behavior for a run.</div></div>
+      <div class="table-mini-row"><div class="table-mini-key"><span class="mono">--plugin</span> / <span class="mono">--filter</span> / <span class="mono">--module</span></div><div>Explicitly select attachables for a run; selectors can be repeated or comma-separated.</div></div>
       <div class="table-mini-row"><div class="table-mini-key"><span class="mono">--preset</span></div><div>Use workflow presets where supported for profile or surface runs.</div></div>
       <div class="table-mini-row"><div class="table-mini-key"><span class="mono">--profile-preset</span> / <span class="mono">--surface-preset</span></div><div>Split preset controls for fusion workflows.</div></div>
       <div class="table-mini-row"><div class="table-mini-key"><span class="mono">--ct</span> / <span class="mono">--rdap</span></div><div>Surface-oriented enrichment toggles documented in the README examples and tables.</div></div>
@@ -149,7 +149,7 @@
     </div>
     <div class="callout callout-info section-block">
       <div class="callout-title">Output configuration is also command-driven</div>
-      The CLI includes <span class="mono">out-type</span>, <span class="mono">out-print</span>, and <span class="mono">default-out-print</span> so output formats and artifact roots can be controlled at runtime instead of only through environment tweaks.
+      The CLI includes <span class="mono">out-type</span>, <span class="mono">out-print</span>, and <span class="mono">default-out-print</span> so output formats and artifact roots can be controlled at runtime instead of only through environment tweaks. Persisted formats now include <span class="mono">cli</span>, <span class="mono">json</span>, <span class="mono">csv</span>, <span class="mono">html</span>, <span class="mono">sql</span>, <span class="mono">docx</span>, and <span class="mono">pdf</span>.
     </div>
   </section>
 
@@ -169,7 +169,7 @@
       <article class="card">
         <h3 class="card-title">Prompt first</h3>
         <div class="command-snippet mono">silica-x</div>
-        <div class="card-copy"><p>Better when you want to discover commands, use aliases, or inspect plugins and filters interactively.</p></div>
+        <div class="card-copy"><p>Better when you want to discover commands, use aliases, inspect attachables interactively, and confirm configuration before execution.</p></div>
       </article>
       <article class="card">
         <h3 class="card-title">Source-study translation</h3>
@@ -185,11 +185,64 @@
         <span class="code-lang">shell</span>
       </div>
       <pre class="code-body"><span class="cmd">silica-x</span> <span class="arg">--help</span>
-<span class="cmd">silica-x</span> <span class="arg">profile alice --html --plugin threat_conductor</span>
-<span class="cmd">silica-x</span> <span class="arg">surface example.com --ct --rdap --html</span>
-<span class="cmd">silica-x</span> <span class="arg">fusion alice example.com --profile-preset deep --surface-preset balanced</span>
+<span class="cmd">silica-x</span> <span class="arg">profile alice --html --plugin threat_conductor --filter contact_canonicalizer</span>
+<span class="cmd">silica-x</span> <span class="arg">surface example.com --ct --rdap --module source-pack-01-module-1 --html</span>
+<span class="cmd">silica-x</span> <span class="arg">fusion alice example.com --profile-preset deep --surface-preset balanced --out-type json,html,sql,docx,pdf</span>
 <span class="cmd">silica-x</span> <span class="arg">prompt</span></pre>
     </article>
+  </section>
+
+  <section id="attachables" class="page-section section-anchor">
+    <div class="section-head">
+      <div>
+        <div class="section-kicker">Attachables</div>
+        <h2 class="section-title">Plugins, filters, and modules are resolved as attachables with compatibility checks</h2>
+      </div>
+    </div>
+    <div class="grid-2">
+      <article class="panel">
+        <h3 class="panel-title">Prompt-mode attachables</h3>
+        <div class="code-block section-block">
+          <div class="code-head">
+            <span class="code-dot"></span>
+            <span class="code-dot"></span>
+            <span class="code-dot"></span>
+            <span class="code-lang">text</span>
+          </div>
+          <pre class="code-body">enable plugins threat_conductor
+enable filters contact_canonicalizer
+enable modules source-pack-01-module-1
+config
+disable modules source-pack-01-module-1</pre>
+        </div>
+        <ul class="simple-list">
+          <li><span class="list-label">Session scope</span>Attachables stay in the prompt session until you change or clear them.</li>
+          <li><span class="list-label">Config view</span><span class="mono">config</span> shows enabled plugins, filters, modules, and output settings separately.</li>
+          <li><span class="list-label">Confirmation</span>Scans started from prompt mode print the resolved configuration before execution.</li>
+        </ul>
+      </article>
+      <article class="panel">
+        <h3 class="panel-title">Flag-mode attachables</h3>
+        <div class="code-block section-block">
+          <div class="code-head">
+            <span class="code-dot"></span>
+            <span class="code-dot"></span>
+            <span class="code-dot"></span>
+            <span class="code-lang">shell</span>
+          </div>
+          <pre class="code-body"><span class="cmd">silica-x</span> <span class="arg">profile alice --plugin threat_conductor,contact_lattice --filter contact_canonicalizer --module source-pack-01-module-1</span></pre>
+        </div>
+        <ul class="simple-list">
+          <li><span class="list-label">Selectors</span><span class="mono">--plugin</span>, <span class="mono">--filter</span>, and <span class="mono">--module</span> accept repeated values or comma-separated lists.</li>
+          <li><span class="list-label">Preview first</span>Flag runs now print the configuration and wait for Enter before starting.</li>
+          <li><span class="list-label">Persistence</span>The chosen attachables are saved into Reporter payloads and portable outputs.</li>
+        </ul>
+      </article>
+    </div>
+    <div class="callout callout-warn section-block">
+      <div class="callout-title">Conflict and compatibility handling</div>
+      Silica-X validates attachables before execution. Unknown selectors, scope-incompatible modules, or extension-control conflicts are blocked before the run begins. When a selection does not fit the current scope, the CLI points you back toward <span class="mono">plugins --scope ...</span>, <span class="mono">filters --scope ...</span>, or <span class="mono">modules --scope ...</span> so you can choose compatible attachables instead of discovering the problem mid-run.
+    </div>
   </section>
 </main>
 

@@ -24,7 +24,7 @@ from core.extensions.selector_keys import selector_keys
 from modules.catalog import ensure_module_catalog, select_module_entries
 
 
-MODULE_ATTACHABLE_SCOPES = {"profile", "surface", "fusion"}
+MODULE_ATTACHABLE_SCOPES = {"profile", "surface", "fusion", "ocr"}
 MAX_ATTACHED_MODULES = 12
 
 

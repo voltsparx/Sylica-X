@@ -63,7 +63,7 @@
   <header class="page-intro">
     <div class="eyebrow">Artifacts</div>
     <h1 class="page-title">Silica-X treats reporting as a first-class runtime, not an afterthought</h1>
-    <p class="page-copy">Reporter is the v10.0 case-view layer for Silica-X. It groups identity, surface, vulnerability, extension, media, and scoring signals into one readable HTML report while keeping JSON, CSV, and logs available for machines.</p>
+    <p class="page-copy">Reporter is the v10.0 case-view layer for Silica-X. It groups identity, surface, vulnerability, extension, media, and scoring signals into one readable HTML report while keeping JSON, CSV, SQL, DOCX, PDF, and logs available for operators and machines.</p>
   </header>
 
   <section id="outputs" class="page-section section-anchor">
@@ -105,6 +105,18 @@
         </div>
       </article>
       <article class="card">
+        <h3 class="card-title">SQL</h3>
+        <div class="card-copy">
+          <p>SQLite case storage for runs, findings, attachments, and OCR-item persistence.</p>
+        </div>
+      </article>
+      <article class="card">
+        <h3 class="card-title">DOCX / PDF</h3>
+        <div class="card-copy">
+          <p>Portable case documents with overview tables, visuals, attachables, vulnerabilities, and Reporter Brief handoff sections.</p>
+        </div>
+      </article>
+      <article class="card">
         <h3 class="card-title">Capability-pack intel</h3>
         <div class="card-copy">
           <p>Generated runtime snapshots under <span class="mono">intel/</span>, <span class="mono">plugins/_intel/</span>, and related folders help the project inspect itself.</p>
@@ -125,11 +137,14 @@
       <div class="directory-row"><div class="directory-name mono">output/html/</div><div>HTML reports for browser review.</div></div>
       <div class="directory-row"><div class="directory-name mono">output/cli/</div><div>Saved CLI text reports.</div></div>
       <div class="directory-row"><div class="directory-name mono">output/csv/</div><div>CSV exports when requested.</div></div>
+      <div class="directory-row"><div class="directory-name mono">output/sql/</div><div>SQLite case stores when <span class="mono">sql</span> output is enabled.</div></div>
+      <div class="directory-row"><div class="directory-name mono">output/docx/</div><div>Reporter DOCX case documents for sharing or archival.</div></div>
+      <div class="directory-row"><div class="directory-name mono">output/pdf/</div><div>Reporter PDF case documents for portable review.</div></div>
       <div class="directory-row"><div class="directory-name mono">output/logs/</div><div>Per-run logs and framework log output.</div></div>
     </div>
     <div class="callout callout-info section-block">
       <div class="callout-title">Reporter is presentation, not the source of truth</div>
-      The HTML layer reads from the same structured payloads written to JSON and CSV. Change output roots or formats with <span class="mono">out-type</span>, <span class="mono">out-print</span>, and <span class="mono">default-out-print</span>.
+      The HTML layer reads from the same structured payloads written to JSON, CSV, SQL, DOCX, and PDF generators. Change output roots or formats with <span class="mono">out-type</span>, <span class="mono">out-print</span>, and <span class="mono">default-out-print</span>.
     </div>
   </section>
 
@@ -155,6 +170,7 @@
           <li><span class="list-label">runtime-inventory</span>The repo ships <span class="mono">intel/runtime-inventory.json</span> with plugin, filter, platform, and module counts.</li>
           <li><span class="list-label">capability-pack</span>The <span class="mono">capability-pack</span> / <span class="mono">intel</span> command generates structured project self-intel artifacts.</li>
           <li><span class="list-label">plugin/filter intel</span>Generated views live under <span class="mono">plugins/_intel/</span> and <span class="mono">filters/_intel/</span>.</li>
+          <li><span class="list-label">attachables</span>Reporter now carries selected plugins, selected filters, attached modules, and OCR tooling availability into the saved payload.</li>
         </ul>
       </article>
     </div>
@@ -193,6 +209,48 @@
     <div class="callout callout-warn section-block">
       <div class="callout-title">Current quality snapshot</div>
       The v10.0 refresh aligns reporting, docs, and website behavior around the current runtime. Verification still centers on pytest, Ruff, mypy, compile smoke, and package-entrypoint checks.
+    </div>
+  </section>
+
+  <section id="ocr-diagnostics" class="page-section section-anchor">
+    <div class="section-head">
+      <div>
+        <div class="section-kicker">OCR diagnostics</div>
+        <h2 class="section-title">Reporter can now tell you which OCR/image backend was actually available</h2>
+      </div>
+    </div>
+    <div class="grid-2">
+      <article class="panel">
+        <h3 class="panel-title">What gets recorded</h3>
+        <ul class="simple-list">
+          <li><span class="list-label">Preferred engine</span>The runtime reports whether it preferred <span class="mono">easyocr</span>, <span class="mono">pytesseract</span>, or no usable OCR engine.</li>
+          <li><span class="list-label">Image tooling</span>Reporter records whether <span class="mono">Pillow</span>, <span class="mono">easyocr</span>, and <span class="mono">pytesseract</span> were importable.</li>
+          <li><span class="list-label">Binary reachability</span>For the Tesseract lane, the payload also records whether a <span class="mono">tesseract</span> binary was actually found.</li>
+        </ul>
+      </article>
+      <article class="code-block">
+        <div class="code-head">
+          <span class="code-dot"></span>
+          <span class="code-dot"></span>
+          <span class="code-dot"></span>
+          <span class="code-lang">json</span>
+        </div>
+        <pre class="code-body">{
+  "ocr_tooling": {
+    "preferred_engine": "pytesseract",
+    "pillow": {"available": true},
+    "easyocr": {"available": false},
+    "pytesseract": {
+      "available": true,
+      "tesseract_binary_found": true
+    }
+  }
+}</pre>
+      </article>
+    </div>
+    <div class="callout callout-info section-block">
+      <div class="callout-title">Troubleshooting mental model</div>
+      If OCR results are unexpectedly empty, first check whether Reporter recorded <span class="mono">preferred_engine: none</span>. If it did, the issue is usually missing Python-side OCR packages or a missing <span class="mono">tesseract</span> binary rather than a report-rendering failure. If <span class="mono">pytesseract</span> is available but <span class="mono">tesseract_binary_found</span> is false, install or expose the system binary before expecting usable OCR output.
     </div>
   </section>
 </main>

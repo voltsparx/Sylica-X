@@ -47,7 +47,7 @@ COMMAND_EXPLANATIONS: dict[str, str] = {
     "history": "Shows previously scanned targets from local output/json and output/html artifacts.",
     "anonymity": "Checks or updates Tor/proxy routing for current session execution.",
     "live": "Starts the local dashboard for a saved target result bundle.",
-    "out-type": "Sets the persisted output formats (cli, html, csv, json).",
+    "out-type": "Sets the persisted output formats (cli, html, csv, json, sql, docx, pdf).",
     "out-print": "Sets the output base directory for this session (affects output/...).",
     "default-out-print": "Sets the persisted default output base directory.",
     "wizard": (

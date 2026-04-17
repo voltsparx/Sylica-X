@@ -51,6 +51,7 @@ from core.analyze.correlator import correlate
 from core.artifacts.csv_export import export_to_csv
 from core.collect.domain_intel import normalize_domain, scan_domain_surface
 from core.analyze.exposure import assess_domain_exposure, assess_profile_exposure, summarize_issues
+from core.collect.media_intel import detect_image_tooling
 from core.extensions.signal_sieve import execute_filters, list_filter_descriptors, list_filter_discovery_errors
 from core.interface.help_menu import show_flag_help, show_prompt_help
 from core.interface.loading import run_with_spinner
@@ -114,7 +115,6 @@ from core.analyze.profile_summary import error_profile_rows, found_profile_rows,
 from core.analyze.surface_map import build_surface_map, build_surface_next_steps
 from core.analyze.digital_footprint import build_digital_footprint_map
 from core.collect.scanner import scan_username
-from core.collect.ocr_image_scan import OCRImageScanResult
 from core.engines.ocr_image_scan_engine import OCRImageScanEngine
 from core.domain import BaseEntity
 from core.foundation.session_state import PromptSessionState
@@ -158,6 +158,8 @@ def _prompt_command_catalog() -> list[str]:
         "capability-pack",
         "clear",
         "default-out-print",
+        "disable",
+        "enable",
         "exit",
         "explain",
         "filters",
@@ -505,14 +507,14 @@ def _parse_output_type_override(raw: object) -> tuple[set[str] | None, str | Non
         return None, None
     lowered = [token.lower() for token in tokens if token]
     if any(token in {"none", "off", "disable", "disabled"} for token in lowered):
-        return None, "Output types cannot be empty. Choose at least one of: cli, html, csv, json."
+        return None, "Output types cannot be empty. Choose at least one of: cli, html, csv, json, sql, docx, pdf."
     if any(token in {"default", "reset"} for token in lowered):
         return set(DEFAULT_OUTPUT_TYPES), None
     types, unknown = parse_output_types(lowered)
     if unknown:
         return None, f"Unknown output types: {', '.join(sorted(set(unknown)))}"
     if not types:
-        return None, "Output types cannot be empty. Choose at least one of: cli, html, csv, json."
+        return None, "Output types cannot be empty. Choose at least one of: cli, html, csv, json, sql, docx, pdf."
     return set(types), None
 
 
@@ -1705,6 +1707,12 @@ def _confirm_execution(*, prompt_mode: bool) -> bool:
             return True
         input(c("Press Enter to start or press Ctrl+C to cancel: ", Colors.EMBER))
         return True
+    except EOFError:
+        if prompt_mode:
+            print(c(f"\n{symbol('warn')} Prompt input closed before execution; command cancelled.", Colors.EMBER))
+            return False
+        print(c(f"{symbol('tip')} No interactive stdin available; continuing with the current configuration.", Colors.GREY))
+        return True
     except KeyboardInterrupt:
         print(c(f"\n{symbol('warn')} Execution cancelled before start.", Colors.EMBER))
         return False
@@ -2004,6 +2012,7 @@ async def run_profile_scan(
     include_all_plugins: bool = False,
     filter_names: list[str] | None = None,
     include_all_filters: bool = False,
+    extra_payload: dict[str, Any] | None = None,
     output_types: set[str] | None = None,
     output_stamp: str | None = None,
 ) -> tuple[int, dict | None]:
@@ -2078,6 +2087,7 @@ async def run_profile_scan(
         issues=issues,
         profile_results=results,
     )
+    attachable_payload = dict(extra_payload or {})
     plugin_results, plugin_errors = await PLUGIN_MANAGER.run_plugins(
         {
             "target": username,
@@ -2090,6 +2100,10 @@ async def run_profile_scan(
             "proxy_url": proxy_url,
             "use_tor": state.use_tor,
             "use_proxy": state.use_proxy,
+            "selected_plugins": attachable_payload.get("selected_plugins", []),
+            "selected_filters": attachable_payload.get("selected_filters", []),
+            "selected_modules": attachable_payload.get("selected_modules", []),
+            "attached_modules": attachable_payload.get("attached_modules", []),
             "crypto_config": _build_crypto_plugin_config(
                 scope="profile",
                 scan_mode=scan_mode,
@@ -2116,6 +2130,10 @@ async def run_profile_scan(
             "plugins": plugin_results,
             "plugin_errors": plugin_errors,
             "intelligence_bundle": intelligence_bundle,
+            "selected_plugins": attachable_payload.get("selected_plugins", []),
+            "selected_filters": attachable_payload.get("selected_filters", []),
+            "selected_modules": attachable_payload.get("selected_modules", []),
+            "attached_modules": attachable_payload.get("attached_modules", []),
         },
     )
     display_results(
@@ -2149,6 +2167,7 @@ async def run_profile_scan(
         filter_results=filter_results,
         filter_errors=filter_errors,
         intelligence_bundle=intelligence_bundle,
+        extra_payload=attachable_payload,
         output_types=selected_types,
         output_stamp=stamp,
         return_payload=write_csv,
@@ -2202,6 +2221,7 @@ async def run_profile_scan(
         "filters": filter_results,
         "filter_errors": filter_errors,
         "intelligence_bundle": intelligence_bundle,
+        **attachable_payload,
     }
 
 
@@ -2222,6 +2242,7 @@ async def run_surface_scan(
     include_all_plugins: bool = False,
     filter_names: list[str] | None = None,
     include_all_filters: bool = False,
+    extra_payload: dict[str, Any] | None = None,
     output_types: set[str] | None = None,
     output_stamp: str | None = None,
 ) -> tuple[int, dict | None]:
@@ -2306,6 +2327,7 @@ async def run_surface_scan(
         issues=issues,
         domain_result=domain_result,
     )
+    attachable_payload = dict(extra_payload or {})
     plugin_results, plugin_errors = await PLUGIN_MANAGER.run_plugins(
         {
             "target": normalized_domain,
@@ -2319,6 +2341,10 @@ async def run_surface_scan(
             "proxy_url": proxy_url,
             "use_tor": state.use_tor,
             "use_proxy": state.use_proxy,
+            "selected_plugins": attachable_payload.get("selected_plugins", []),
+            "selected_filters": attachable_payload.get("selected_filters", []),
+            "selected_modules": attachable_payload.get("selected_modules", []),
+            "attached_modules": attachable_payload.get("attached_modules", []),
             "crypto_config": _build_crypto_plugin_config(
                 scope="surface",
                 scan_mode=scan_mode,
@@ -2346,6 +2372,10 @@ async def run_surface_scan(
             "plugins": plugin_results,
             "plugin_errors": plugin_errors,
             "intelligence_bundle": intelligence_bundle,
+            "selected_plugins": attachable_payload.get("selected_plugins", []),
+            "selected_filters": attachable_payload.get("selected_filters", []),
+            "selected_modules": attachable_payload.get("selected_modules", []),
+            "attached_modules": attachable_payload.get("attached_modules", []),
         },
     )
     display_domain_results(
@@ -2378,6 +2408,7 @@ async def run_surface_scan(
         filter_results=filter_results,
         filter_errors=filter_errors,
         intelligence_bundle=intelligence_bundle,
+        extra_payload=attachable_payload,
         output_types=selected_types,
         output_stamp=stamp,
         return_payload=write_csv,
@@ -2423,6 +2454,7 @@ async def run_surface_scan(
         "filters": filter_results,
         "filter_errors": filter_errors,
         "intelligence_bundle": intelligence_bundle,
+        **attachable_payload,
     }
 
 
@@ -2445,6 +2477,7 @@ async def run_ocr_scan(
     include_all_plugins: bool = False,
     filter_names: list[str] | None = None,
     include_all_filters: bool = False,
+    extra_payload: dict[str, Any] | None = None,
     output_types: set[str] | None = None,
     output_stamp: str | None = None,
 ) -> tuple[int, dict | None]:
@@ -2508,8 +2541,11 @@ async def run_ocr_scan(
         f"emails={signal_totals.get('emails', 0)}, urls={signal_totals.get('urls', 0)}, "
         f"phones={signal_totals.get('phones', 0)}, mentions={signal_totals.get('mentions', 0)}."
     )
+    tooling = detect_image_tooling()
     payload = ocr_result.as_dict()
     payload["target"] = target_label
+    attachable_payload = dict(extra_payload or {})
+    attachable_payload.setdefault("ocr_tooling", tooling)
 
     plugin_results, plugin_errors = await PLUGIN_MANAGER.run_plugins(
         {
@@ -2526,6 +2562,11 @@ async def run_ocr_scan(
             "proxy_url": proxy_url or "",
             "use_tor": state.use_tor,
             "use_proxy": state.use_proxy,
+            "ocr_tooling": tooling,
+            "selected_plugins": attachable_payload.get("selected_plugins", []),
+            "selected_filters": attachable_payload.get("selected_filters", []),
+            "selected_modules": attachable_payload.get("selected_modules", []),
+            "attached_modules": attachable_payload.get("attached_modules", []),
         },
         scope="ocr",
         requested_plugins=plugin_names,
@@ -2542,6 +2583,11 @@ async def run_ocr_scan(
             "ocr_scan": payload,
             "plugins": plugin_results,
             "plugin_errors": plugin_errors,
+            "ocr_tooling": tooling,
+            "selected_plugins": attachable_payload.get("selected_plugins", []),
+            "selected_filters": attachable_payload.get("selected_filters", []),
+            "selected_modules": attachable_payload.get("selected_modules", []),
+            "attached_modules": attachable_payload.get("attached_modules", []),
         },
     )
 
@@ -2569,7 +2615,7 @@ async def run_ocr_scan(
         plugin_errors=plugin_errors,
         filter_results=filter_results,
         filter_errors=filter_errors,
-        extra_payload={"ocr_scan": payload},
+        extra_payload={"ocr_scan": payload, **attachable_payload},
         output_types=selected_types,
         output_stamp=stamp,
         return_payload=write_csv,
@@ -2609,6 +2655,7 @@ async def run_ocr_scan(
         "plugin_errors": plugin_errors,
         "filters": filter_results,
         "filter_errors": filter_errors,
+        **attachable_payload,
     }
 
 
@@ -3165,6 +3212,13 @@ async def _handle_fusion_command(
     if not ok_plan:
         return EXIT_USAGE
 
+    module_ids, module_entries, _, ok_modules = _resolve_module_plan_or_fail(
+        scope="fusion",
+        requested_modules=list(getattr(args, "module", []) or []),
+    )
+    if not ok_modules:
+        return EXIT_USAGE
+
     effective_state = compute_effective_state(state, args.tor, args.proxy)
     ok, error = _validate_network_settings(effective_state, prompt_user=True)
     if not ok:
@@ -3208,6 +3262,29 @@ async def _handle_fusion_command(
     except ValueError as exc:
         print(c(f"{symbol('warn')} {exc}", Colors.RED))
         return EXIT_USAGE
+    preview_root = str(get_output_settings().output_root)
+    _print_execution_preview(
+        heading="Execution Review",
+        scope="fusion",
+        target=f"{username} + {normalize_domain(args.domain)}",
+        state=effective_state,
+        scan_mode=fusion_mode,
+        extension_control=str(getattr(args, "extension_control", "manual")),
+        plugin_ids=plugin_ids,
+        filter_ids=filter_ids,
+        module_entries=module_entries,
+        output_types=sorted(selected_types),
+        output_root=preview_root,
+        extra_lines=(
+            f"profile preset: {args.profile_preset}",
+            f"surface preset: {args.surface_preset}",
+            f"surface recon mode: {surface_scan_directives.recon_mode}",
+        ),
+    )
+    if not _confirm_execution(prompt_mode=prompt_mode):
+        if override_applied:
+            _restore_output_base_override(override_prev)
+        return EXIT_SUCCESS
     _print_runtime_guidance_checks(
         mode="fusion",
         target=f"{username} + {normalize_domain(args.domain)}",
@@ -3237,6 +3314,15 @@ async def _handle_fusion_command(
             write_html=bool(getattr(args, "html", False)),
             live_dashboard=False,
             prompt_mode=False,
+            plugin_names=list(plugin_ids),
+            include_all_plugins=False,
+            filter_names=list(filter_ids),
+            include_all_filters=False,
+            extra_payload=_preflight_attachable_payload(
+                plugin_ids=plugin_ids,
+                filter_ids=filter_ids,
+                module_entries=module_entries,
+            ),
             output_types=selected_types,
             output_stamp=profile_stamp,
         )
@@ -3256,6 +3342,15 @@ async def _handle_fusion_command(
             include_rdap=True,
             write_html=bool(getattr(args, "html", False)),
             write_csv=bool(getattr(args, "csv", False)),
+            plugin_names=list(plugin_ids),
+            include_all_plugins=False,
+            filter_names=list(filter_ids),
+            include_all_filters=False,
+            extra_payload=_preflight_attachable_payload(
+                plugin_ids=plugin_ids,
+                filter_ids=filter_ids,
+                module_entries=module_entries,
+            ),
             output_types=selected_types,
             output_stamp=surface_stamp,
         )
@@ -3323,6 +3418,10 @@ async def _handle_fusion_command(
             "fused_intel": fused_intel,
             "fusion_graph": fusion_graph,
             "intelligence_bundle": intelligence_bundle,
+            "selected_plugins": list(plugin_ids),
+            "selected_filters": list(filter_ids),
+            "selected_modules": list(module_ids),
+            "attached_modules": [dict(row) for row in module_entries],
             "proxy_url": get_network_settings(effective_state.use_proxy, effective_state.use_tor),
             "use_tor": effective_state.use_tor,
             "use_proxy": effective_state.use_proxy,
@@ -3355,6 +3454,10 @@ async def _handle_fusion_command(
             "fused_intel": fused_intel,
             "fusion_graph": fusion_graph,
             "intelligence_bundle": intelligence_bundle,
+            "selected_plugins": list(plugin_ids),
+            "selected_filters": list(filter_ids),
+            "selected_modules": list(module_ids),
+            "attached_modules": [dict(row) for row in module_entries],
         },
     )
 
@@ -3375,6 +3478,11 @@ async def _handle_fusion_command(
         fused_intel=fused_intel,
         fusion_graph=fusion_graph,
         intelligence_bundle=intelligence_bundle,
+        extra_payload=_preflight_attachable_payload(
+            plugin_ids=plugin_ids,
+            filter_ids=filter_ids,
+            module_entries=module_entries,
+        ),
         output_types=selected_types,
         output_stamp=fusion_stamp,
         return_payload=("csv" in selected_types),
@@ -3418,6 +3526,8 @@ async def _handle_fusion_command(
                     "fused_intel": fused_intel,
                     "fusion_graph": fusion_graph,
                     "intelligence_bundle": intelligence_bundle,
+                    "attached_modules": [dict(row) for row in module_entries],
+                    "selected_modules": list(module_ids),
                     "output_stamp": fusion_stamp,
                 }
             )
@@ -3467,6 +3577,13 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         include_all_filters=False,
     )
     if not ok_plan:
+        return EXIT_USAGE
+
+    module_ids, module_entries, _, ok_modules = _resolve_module_plan_or_fail(
+        scope=mode,
+        requested_modules=list(getattr(args, "module", []) or []),
+    )
+    if not ok_modules:
         return EXIT_USAGE
 
     effective_state = compute_effective_state(state, args.tor, args.proxy)
@@ -3596,6 +3713,30 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         config["profile_target"] = primary_target
         config["surface_target"] = normalized_secondary
 
+    preview_root = str(get_output_settings().output_root)
+    _print_execution_preview(
+        heading="Execution Review",
+        scope=f"orchestrate:{mode}",
+        target=target_label,
+        state=effective_state,
+        scan_mode=str(args.profile),
+        extension_control=str(getattr(args, "extension_control", "auto")),
+        plugin_ids=plugin_ids,
+        filter_ids=filter_ids,
+        module_entries=module_entries,
+        output_types=sorted(selected_types),
+        output_root=preview_root,
+        extra_lines=(
+            f"timeout seconds: {timeout_seconds}",
+            f"max workers: {max_workers}",
+            f"source profile: {source_profile}",
+        ),
+    )
+    if not _confirm_execution(prompt_mode=prompt_mode):
+        if override_applied:
+            _restore_output_base_override(override_prev)
+        return EXIT_SUCCESS
+
     _print_runtime_guidance_checks(
         mode=f"orchestrate:{mode}",
         target=target_label,
@@ -3642,6 +3783,10 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
         "use_tor": effective_state.use_tor,
         "use_proxy": effective_state.use_proxy,
         "scan_controls": surface_scan_directives.as_dict(),
+        "selected_plugins": list(plugin_ids),
+        "selected_filters": list(filter_ids),
+        "selected_modules": list(module_ids),
+        "attached_modules": [dict(row) for row in module_entries],
         "crypto_config": _build_crypto_plugin_config(
             scope=mode,
             scan_mode=str(args.profile),
@@ -3681,6 +3826,10 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
     payload["plugin_errors"] = plugin_errors
     payload["filters"] = filter_results
     payload["filter_errors"] = filter_errors
+    payload["selected_plugins"] = list(plugin_ids)
+    payload["selected_filters"] = list(filter_ids)
+    payload["selected_modules"] = list(module_ids)
+    payload["attached_modules"] = [dict(row) for row in module_entries]
     for item in plugin_errors:
         print(c(f"{symbol('feature')} plugin: {item}", Colors.EMBER))
     for item in filter_errors:
@@ -3755,6 +3904,8 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
             "issues": payload.get("fused", {}).get("anomalies", []) if isinstance(payload.get("fused"), dict) else [],
             "plugins": plugin_results,
             "filters": filter_results,
+            "attached_modules": [dict(row) for row in module_entries],
+            "selected_modules": list(module_ids),
             "intelligence_bundle": (
                 payload.get("fused", {}).get("intelligence_bundle", {})
                 if isinstance(payload.get("fused"), dict)
@@ -3762,6 +3913,39 @@ async def _handle_orchestrate_command(args: argparse.Namespace, state: RunnerSta
             ),
         }
         export_to_csv(storage_target, payload=csv_payload, stamp=output_stamp)
+
+    rich_output_types = {item for item in selected_types if item in {"sql", "docx", "pdf"}}
+    if rich_output_types:
+        save_results(
+            storage_target,
+            [],
+            payload.get("fused", {}).get("relationship_map", {}) if isinstance(payload.get("fused"), dict) else {},
+            issues=payload.get("fused", {}).get("anomalies", []) if isinstance(payload.get("fused"), dict) else [],
+            issue_summary=issue_summary,
+            narrative=str(payload.get("cli_summary") or payload.get("txt_report") or "").strip(),
+            mode=f"orchestrate:{mode}",
+            plugin_results=plugin_results,
+            plugin_errors=plugin_errors,
+            filter_results=filter_results,
+            filter_errors=filter_errors,
+            fused_intel=payload.get("fused", {}) if isinstance(payload.get("fused"), dict) else {},
+            fusion_graph=payload.get("fused", {}).get("graph", {}) if isinstance(payload.get("fused"), dict) else {},
+            intelligence_bundle=(
+                payload.get("fused", {}).get("intelligence_bundle", {})
+                if isinstance(payload.get("fused"), dict)
+                else {}
+            ),
+            extra_payload={
+                "orchestration_payload": payload,
+                **_preflight_attachable_payload(
+                    plugin_ids=plugin_ids,
+                    filter_ids=filter_ids,
+                    module_entries=module_entries,
+                ),
+            },
+            output_types=rich_output_types,
+            output_stamp=output_stamp,
+        )
 
     run_log: str | None = None
     try:
@@ -3879,13 +4063,13 @@ async def _handle_out_type_command(args: argparse.Namespace) -> int:
     if not tokens:
         settings = describe_output_settings()
         print(c(f"{symbol('tip')} Current output types: {settings.get('output_types')}", Colors.CYAN))
-        print(c(f"{symbol('tip')} Allowed types: cli, html, csv, json", Colors.GREY))
-        print(c(f"{symbol('tip')} Example: out-type cli,html,csv,json", Colors.GREY))
+        print(c(f"{symbol('tip')} Allowed types: cli, html, csv, json, sql, docx, pdf", Colors.GREY))
+        print(c(f"{symbol('tip')} Example: out-type cli,html,json,sql,docx,pdf", Colors.GREY))
         return EXIT_SUCCESS
     types_override, error = _parse_output_type_override(tokens)
     if error:
         print(c(f"{symbol('warn')} {error}", Colors.RED))
-        print(c(f"{symbol('tip')} Allowed types: cli, html, csv, json", Colors.EMBER))
+        print(c(f"{symbol('tip')} Allowed types: cli, html, csv, json, sql, docx, pdf", Colors.EMBER))
         return EXIT_USAGE
     desired = types_override or set(DEFAULT_OUTPUT_TYPES)
     try:
@@ -4976,7 +5160,13 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
         if lowered.startswith("use "):
             _handle_prompt_use_command(command_text, session)
             continue
-        if lowered.startswith("select ") or lowered.startswith("add ") or lowered.startswith("remove "):
+        if (
+            lowered.startswith("select ")
+            or lowered.startswith("add ")
+            or lowered.startswith("remove ")
+            or lowered.startswith("enable ")
+            or lowered.startswith("disable ")
+        ):
             _handle_prompt_control_command(command_text, session)
             continue
 
@@ -5110,7 +5300,23 @@ async def run(argv: Sequence[str] | None = None) -> int:
         return status
 
     state = RunnerState()
-    status = await _dispatch(args, state=state, prompt_mode=False)
+    try:
+        status = await _dispatch(args, state=state, prompt_mode=False)
+    except KeyboardInterrupt:
+        print(c(f"\n{symbol('warn')} Execution interrupted by the operator.", Colors.EMBER))
+        append_framework_log("framework_exit", f"status={130} reason=keyboard_interrupt", level="WARN")
+        return 130
+    except Exception as exc:  # pragma: no cover - top-level safety guard
+        append_framework_log("framework_runtime_error", f"{type(exc).__name__}: {exc}", level="ERROR")
+        print(c(f"{symbol('warn')} Unexpected runtime failure: {exc}", Colors.RED))
+        print(
+            c(
+                f"{symbol('tip')} The command was stopped before completion. "
+                "Review your flags, dependencies, network settings, or output path and try again.",
+                Colors.EMBER,
+            )
+        )
+        return EXIT_FAILURE
     append_framework_log("framework_exit", f"status={status}")
     return status
 

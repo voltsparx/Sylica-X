@@ -80,7 +80,7 @@
         <ul class="simple-list">
           <li><span class="list-label">Inventory awareness</span>Startup inventory and show commands help you discover loaded plugins, filters, modules, and templates.</li>
           <li><span class="list-label">Keyword help</span>Prompt keywords and aliases make common actions easier to remember.</li>
-          <li><span class="list-label">Session defaults</span>You can adjust output settings and defaults without rebuilding command lines every time.</li>
+          <li><span class="list-label">Session defaults</span>You can adjust output settings and attachables without rebuilding command lines every time.</li>
         </ul>
       </article>
       <article class="code-block">
@@ -94,10 +94,17 @@
 help
 show plugins
 show filters
+enable plugins threat_conductor
+enable modules source-pack-01-module-1
+config
 keywords
 profile alice
 history</pre>
       </article>
+    </div>
+    <div class="callout callout-info section-block">
+      <div class="callout-title">Prompt runs now pause for configuration review</div>
+      When you launch a scan from prompt mode, Silica-X prints the resolved configuration first. Press Enter to start or press <span class="mono">c</span> to stop that configured command without leaving the console.
     </div>
   </section>
 
@@ -121,6 +128,48 @@ history</pre>
         <h3 class="card-title">How to launch</h3>
         <div class="command-snippet mono">silica-x wizard</div>
       </article>
+    </div>
+  </section>
+
+  <section id="config-preview" class="page-section section-anchor">
+    <div class="section-head">
+      <div>
+        <div class="section-kicker">Execution review</div>
+        <h2 class="section-title">Every run now stops at a configuration preview before collection starts</h2>
+      </div>
+    </div>
+    <div class="grid-2">
+      <article class="panel">
+        <h3 class="panel-title">What the preview shows</h3>
+        <ul class="simple-list">
+          <li><span class="list-label">Scope and target</span>The active workflow lane and the concrete target values that will be scanned.</li>
+          <li><span class="list-label">Attachables</span>Enabled plugins, filters, and attached modules in separate lines.</li>
+          <li><span class="list-label">Output plan</span>Resolved output types and the current output root.</li>
+          <li><span class="list-label">Execution knobs</span>Preset, extension-control mode, worker count, timeout, and other mode-specific details.</li>
+        </ul>
+      </article>
+      <article class="code-block">
+        <div class="code-head">
+          <span class="code-dot"></span>
+          <span class="code-dot"></span>
+          <span class="code-dot"></span>
+          <span class="code-lang">text</span>
+        </div>
+        <pre class="code-body">Execution Review
+scope: profile
+target: alice
+extension control: manual
+plugins: threat_conductor
+filters: contact_canonicalizer
+modules: source-pack-01-module-1
+output types: json, html, sql, docx, pdf
+
+Press Enter to start...</pre>
+      </article>
+    </div>
+    <div class="callout callout-info section-block">
+      <div class="callout-title">Cancel behavior differs slightly by mode</div>
+      In direct flag mode, press Enter to start or <span class="mono">Ctrl+C</span> to cancel the run before it begins. In prompt mode, press Enter to start or type <span class="mono">c</span> to stop just that configured command while keeping the prompt session alive.
     </div>
   </section>
 

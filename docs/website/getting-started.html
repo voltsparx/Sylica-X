@@ -90,7 +90,7 @@
       <article class="panel">
         <h3 class="panel-title">What gets installed</h3>
         <div class="card-copy">
-          <p>The runtime depends on <span class="mono">aiohttp</span>, <span class="mono">cryptography</span>, <span class="mono">Pillow</span>, <span class="mono">scapy</span>, and <span class="mono">rich</span>. Developer extras add <span class="mono">pytest</span>, <span class="mono">ruff</span>, <span class="mono">mypy</span>, <span class="mono">build</span>, and <span class="mono">twine</span>.</p>
+          <p>The runtime depends on <span class="mono">aiohttp</span>, <span class="mono">cryptography</span>, <span class="mono">Pillow</span>, <span class="mono">scapy</span>, and <span class="mono">rich</span>. Reporter-rich artifacts also use <span class="mono">matplotlib</span>, <span class="mono">python-docx</span>, and <span class="mono">reportlab</span>. Developer extras add <span class="mono">pytest</span>, <span class="mono">ruff</span>, <span class="mono">mypy</span>, <span class="mono">build</span>, and <span class="mono">twine</span>.</p>
           <div class="pill-row">
             <span class="pill">requires Python &gt;= 3.11</span>
             <span class="pill">supports 3.11, 3.12, 3.13 in CI</span>
@@ -115,6 +115,8 @@
           <span class="code-lang">shell</span>
         </div>
         <pre class="code-body"><span class="cmd">pip install</span> <span class="arg">-r requirements-dev.txt</span>
+<span class="cmd">pip install</span> <span class="arg">".[reports]"</span>
+<span class="cmd">pip install</span> <span class="arg">".[ocr]"</span>
 <span class="cmd">python -m pytest -q</span>
 <span class="cmd">python -m ruff check .</span>
 <span class="cmd">python -m mypy</span></pre>
@@ -139,7 +141,7 @@
       <article class="card">
         <h3 class="card-title">Optional today</h3>
         <div class="card-copy">
-          <p>Docker and Docker Compose for the runner scripts, plus Tor/proxy configuration if you want anonymity-aware routing. The docs also mention OCR roadmap dependencies such as Tesseract, but those are not presented as a default install requirement.</p>
+          <p>Docker and Docker Compose for the runner scripts, plus Tor/proxy configuration if you want anonymity-aware routing. OCR can use <span class="mono">easyocr</span> or <span class="mono">pytesseract</span>, but <span class="mono">pytesseract</span> still depends on a reachable <span class="mono">tesseract</span> binary. Reporter now records what OCR/image tooling was actually available during the run.</p>
         </div>
       </article>
       <article class="card">
@@ -171,7 +173,7 @@
           <pre class="code-body"><span class="cmd">silica-x</span></pre>
         </div>
         <ul class="simple-list">
-          <li><span class="list-label">First commands to try</span><span class="mono">help</span>, <span class="mono">show plugins</span>, <span class="mono">show filters</span>, <span class="mono">profile alice</span>, <span class="mono">surface example.com</span>.</li>
+          <li><span class="list-label">First commands to try</span><span class="mono">help</span>, <span class="mono">show plugins</span>, <span class="mono">show filters</span>, <span class="mono">enable plugins threat_conductor</span>, <span class="mono">config</span>, <span class="mono">profile alice</span>.</li>
           <li><span class="list-label">Why this helps</span>The prompt exposes aliases, help surfaces, explain text, defaults, and inventory counts in one place.</li>
         </ul>
       </article>
@@ -184,9 +186,9 @@
             <span class="code-dot"></span>
             <span class="code-lang">shell</span>
           </div>
-          <pre class="code-body"><span class="cmd">silica-x</span> <span class="arg">profile alice --html</span>
-<span class="cmd">silica-x</span> <span class="arg">surface example.com --html</span>
-<span class="cmd">silica-x</span> <span class="arg">fusion alice example.com --csv --html</span></pre>
+          <pre class="code-body"><span class="cmd">silica-x</span> <span class="arg">profile alice --html --plugin threat_conductor</span>
+<span class="cmd">silica-x</span> <span class="arg">surface example.com --html --module source-pack-01-module-1</span>
+<span class="cmd">silica-x</span> <span class="arg">fusion alice example.com --out-type json,html,sql,docx,pdf</span></pre>
         </div>
         <ul class="simple-list">
           <li><span class="list-label">Direct mode</span>Better for automation and repeatable scripts.</li>

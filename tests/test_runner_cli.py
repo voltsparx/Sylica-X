@@ -210,6 +210,8 @@ class TestRunnerCli(unittest.TestCase):
                 "ocr_extractor",
                 "--filter",
                 "ocr_signal_classifier",
+                "--module",
+                "source-pack-01-module-1,source-pack-01-module-2",
             ]
         )
         self.assertEqual(args.command, "ocr")
@@ -222,6 +224,7 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.max_bytes, 2000000)
         self.assertEqual(args.plugin, ["ocr_extractor"])
         self.assertEqual(args.filter, ["ocr_signal_classifier"])
+        self.assertEqual(args.module, ["source-pack-01-module-1,source-pack-01-module-2"])
         self.assertEqual(args.extension_control, "manual")
 
     def test_root_orchestrate_parser_parses_flags(self):
@@ -256,6 +259,8 @@ class TestRunnerCli(unittest.TestCase):
                 "signal_fusion_core",
                 "--filter",
                 "signal_lane_fusion",
+                "--module",
+                "source-pack-01-module-1",
                 "--extension-control",
                 "hybrid",
             ]
@@ -268,6 +273,7 @@ class TestRunnerCli(unittest.TestCase):
         self.assertEqual(args.timeout, 42)
         self.assertEqual(args.max_workers, 18)
         self.assertEqual(args.source_profile, "max")
+        self.assertEqual(args.module, ["source-pack-01-module-1"])
         self.assertEqual(args.max_platforms, 70)
         self.assertEqual(args.max_subdomains, 500)
         self.assertEqual(args.scan_type, ["null", "service"])

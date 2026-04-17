@@ -132,12 +132,12 @@ def show_flag_help() -> None:
     _section("Output")
     _render_items(
         (
-            ("out-type <types>:", "Set persisted output formats (cli, html, csv, json)."),
+            ("out-type <types>:", "Set persisted output formats (cli, html, csv, json, sql, docx, pdf)."),
             ("out-print <path>:", "Set current output base directory for this session."),
             ("default-out-print <path>:", "Set persisted default output base directory."),
             ("--html/--no-html --csv/--no-csv:", "Enable or disable HTML/CSV artifacts for this run."),
             ("wizard --help:", "Show full wizard flags (phases, presets, selectors, toggles)."),
-            ("output/json output/html output/cli output/csv output/logs:", "Default artifact directories."),
+            ("output/json output/html output/cli output/csv output/sql output/docx output/pdf output/logs:", "Default artifact directories."),
         )
     )
 
@@ -184,7 +184,7 @@ def show_prompt_help() -> None:
             ("show config:", "Show prompt defaults and active module."),
             ("surface ... --recon-mode passive|active|hybrid:", "Control surface collection lane depth and noise."),
             ("surface|fusion|orchestrate ... --scan-type <...>:", "Control scan directives, OS hints, verbosity, and pacing."),
-            ("out-type <types>:", "Set persisted output formats (cli, html, csv, json)."),
+            ("out-type <types>:", "Set persisted output formats (cli, html, csv, json, sql, docx, pdf)."),
             ("out-print <path>:", "Set current output base directory for this session."),
             ("default-out-print <path>:", "Set persisted default output base directory."),
             ("anonymity [flags]:", "Check or change Tor/proxy routing."),
@@ -212,6 +212,7 @@ def show_prompt_help() -> None:
             ("select template <id>:", "Alias for `set template`."),
             ("add plugins <a,b> / remove plugins <a,b>:", "Incremental plugin control by name."),
             ("add filters <a,b> / remove filters <a,b>:", "Incremental filter control by name."),
+            ("enable modules <a,b> / disable modules <a,b>:", "Incremental module attachable control by catalog selector."),
         )
     )
 

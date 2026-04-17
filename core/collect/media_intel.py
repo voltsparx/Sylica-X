@@ -20,8 +20,10 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 import hashlib
+import importlib.util
 import io
 import re
+import shutil
 from typing import Any
 
 import aiohttp
@@ -39,6 +41,49 @@ _MEDIA_FIELDS = (
 _IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp")
 _OCR_EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[A-Za-z]{2,}")
 _OCR_URL_RE = re.compile(r"https?://[^\s<>'\"]+")
+
+
+def detect_image_tooling() -> dict[str, Any]:
+    """Inspect optional OCR/image runtime dependencies available in the environment."""
+
+    pillow_available = importlib.util.find_spec("PIL") is not None
+    easyocr_available = importlib.util.find_spec("easyocr") is not None
+    pytesseract_available = importlib.util.find_spec("pytesseract") is not None
+
+    pytesseract_cmd = ""
+    if pytesseract_available:
+        try:
+            import pytesseract
+
+            pytesseract_cmd = str(getattr(getattr(pytesseract, "pytesseract", None), "tesseract_cmd", "") or "").strip()
+        except Exception:
+            pytesseract_available = False
+            pytesseract_cmd = ""
+
+    resolved_tesseract = ""
+    if pytesseract_cmd:
+        resolved_tesseract = pytesseract_cmd
+    else:
+        resolved_tesseract = str(shutil.which("tesseract") or "").strip()
+
+    if easyocr_available:
+        preferred_engine = "easyocr"
+    elif pytesseract_available and resolved_tesseract:
+        preferred_engine = "pytesseract"
+    else:
+        preferred_engine = "none"
+
+    return {
+        "pillow": {"available": pillow_available},
+        "easyocr": {"available": easyocr_available},
+        "pytesseract": {
+            "available": pytesseract_available,
+            "tesseract_cmd": pytesseract_cmd,
+            "tesseract_binary_found": bool(resolved_tesseract),
+            "tesseract_binary": resolved_tesseract,
+        },
+        "preferred_engine": preferred_engine,
+    }
 
 
 @dataclass(frozen=True)

@@ -24,12 +24,24 @@ classifiers = [
 dependencies = [
   "aiohttp",
   "cryptography>=42.0.0",
+  "matplotlib>=3.8.0",
   "Pillow>=10.0.0",
+  "python-docx>=1.1.0",
+  "pytesseract>=0.3.10",
+  "reportlab>=4.2.0",
   "scapy>=2.5.0",
   "rich",
 ]
 
 [project.optional-dependencies]
+ocr = [
+  "easyocr>=1.7.1",
+]
+reports = [
+  "matplotlib>=3.8.0",
+  "python-docx>=1.1.0",
+  "reportlab>=4.2.0",
+]
 dev = [
   "pytest>=8.0,<9.0",
   "ruff>=0.8,<1.0",

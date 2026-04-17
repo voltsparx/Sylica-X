@@ -54,6 +54,15 @@ pip install -r requirements.txt
 python silica-x.py
 ```
 
+Optional extras:
+
+```bash
+pip install ".[reports]"
+pip install ".[ocr]"
+```
+
+`pytesseract` is a Python wrapper, but OCR still depends on a reachable `tesseract` binary. Silica-X now reports which OCR/image backends were actually available during the run.
+
 ## Quick examples
 
 ```bash
@@ -72,9 +81,21 @@ Silica-X writes artifacts under `output/` and can emit:
 - JSON payloads
 - CSV exports plus companion CSV slices
 - HTML Reporter case views
+- SQLite case stores
+- DOCX case documents
+- PDF case documents
 - run logs and framework logs
 
 Reporter is designed to make the result easier to triage by grouping identity findings, reliability issues, correlation, vulnerabilities, plugin/filter signals, OCR/media lanes, and the final `Reporter Brief`.
+
+In prompt mode, attachables can be configured as session defaults with commands like:
+
+```text
+enable plugins threat_conductor
+enable filters contact_canonicalizer
+enable modules source-pack-01-module-1
+config
+```
 
 ## Documentation
 

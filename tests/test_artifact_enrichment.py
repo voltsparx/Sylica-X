@@ -14,6 +14,7 @@
 # ──────────────────────────────────────────────────────────────
 
 import json
+import sqlite3
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
@@ -22,6 +23,8 @@ from tempfile import TemporaryDirectory
 from core.artifacts import csv_export
 from core.artifacts import html_report
 from core.artifacts import output as output_artifacts
+from core.artifacts.sql_store import write_sqlite_report
+from core.collect.media_intel import detect_image_tooling
 from core.foundation.output_config import (
     clear_session_output_base_dir,
     get_session_output_base_dir,
@@ -54,6 +57,13 @@ class TestArtifactEnrichment(unittest.TestCase):
                     issue_summary={"risk_score": 72},
                     plugin_results=[{"id": "p1", "severity": "MEDIUM", "summary": "x", "highlights": [], "data": {}}],
                     filter_results=[{"id": "f1", "severity": "INFO", "summary": "x", "highlights": [], "data": {}}],
+                    extra_payload={
+                        "selected_plugins": ["p1"],
+                        "selected_filters": ["f1"],
+                        "selected_modules": ["source-pack-01-module-1"],
+                        "attached_modules": [{"id": "source-pack-01-module-1", "kind": "collector", "power_score": 88}],
+                        "ocr_tooling": detect_image_tooling(),
+                    },
                 )
 
                 payload = json.loads(Path(json_path).read_text(encoding="utf-8"))
@@ -63,6 +73,8 @@ class TestArtifactEnrichment(unittest.TestCase):
         self.assertEqual(payload["summary"]["issue_count"], 1)
         self.assertEqual(payload["summary"]["plugin_count"], 1)
         self.assertEqual(payload["summary"]["filter_count"], 1)
+        self.assertEqual(payload["summary"]["selected_module_count"], 1)
+        self.assertIn("ocr_preferred_engine", payload["summary"])
 
     def test_csv_export_writes_companion_csv_artifacts(self):
         with TemporaryDirectory() as temp_dir:
@@ -125,7 +137,43 @@ class TestArtifactEnrichment(unittest.TestCase):
         self.assertIn("Raw plugin data payload", html_text)
         self.assertIn("Raw filter data payload", html_text)
 
+    def test_sql_store_persists_attachments_and_ocr_items(self):
+        with TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "report.sqlite3"
+            write_sqlite_report(
+                db_path,
+                {
+                    "metadata": {"mode": "ocr", "generated_at_utc": "2026-01-01T00:00:00Z"},
+                    "target": "alice",
+                    "summary": {"result_count": 0},
+                    "selected_plugins": ["ocr_extractor"],
+                    "selected_filters": ["ocr_signal_classifier"],
+                    "attached_modules": [{"id": "source-pack-01-module-1", "kind": "collector"}],
+                    "ocr_scan": {
+                        "items": [
+                            {
+                                "source": "image.png",
+                                "source_kind": "local",
+                                "ocr_engine": "pytesseract",
+                                "confidence_hint": "high",
+                                "normalized_text": "alice@example.com",
+                                "signals": {"emails": ["alice@example.com"]},
+                            }
+                        ]
+                    },
+                },
+            )
+
+            conn = sqlite3.connect(db_path)
+            try:
+                attachment_count = conn.execute("SELECT COUNT(*) FROM attachments").fetchone()[0]
+                ocr_item_count = conn.execute("SELECT COUNT(*) FROM ocr_items").fetchone()[0]
+            finally:
+                conn.close()
+
+        self.assertEqual(attachment_count, 3)
+        self.assertEqual(ocr_item_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
-

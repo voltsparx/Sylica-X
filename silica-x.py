@@ -16,6 +16,7 @@
 # ──────────────────────────────────────────────────────────────
 
 import asyncio
+import sys
 
 from core.runner import run
 
@@ -25,3 +26,6 @@ if __name__ == "__main__":
         raise SystemExit(asyncio.run(run()))
     except KeyboardInterrupt:
         raise SystemExit(130)
+    except Exception as exc:
+        print(f"[!] Silica-X failed: {exc}", file=sys.stderr)
+        raise SystemExit(1)

@@ -30,14 +30,17 @@ const DocsData = (() => {
     { id: "commands", title: "Commands", page: "cli-reference.html", hint: "Primary commands, aliases, and what they do.", group: "Operator" },
     { id: "flags", title: "Flags", page: "cli-reference.html", hint: "High-value output, explain, and scope controls.", group: "Operator" },
     { id: "syntax", title: "Syntax Patterns", page: "cli-reference.html", hint: "Prompt, flag, and example command grammar.", group: "Operator" },
+    { id: "attachables", title: "Attachables", page: "cli-reference.html", hint: "Plugins, filters, modules, and conflict handling.", group: "Operator" },
     { id: "prompt-mode", title: "Prompt Mode", page: "modes.html", hint: "Interactive mode with help, defaults, and shortcuts.", group: "Runtime" },
     { id: "wizard-mode", title: "Wizard Mode", page: "modes.html", hint: "Guided interactive workflow for multi-step scans.", group: "Runtime" },
+    { id: "config-preview", title: "Execution Review", page: "modes.html", hint: "Configuration preview and confirm-before-start flow.", group: "Runtime" },
     { id: "live-dashboard", title: "Live Dashboard", page: "modes.html", hint: "Local browser dashboard for saved results.", group: "Runtime" },
     { id: "source-study", title: "Source-Study Modes", page: "modes.html", hint: "Frameworks and surface-kit commands for local source translation.", group: "Runtime" },
-    { id: "outputs", title: "Output Formats", page: "reporting.html", hint: "CLI, JSON, CSV, HTML Reporter, and run logs.", group: "Reports" },
+    { id: "outputs", title: "Output Formats", page: "reporting.html", hint: "CLI, JSON, CSV, SQL, DOCX, PDF, Reporter HTML, and run logs.", group: "Reports" },
     { id: "storage", title: "Storage Layout", page: "reporting.html", hint: "How output directories and filenames are generated.", group: "Reports" },
     { id: "history", title: "History & Inventory", page: "reporting.html", hint: "History commands, capability packs, and runtime snapshots.", group: "Reports" },
     { id: "testing", title: "Verification", page: "reporting.html", hint: "Unit tests, Ruff, mypy, compile checks, and package smoke.", group: "Reports" },
+    { id: "ocr-diagnostics", title: "OCR Diagnostics", page: "reporting.html", hint: "Backend availability, Tesseract detection, and troubleshooting.", group: "Reports" },
     { id: "development-home", title: "Development", page: "development.html", hint: "Repository health, architecture slices, and automation posture.", group: "Project" },
     { id: "repo-activity", title: "Repository Activity", page: "development.html", hint: "Live GitHub repository data and recent commits.", group: "Project" },
     { id: "release-radar", title: "Docs Radar", page: "development.html", hint: "v10 docs, runtime files, and raw project signals.", group: "Project" },
@@ -101,9 +104,9 @@ const DocsData = (() => {
       key: "reporting",
       label: "Stage 06",
       title: "Reporting + Artifacts",
-      summary: "Results are rendered to CLI, JSON, CSV, Reporter HTML, logs, and capability-pack snapshots.",
-      detail: "The reporting layer is presentation-only. It writes artifact files under the configured output root, keeps run logs, supports history listing, and now emphasizes Reporter as the main case-view surface for operators.",
-      pills: ["cli", "json", "csv", "Reporter", "history"]
+      summary: "Results are rendered to CLI, JSON, CSV, SQL, DOCX, PDF, Reporter HTML, logs, and capability-pack snapshots.",
+      detail: "The reporting layer is presentation-only. It writes artifact files under the configured output root, keeps run logs, supports history listing, and now emphasizes Reporter as the main case-view surface for operators while preserving richer document and database outputs.",
+      pills: ["cli", "json", "sql", "docx", "Reporter"]
     }
   ];
 

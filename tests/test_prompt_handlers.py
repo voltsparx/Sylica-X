@@ -366,6 +366,25 @@ class TestPromptHandlers(unittest.TestCase):
         )
         self.assertEqual(session.filter_names, ["contact_canonicalizer"])
 
+    def test_handle_prompt_control_command_enable_disable_modules(self):
+        session = PromptSessionState(module="profile")
+        handle_prompt_control_command(
+            "enable modules source-pack-01-module-1,source-pack-01-module-2",
+            session,
+            on_message=lambda _message, _color: None,
+        )
+        self.assertEqual(
+            session.attached_module_names,
+            ["source-pack-01-module-1", "source-pack-01-module-2"],
+        )
+
+        handle_prompt_control_command(
+            "disable module source-pack-01-module-2",
+            session,
+            on_message=lambda _message, _color: None,
+        )
+        self.assertEqual(session.attached_module_names, ["source-pack-01-module-1"])
+
     def test_handle_prompt_control_command_blocks_mutation_in_auto_mode(self):
         session = PromptSessionState(module="profile", profile_extension_control="auto")
         events: list[tuple[str, str]] = []

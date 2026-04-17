@@ -816,6 +816,7 @@ def _add_ocr_args(parser: argparse.ArgumentParser) -> None:
     )
     _add_plugin_args(parser)
     _add_filter_args(parser)
+    _add_module_attach_args(parser)
     _add_extension_control_args(parser, default_mode="manual")
 
 
@@ -1098,11 +1099,11 @@ def build_root_parser(
         action="store_true",
         help="Print info-templates as JSON payload.",
     )
-    out_type_parser = subparsers.add_parser("out-type", help="Set output formats (cli, html, csv, json).")
+    out_type_parser = subparsers.add_parser("out-type", help="Set output formats (cli, html, csv, json, sql, docx, pdf).")
     out_type_parser.add_argument(
         "types",
         nargs="*",
-        help="Comma-separated output types or a list (example: cli,html,csv,json).",
+        help="Comma-separated output types or a list (example: cli,html,json,sql,docx,pdf).",
     )
     out_print_parser = subparsers.add_parser("out-print", help="Set output base directory for this session.")
     out_print_parser.add_argument(
