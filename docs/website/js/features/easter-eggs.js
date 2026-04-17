@@ -7,6 +7,7 @@ const EasterEgg = (() => {
   let brandTapTimer = null;
   let heroTapCount = 0;
   let heroTapTimer = null;
+  let heroStarActive = false;
 
   const secretQueries = {
     fusioncore: () => activateOverdrive("Fusion lane synchronized"),
@@ -51,6 +52,16 @@ const EasterEgg = (() => {
     node.classList.remove("egg-logo-pulse");
     void node.offsetWidth;
     node.classList.add("egg-logo-pulse");
+  }
+
+  function spinHeroLogo(node) {
+    if (!node) {
+      return;
+    }
+
+    node.classList.remove("egg-hero-spin");
+    void node.offsetWidth;
+    node.classList.add("egg-hero-spin");
   }
 
   function spawnRibbons(count = 18) {
@@ -140,8 +151,12 @@ const EasterEgg = (() => {
     }
 
     DocsElements.homeHeroLogo.addEventListener("click", () => {
+      if (heroStarActive) {
+        return;
+      }
+
       heroTapCount += 1;
-      pulseLogo(DocsElements.homeHeroLogo);
+      spinHeroLogo(DocsElements.homeHeroLogo);
 
       if (heroTapTimer) {
         window.clearTimeout(heroTapTimer);
@@ -149,13 +164,113 @@ const EasterEgg = (() => {
 
       heroTapTimer = window.setTimeout(() => {
         heroTapCount = 0;
-      }, 1500);
+      }, 2200);
 
-      if (heroTapCount >= 4) {
+      if (heroTapCount >= 7) {
         heroTapCount = 0;
-        showToast("Signal fusion ready", "Homepage mark acknowledged the operator.");
+        heroStarActive = true;
+        spawnRibbons(28);
+        void launchHeroStar(DocsElements.homeHeroLogo);
       }
     });
+  }
+
+  async function launchHeroStar(node) {
+    const startRect = node.getBoundingClientRect();
+    if (!startRect.width || !startRect.height) {
+      heroStarActive = false;
+      return;
+    }
+
+    const clone = node.cloneNode(true);
+    clone.className = "egg-ninja-star";
+    clone.style.width = `${startRect.width}px`;
+    clone.style.height = `${startRect.height}px`;
+    clone.style.left = `${startRect.left}px`;
+    clone.style.top = `${startRect.top}px`;
+    DocsElements.body.appendChild(clone);
+    node.classList.add("egg-hero-hidden");
+
+    showToast("Ninja star override", "Seven taps triggered a bounce-run across the site shell.");
+
+    const minSpeed = 420;
+    const maxSpeed = 760;
+    const angle = (Math.random() * Math.PI * 2) || (Math.PI / 3);
+    let velocityX = Math.cos(angle) * (minSpeed + (Math.random() * (maxSpeed - minSpeed)));
+    let velocityY = Math.sin(angle) * (minSpeed + (Math.random() * (maxSpeed - minSpeed)));
+    let positionX = startRect.left;
+    let positionY = startRect.top;
+    let spin = 0;
+    let lastFrame = performance.now();
+    const travelUntil = lastFrame + 2700;
+
+    await new Promise((resolve) => {
+      const step = (now) => {
+        const delta = Math.min((now - lastFrame) / 1000, 0.032);
+        lastFrame = now;
+
+        positionX += velocityX * delta;
+        positionY += velocityY * delta;
+        spin += delta * 1680;
+
+        const maxX = window.innerWidth - startRect.width;
+        const maxY = window.innerHeight - startRect.height;
+        let bounced = false;
+
+        if (positionX <= 0 || positionX >= maxX) {
+          positionX = Math.min(Math.max(positionX, 0), maxX);
+          velocityX *= -1;
+          velocityY += ((Math.random() * 180) - 90);
+          bounced = true;
+        }
+
+        if (positionY <= 0 || positionY >= maxY) {
+          positionY = Math.min(Math.max(positionY, 0), maxY);
+          velocityY *= -1;
+          velocityX += ((Math.random() * 180) - 90);
+          bounced = true;
+        }
+
+        if (bounced) {
+          const speedScale = 0.96 + (Math.random() * 0.12);
+          velocityX *= speedScale;
+          velocityY *= speedScale;
+        }
+
+        clone.style.left = `${positionX}px`;
+        clone.style.top = `${positionY}px`;
+        clone.style.transform = `rotate(${spin}deg) scale(1.02)`;
+
+        if (now < travelUntil) {
+          window.requestAnimationFrame(step);
+          return;
+        }
+
+        resolve();
+      };
+
+      window.requestAnimationFrame(step);
+    });
+
+    const endRect = node.getBoundingClientRect();
+    const returnAnimation = clone.animate(
+      [
+        { left: `${positionX}px`, top: `${positionY}px`, transform: `rotate(${spin}deg) scale(1.02)` },
+        { left: `${endRect.left}px`, top: `${endRect.top}px`, transform: `rotate(${spin + 1080}deg) scale(1)` }
+      ],
+      { duration: 820, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" }
+    );
+
+    try {
+      await returnAnimation.finished;
+    } catch (error) {
+      // Ignore interrupted animation and continue restoring the original node.
+    }
+
+    clone.remove();
+    node.classList.remove("egg-hero-hidden");
+    pulseLogo(node);
+    heroStarActive = false;
   }
 
   function bindVersionLongPress() {
