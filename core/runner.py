@@ -115,6 +115,7 @@ from core.analyze.surface_map import build_surface_map, build_surface_next_steps
 from core.analyze.digital_footprint import build_digital_footprint_map
 from core.collect.scanner import scan_username
 from core.engines.ocr_image_scan_engine import OCRImageScanEngine
+from core.setup.dependency_resolver import resolve_tesseract
 from core.domain import BaseEntity
 from core.foundation.session_state import PromptSessionState
 from core.intelligence import IntelligenceEngine
@@ -5392,6 +5393,7 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
 
 async def run(argv: Sequence[str] | None = None) -> int:
     _configure_console_output()
+    resolve_tesseract()
     try:
         ensure_output_tree()
     except OutputConfigError as exc:

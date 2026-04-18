@@ -386,6 +386,222 @@ def _render_domain_section(domain_result: dict | None) -> str:
     )
 
 
+def _render_surface_exposure_section(surface_exposure: dict | None) -> str:
+    if not isinstance(surface_exposure, dict) or not surface_exposure:
+        return ""
+
+    protocol_map: dict[tuple[int, str], str] = {}
+    port_scan_result = surface_exposure.get("port_scan_result", {})
+    parsed = port_scan_result.get("parsed", {}) if isinstance(port_scan_result, dict) else {}
+    for host in parsed.get("hosts", []) if isinstance(parsed, dict) else []:
+        if not isinstance(host, dict):
+            continue
+        for port in host.get("ports", []) or []:
+            if not isinstance(port, dict):
+                continue
+            protocol_map[(int(port.get("port", 0) or 0), str(port.get("service_name", "") or ""))] = str(
+                port.get("protocol", "") or ""
+            )
+
+    service_rows = []
+    for row in surface_exposure.get("exposed_services", []) or []:
+        if not isinstance(row, dict):
+            continue
+        port = int(row.get("port", 0) or 0)
+        service_name = str(row.get("service_name", "") or "")
+        protocol = protocol_map.get((port, service_name), "")
+        service_rows.append(
+            "<tr>"
+            f"<td>{html.escape(str(port))}</td>"
+            f"<td>{html.escape(protocol)}</td>"
+            f"<td>{html.escape(service_name)}</td>"
+            f"<td>{html.escape(str(row.get('product', '') or ''))}</td>"
+            f"<td>{html.escape(str(row.get('version', '') or ''))}</td>"
+            "</tr>"
+        )
+    if not service_rows:
+        service_rows.append("<tr><td colspan='5'>No exposed services were reported.</td></tr>")
+
+    bucket_rows = []
+    buckets = surface_exposure.get("subdomain_environment_buckets", {})
+    if isinstance(buckets, dict):
+        for bucket_name, values in buckets.items():
+            if not isinstance(values, list):
+                continue
+            for value in values:
+                bucket_rows.append(
+                    "<tr>"
+                    f"<td>{html.escape(str(value))}</td>"
+                    f"<td>{html.escape(str(bucket_name))}</td>"
+                    "</tr>"
+                )
+    if not bucket_rows:
+        bucket_rows.append("<tr><td colspan='2'>No subdomains were discovered.</td></tr>")
+
+    risk_items = "".join(
+        f"<li style='color: var(--accent-2);'>{html.escape(str(flag))}</li>"
+        for flag in surface_exposure.get("risk_flags", []) or []
+    ) or "<li class='muted'>No risk flags were raised.</li>"
+
+    return (
+        "<section class='panel' id='attack-surface'>"
+        "<div class='section-banner'>"
+        "<div>"
+        "<div class='section-eyebrow'>Surface</div>"
+        "<h3>Attack Surface Map</h3>"
+        "</div>"
+        f"<span class='panel-chip'>risk score {html.escape(str(surface_exposure.get('risk_score', 0)))}</span>"
+        "</div>"
+        "<h4>Open Ports and Services</h4>"
+        "<div class='table-wrap'>"
+        "<table>"
+        "<tr><th>Port</th><th>Protocol</th><th>Service</th><th>Product</th><th>Version</th></tr>"
+        f"{''.join(service_rows)}"
+        "</table>"
+        "</div>"
+        "<h4>Subdomain Inventory</h4>"
+        "<div class='table-wrap'>"
+        "<table>"
+        "<tr><th>Subdomain</th><th>Environment Bucket</th></tr>"
+        f"{''.join(bucket_rows)}"
+        "</table>"
+        "</div>"
+        "<h4>Risk Flags</h4>"
+        f"<ul>{risk_items}</ul>"
+        "</section>"
+    )
+
+
+def _render_domain_deep_recon_section(domain_deep_recon: dict | None) -> str:
+    if not isinstance(domain_deep_recon, dict) or not domain_deep_recon:
+        return ""
+
+    dns = domain_deep_recon.get("dns", {}) if isinstance(domain_deep_recon.get("dns"), dict) else {}
+    whois = domain_deep_recon.get("whois", {}) if isinstance(domain_deep_recon.get("whois"), dict) else {}
+    cert_transparency = (
+        domain_deep_recon.get("cert_transparency", {})
+        if isinstance(domain_deep_recon.get("cert_transparency"), dict)
+        else {}
+    )
+    http_headers = (
+        domain_deep_recon.get("http_headers", {})
+        if isinstance(domain_deep_recon.get("http_headers"), dict)
+        else {}
+    )
+
+    posture_rows = []
+    posture = http_headers.get("security_posture", {}) if isinstance(http_headers.get("security_posture"), dict) else {}
+    for header_name, state in posture.items():
+        if not isinstance(state, dict):
+            continue
+        present = bool(state.get("present"))
+        tone = "var(--positive)" if present else "var(--critical)"
+        posture_rows.append(
+            "<tr>"
+            f"<td>{html.escape(str(header_name))}</td>"
+            f"<td style='color: {tone};'>{html.escape('Yes' if present else 'No')}</td>"
+            f"<td>{html.escape(str(state.get('value', '') or ''))}</td>"
+            "</tr>"
+        )
+    if not posture_rows:
+        posture_rows.append("<tr><td colspan='3'>No HTTP security posture data was collected.</td></tr>")
+
+    ct_entries = cert_transparency.get("ct_entries", []) if isinstance(cert_transparency.get("ct_entries"), list) else []
+    ct_items = "".join(f"<li>{html.escape(str(entry))}</li>" for entry in ct_entries[:20]) or "<li>None</li>"
+
+    return (
+        "<section class='panel' id='domain-intelligence'>"
+        "<div class='section-banner'>"
+        "<div>"
+        "<div class='section-eyebrow'>Domain</div>"
+        "<h3>Domain Intelligence</h3>"
+        "</div>"
+        "<span class='panel-chip'>deep recon</span>"
+        "</div>"
+        "<h4>DNS Records</h4>"
+        f"<p><strong>A:</strong> {html.escape(', '.join(dns.get('a_records', []) or []) or 'None')}</p>"
+        f"<p><strong>AAAA:</strong> {html.escape(', '.join(dns.get('aaaa_records', []) or []) or 'None')}</p>"
+        f"<p><strong>MX:</strong> {html.escape(', '.join(dns.get('mx_records', []) or []) or 'None')}</p>"
+        f"<p><strong>NS:</strong> {html.escape(', '.join(dns.get('ns_records', []) or []) or 'None')}</p>"
+        f"<p><strong>TXT:</strong> {html.escape(', '.join(dns.get('txt_records', []) or []) or 'None')}</p>"
+        "<h4>WHOIS Summary</h4>"
+        "<div class='table-wrap'>"
+        "<table>"
+        "<tr><th>Field</th><th>Value</th></tr>"
+        f"<tr><td>registrar</td><td>{html.escape(str(whois.get('registrar', '') or ''))}</td></tr>"
+        f"<tr><td>creation_date</td><td>{html.escape(str(whois.get('creation_date', '') or ''))}</td></tr>"
+        f"<tr><td>expiry_date</td><td>{html.escape(str(whois.get('expiry_date', '') or ''))}</td></tr>"
+        f"<tr><td>name_servers</td><td>{html.escape(', '.join(whois.get('name_servers', []) or []) or 'None')}</td></tr>"
+        f"<tr><td>dnssec</td><td>{html.escape(str(whois.get('dnssec', '') or ''))}</td></tr>"
+        "</table>"
+        "</div>"
+        "<h4>Certificate Transparency</h4>"
+        f"<p><strong>Entry Count:</strong> {html.escape(str(cert_transparency.get('entry_count', 0) or 0))}</p>"
+        f"<ul>{ct_items}</ul>"
+        "<h4>HTTP Security Posture</h4>"
+        "<div class='table-wrap'>"
+        "<table>"
+        "<tr><th>Header</th><th>Present</th><th>Value</th></tr>"
+        f"{''.join(posture_rows)}"
+        "</table>"
+        "</div>"
+        "</section>"
+    )
+
+
+def _render_media_recon_section(media_recon: dict | None) -> str:
+    if not isinstance(media_recon, dict) or not media_recon:
+        return ""
+
+    master_signal_map = (
+        media_recon.get("master_signal_map", {})
+        if isinstance(media_recon.get("master_signal_map"), dict)
+        else {}
+    )
+    image_intel = media_recon.get("image_intel", {}) if isinstance(media_recon.get("image_intel"), dict) else {}
+    assets = image_intel.get("assets", []) if isinstance(image_intel.get("assets"), list) else []
+
+    ocr_blocks = []
+    for asset in assets:
+        if not isinstance(asset, dict):
+            continue
+        ocr_result = asset.get("ocr_result")
+        if not isinstance(ocr_result, dict):
+            continue
+        merged_text = str(ocr_result.get("merged_text", "") or "").strip()
+        if not merged_text:
+            continue
+        ocr_blocks.append(
+            "<div class='subpanel'>"
+            f"<p><strong>URL:</strong> <a href='{html.escape(str(asset.get('url', '') or ''))}' target='_blank' rel='noreferrer'>{html.escape(str(asset.get('url', '') or ''))}</a></p>"
+            f"<pre>{html.escape(merged_text)}</pre>"
+            "</div>"
+        )
+
+    return (
+        "<section class='panel' id='media-intel'>"
+        "<div class='section-banner'>"
+        "<div>"
+        "<div class='section-eyebrow'>Media</div>"
+        "<h3>Media and Post Intelligence</h3>"
+        "</div>"
+        "<span class='panel-chip'>ocr enabled</span>"
+        "</div>"
+        "<h4>Signal Map</h4>"
+        f"<p><strong>Emails:</strong> {html.escape(', '.join(master_signal_map.get('emails', []) or []) or 'None')}</p>"
+        f"<p><strong>URLs:</strong> {html.escape(', '.join(master_signal_map.get('urls', []) or []) or 'None')}</p>"
+        f"<p><strong>Phones:</strong> {html.escape(', '.join(master_signal_map.get('phones', []) or []) or 'None')}</p>"
+        f"<p><strong>Mentions:</strong> {html.escape(', '.join(master_signal_map.get('mentions', []) or []) or 'None')}</p>"
+        f"<p><strong>Hashtags:</strong> {html.escape(', '.join(master_signal_map.get('hashtags', []) or []) or 'None')}</p>"
+        "<h4>Image Assets</h4>"
+        f"<p><strong>Images Processed:</strong> {html.escape(str(image_intel.get('assets_fetched', 0) or 0))} | "
+        f"<strong>Images With OCR Text:</strong> {html.escape(str(image_intel.get('assets_with_ocr_text', 0) or 0))}</p>"
+        "<h4>OCR Findings</h4>"
+        f"{''.join(ocr_blocks) or '<p class=\"muted\">No OCR findings were captured from image assets.</p>'}"
+        "</section>"
+    )
+
+
 def _render_issues(issues: list[dict[str, str]], issue_summary: dict) -> str:
     if not issues:
         return "<p class='muted'>No exposure findings were reported.</p>"
@@ -937,6 +1153,9 @@ def generate_html(
     issue_summary: dict | None = None,
     narrative: str | None = None,
     domain_result: dict | None = None,
+    surface_exposure: dict | None = None,
+    domain_deep_recon: dict | None = None,
+    media_recon: dict | None = None,
     mode: str = "profile",
     plugin_results: list[dict] | None = None,
     plugin_errors: list[str] | None = None,
@@ -1338,6 +1557,9 @@ def generate_html(
           <a href="#errors">Errors</a>
           <a href="#correlation">Correlation</a>
           <a href="#exposure">Exposure</a>
+          {"<a href='#attack-surface'>Attack Surface</a>" if surface_exposure else ""}
+          {"<a href='#domain-intelligence'>Domain Intelligence</a>" if domain_deep_recon else ""}
+          {"<a href='#media-intel'>Media Intel</a>" if media_recon else ""}
           {"<a href='#ocr-scan'>OCR Scan</a>" if ocr_scan else ""}
           <a href="#plugins">Plugins</a>
           <a href="#filters">Filters</a>
@@ -1416,6 +1638,9 @@ def generate_html(
         </section>
 
         {_render_domain_section(domain_result)}
+        {_render_surface_exposure_section(surface_exposure)}
+        {_render_domain_deep_recon_section(domain_deep_recon)}
+        {_render_media_recon_section(media_recon)}
 
         <section class="panel" id="exposure">
           <div class="section-banner">

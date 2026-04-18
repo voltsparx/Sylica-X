@@ -24,9 +24,12 @@ classifiers = [
 dependencies = [
   "aiohttp",
   "cryptography>=42.0.0",
+  "dnspython>=2.4.0",
   "matplotlib>=3.8.0",
+  "numpy>=1.24.0",
   "Pillow>=10.0.0",
   "python-docx>=1.1.0",
+  "pyyaml>=6.0",
   "pytesseract>=0.3.10",
   "reportlab>=4.2.0",
   "scapy>=2.5.0",

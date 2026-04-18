@@ -49,6 +49,35 @@ class DomainSurfaceAdapter:
             max_subdomains=max_subdomains,
             recon_mode=recon_mode,
         )
+        from core.foundation.operator_config import (
+            get_domain_recon_config,
+            get_subdomain_harvest_config,
+            get_surface_probe_config,
+        )
+        from core.collect.domain_recon import run_domain_deep_recon
+        from core.collect.surface_exposure_map import build_surface_exposure_map
+
+        surface_cfg = get_surface_probe_config()
+        harvest_cfg = get_subdomain_harvest_config()
+        recon_cfg = get_domain_recon_config()
+
+        surface_exposure = None
+        if surface_cfg.get("enabled", True):
+            surface_exposure = await build_surface_exposure_map(
+                domain=normalized_domain,
+                scan_preset=surface_cfg.get("default_preset", "quick_surface"),
+                run_subdomain_harvest=harvest_cfg.get("enabled", True),
+                run_active_harvest=not harvest_cfg.get("passive_only", True),
+                scan_timeout=surface_cfg.get("default_timeout_seconds", 300),
+                harvest_timeout=harvest_cfg.get("default_timeout_seconds", 180),
+            )
+
+        deep_recon = None
+        if recon_cfg.get("enabled", True):
+            deep_recon = await run_domain_deep_recon(
+                domain=normalized_domain,
+                timeout_seconds=recon_cfg.get("timeout_seconds", 30),
+            )
 
         timestamp = datetime.now(tz=timezone.utc)
         entities: list[DomainEntity | AssetEntity | IpEntity] = []
@@ -74,6 +103,8 @@ class DomainSurfaceAdapter:
             "scan_notes": list(payload.get("scan_notes", [])),
             "robots_txt_present": bool(payload.get("robots_txt_present")),
             "security_txt_present": bool(payload.get("security_txt_present")),
+            "surface_exposure": surface_exposure,
+            "domain_deep_recon": deep_recon,
         }
         entities.append(
             DomainEntity(

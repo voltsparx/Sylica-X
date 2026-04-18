@@ -1,0 +1,50 @@
+silica_x:
+  version: "10.1"
+  description: "Silica-X operator configuration"
+
+surface_probe:
+  enabled: true
+  default_preset: "quick_surface"
+  default_timeout_seconds: 300
+  extra_flags: []
+  require_root_for_stealth_sweep: true
+
+subdomain_harvest:
+  enabled: true
+  passive_only: true
+  default_timeout_seconds: 180
+  config_file: null
+  wordlist_file: null
+
+domain_recon:
+  enabled: true
+  timeout_seconds: 30
+  run_whois: true
+  run_cert_transparency: true
+  run_http_headers: true
+  run_dns: true
+
+ocr_pipeline:
+  enabled: true
+  preprocess_intensity: "balanced"
+  use_tesseract: true
+  use_easyocr: true
+  tesseract_lang: "eng"
+  tesseract_config: "--oem 3 --psm 6"
+  easyocr_langs: ["en"]
+
+media_recon:
+  enabled: true
+  run_ocr_on_images: true
+  run_ocr_on_video_thumbnails: true
+  max_images_per_run: 25
+  timeout_seconds: 30
+
+report:
+  save_raw_scan_xml: true
+  save_raw_harvest_output: true
+  raw_output_directory: "output/raw"
+  include_surface_map_in_html: true
+  include_media_intel_in_html: true
+  include_domain_recon_in_html: true
+

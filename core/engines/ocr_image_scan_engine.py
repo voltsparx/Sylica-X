@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -15,10 +16,14 @@ from core.collect.ocr_image_scan import (
     OCRImageScanResult,
     OCRScanFailure,
     OCRScanItem,
+    _confidence_hint,
+    _detect_language,
+    _extract_dimensions,
     build_ocr_scan_summary,
+    extract_ocr_text_signals,
     fetch_remote_image_payload,
     load_local_image_payload,
-    analyze_ocr_image_payload,
+    preprocess_image_payload,
     resolve_ocr_sources,
 )
 
@@ -45,6 +50,64 @@ class OCRImageScanEngine(EngineBase):
     async def run_detailed(self, tasks: Any, context: dict[str, Any] | None = None) -> list[EngineResult]:
         return await self._async_engine.run_detailed(tasks, context=context)
 
+    def _analyze_payload_with_pipeline(
+        self,
+        *,
+        payload: bytes,
+        source: str,
+        source_kind: str,
+        content_type: str,
+        preprocess_mode: str,
+        max_edge: int | None,
+        threshold: int | None,
+    ) -> OCRScanItem:
+        from core.collect.ocr_pipeline import run_ocr_pipeline
+
+        processed_payload, pipeline, preprocess_notes = preprocess_image_payload(
+            payload,
+            preprocess_mode=preprocess_mode,
+            max_edge=max_edge,
+            threshold=threshold,
+        )
+        width, height = _extract_dimensions(processed_payload)
+        pipeline_result = run_ocr_pipeline(
+            processed_payload,
+            preprocess_intensity="off",
+        )
+        normalized_text = str(pipeline_result.get("merged_text", "") or "").strip()[:2400]
+        merged = pipeline_result.get("merged", {}) if isinstance(pipeline_result.get("merged"), dict) else {}
+        ocr_engine = str(merged.get("primary_engine", "none") or "none")
+        signals = extract_ocr_text_signals(normalized_text)
+        language = _detect_language(normalized_text)
+        notes = list(preprocess_notes)
+        if ocr_engine == "none":
+            notes.append("No optional OCR engine was available for this image.")
+        elif not normalized_text:
+            notes.append("OCR engine ran but produced no text.")
+
+        display_name = Path(source).name if source_kind == "local_path" else source
+        return OCRScanItem(
+            source=source,
+            source_kind=source_kind,
+            display_name=display_name,
+            content_type=content_type,
+            size_bytes=len(payload),
+            sha256=hashlib.sha256(payload).hexdigest(),
+            width=width,
+            height=height,
+            preprocess_pipeline=tuple(pipeline),
+            raw_text=normalized_text,
+            ocr_engine=ocr_engine,
+            extracted_signals=signals,
+            language=language,
+            confidence_hint=_confidence_hint(
+                raw_text=normalized_text,
+                signals=signals,
+                ocr_engine=ocr_engine,
+            ),
+            notes=tuple(notes),
+        )
+
     async def _process_local_source(
         self,
         source: str,
@@ -60,7 +123,7 @@ class OCRImageScanEngine(EngineBase):
             max_bytes=max_bytes,
         )
         return await asyncio.to_thread(
-            analyze_ocr_image_payload,
+            self._analyze_payload_with_pipeline,
             payload=payload,
             source=normalized_source,
             source_kind="local_path",
@@ -90,7 +153,7 @@ class OCRImageScanEngine(EngineBase):
             max_bytes=max_bytes,
         )
         return await asyncio.to_thread(
-            analyze_ocr_image_payload,
+            self._analyze_payload_with_pipeline,
             payload=payload,
             source=source,
             source_kind="remote_url",
