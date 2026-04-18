@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import difflib
 import re
+from typing import Any
 
 
 PLUGIN_SPEC = {
@@ -83,7 +84,7 @@ def run(context: dict) -> dict:
                 if ratio > previous:
                     ratio_map[normalized] = ratio
 
-    ranked = sorted(
+    ranked: list[dict[str, Any]] = sorted(
         (
             {
                 "username": username,
@@ -92,9 +93,13 @@ def run(context: dict) -> dict:
             }
             for username, platforms in candidate_map.items()
         ),
-        key=lambda item: (-item["similarity"], -len(item["platforms"]), item["username"]),
+        key=lambda item: (
+            -float(item.get("similarity", 0.0)),
+            -len(item.get("platforms", [])),
+            str(item.get("username", "")),
+        ),
     )
-    cross_platform = sum(1 for row in ranked if len(row["platforms"]) > 1)
+    cross_platform = sum(1 for row in ranked if len(row.get("platforms", [])) > 1)
     risk_score = min(100, (len(ranked) * 14) + (cross_platform * 10))
     severity = "HIGH" if risk_score >= 55 else "MEDIUM" if risk_score >= 25 else "INFO"
 

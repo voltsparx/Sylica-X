@@ -120,7 +120,7 @@ ENGINE_RULES: Final[tuple[str, ...]] = (
     "Needs full dataset -> SYNC",
 )
 
-_THREAD_WORKER_ENV = "SYLICA_THREAD_WORKERS"
+_THREAD_WORKER_ENV = "SILICA_X_THREAD_WORKERS"
 DEFAULT_THREAD_WORKERS: Final[int] = max(8, min(64, (os.cpu_count() or 4) * 4))
 MAX_THREAD_BATCH_CONCURRENCY: Final[int] = max(8, min(128, DEFAULT_THREAD_WORKERS * 2))
 
@@ -138,7 +138,7 @@ def _resolve_thread_worker_count() -> int:
 
 THREAD_EXECUTOR = ThreadPoolExecutor(
     max_workers=_resolve_thread_worker_count(),
-    thread_name_prefix="sylica-thread",
+    thread_name_prefix="silica-thread",
 )
 atexit.register(lambda: THREAD_EXECUTOR.shutdown(wait=False, cancel_futures=True))
 

@@ -64,6 +64,7 @@ def main() -> int:
 
         basic_commands = [
             ("about", [PYTHON, "silica-x.py", "--about"], 0),
+            ("doctor", [PYTHON, "silica-x.py", "doctor", "--json"], 0),
             ("module-entrypoint-about", [PYTHON, "-m", "silica_x", "--about"], 0),
             ("plugin-inventory", [PYTHON, "silica-x.py", "plugins", "--scope", "ocr"], 0),
             ("filter-inventory", [PYTHON, "silica-x.py", "filters", "--scope", "fusion"], 0),

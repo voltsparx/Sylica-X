@@ -28,7 +28,7 @@
       <span id="topbar-tagline">OSINT orchestration and correlation framework</span>
     </span>
   </button>
-  <div id="topbar-version">v10.0 Â· Python 3.11+ Â· Ember</div>
+  <div id="topbar-version">v10.0 | Python 3.11+ | Ember</div>
   <div class="topbar-search">
     <input id="docs-search-input" type="search" placeholder="Search the docs">
     <div id="docs-search-results" class="topbar-search-results" hidden></div>
@@ -84,6 +84,7 @@
         </div>
         <pre class="code-body"><span class="cmd">pip install</span> <span class="arg">silica-x</span>
 <span class="cmd">silica-x</span> <span class="arg">--about</span>
+<span class="cmd">silica-x</span> <span class="arg">doctor</span>
 <span class="cmd">python -m</span> <span class="arg">silica_x --about</span>
 <span class="cmd">python -c</span> <span class="arg">"import silica_x"</span></pre>
       </article>
@@ -173,7 +174,7 @@
           <pre class="code-body"><span class="cmd">silica-x</span></pre>
         </div>
         <ul class="simple-list">
-          <li><span class="list-label">First commands to try</span><span class="mono">help</span>, <span class="mono">show plugins</span>, <span class="mono">show filters</span>, <span class="mono">enable plugins threat_conductor</span>, <span class="mono">config</span>, <span class="mono">profile alice</span>.</li>
+          <li><span class="list-label">First commands to try</span><span class="mono">help</span>, <span class="mono">show plugins</span>, <span class="mono">show filters</span>, <span class="mono">enable plugin threat_conductor</span>, <span class="mono">config</span>, <span class="mono">profile alice</span>.</li>
           <li><span class="list-label">Why this helps</span>The prompt exposes aliases, help surfaces, explain text, defaults, and inventory counts in one place.</li>
         </ul>
       </article>
@@ -198,7 +199,7 @@
     </div>
     <div class="callout callout-info section-block">
       <div class="callout-title">Two smoke checks worth keeping</div>
-      Use <span class="mono">silica-x --about</span> to verify the installed CLI and <span class="mono">silica-x quicktest</span> if you want an offline sanity run against a bundled template.
+      Use <span class="mono">silica-x --about</span> to verify the installed CLI, <span class="mono">silica-x doctor</span> to inspect local dependencies and OCR/Tor readiness, and <span class="mono">silica-x quicktest</span> if you want an offline sanity run against a bundled template.
     </div>
   </section>
 </main>

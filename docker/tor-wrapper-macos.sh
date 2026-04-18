@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-TOR_CONFIG="${SCRIPT_DIR}/torrc.sylica"
+TOR_CONFIG="${SCRIPT_DIR}/torrc.silica_x"
 TOR_DATA_DIR="${TOR_DATA_DIR:-/tmp/tor-data}"
 NO_INSTALL=0
 TOR_ARGS=()
@@ -30,7 +30,7 @@ Usage:
 
 Wrapper options:
   --help               Show this help.
-  --config <path>      Tor config file path (default: docker/torrc.sylica).
+  --config <path>      Tor config file path (default: docker/torrc.silica_x).
   --data-dir <path>    Tor data dir (default: /tmp/tor-data).
   --no-install         Never install Tor automatically.
 

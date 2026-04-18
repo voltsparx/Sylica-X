@@ -120,7 +120,7 @@ class EngineBase(abc.ABC):
 
     @staticmethod
     def _task_name(task_factory: Callable[[], Awaitable[Any]], *, index: int) -> str:
-        explicit = str(getattr(task_factory, "_sylica_task_name", "")).strip()  # noqa: SLF001
+        explicit = str(getattr(task_factory, "_silica_x_task_name", "")).strip()  # noqa: SLF001
         if explicit:
             return explicit
         name = str(getattr(task_factory, "__name__", "")).strip()

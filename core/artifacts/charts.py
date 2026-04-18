@@ -10,6 +10,18 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
+def _coerce_float(value: object) -> float | None:
+    if isinstance(value, bool):
+        return float(value)
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value.strip())
+        except ValueError:
+            return None
+    return None
+
 
 def _status_counts(payload: dict[str, Any]) -> dict[str, int]:
     counts: dict[str, int] = {}
@@ -36,11 +48,9 @@ def _confidence_values(payload: dict[str, Any]) -> list[float]:
     for row in payload.get("results", []) or []:
         if not isinstance(row, dict):
             continue
-        raw = row.get("confidence")
-        try:
-            values.append(float(raw))
-        except (TypeError, ValueError):
-            continue
+        raw = _coerce_float(row.get("confidence"))
+        if raw is not None:
+            values.append(raw)
     return values or [0.0]
 
 
@@ -49,11 +59,9 @@ def _response_times(payload: dict[str, Any]) -> list[float]:
     for row in payload.get("results", []) or []:
         if not isinstance(row, dict):
             continue
-        raw = row.get("response_time_ms")
-        try:
-            values.append(float(raw))
-        except (TypeError, ValueError):
-            continue
+        raw = _coerce_float(row.get("response_time_ms"))
+        if raw is not None:
+            values.append(raw)
     return values or [0.0]
 
 

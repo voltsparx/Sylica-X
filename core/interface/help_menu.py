@@ -96,6 +96,7 @@ def show_flag_help() -> None:
             ("frameworks [flags]:", "Inspect local source-profile intel from temp/ study trees."),
             ("history [--limit N]:", "List previously scanned targets."),
             ("live <target> [--port]:", "Open local live dashboard."),
+            ("doctor [--json]:", "Run local dependency, OCR, Tor, and Reporter diagnostics."),
             ("anonymity [flags]:", "Check or change Tor/proxy routing."),
             ("keywords:", "Show prompt keyword shortcuts."),
             ("about | explain | prompt | help:", "Metadata, explainers, interactive mode, help."),
@@ -182,6 +183,7 @@ def show_prompt_help() -> None:
             ("show templates:", "List bundled info-templates."),
             ("show history [--limit N]:", "List previously scanned targets."),
             ("show config:", "Show prompt defaults and active module."),
+            ("doctor:", "Print runtime, OCR, Tor, and Reporter diagnostics."),
             ("surface ... --recon-mode passive|active|hybrid:", "Control surface collection lane depth and noise."),
             ("surface|fusion|orchestrate ... --scan-type <...>:", "Control scan directives, OS hints, verbosity, and pacing."),
             ("out-type <types>:", "Set persisted output formats (cli, html, csv, json, sql, docx, pdf)."),
@@ -212,7 +214,7 @@ def show_prompt_help() -> None:
             ("select template <id>:", "Alias for `set template`."),
             ("add plugins <a,b> / remove plugins <a,b>:", "Incremental plugin control by name."),
             ("add filters <a,b> / remove filters <a,b>:", "Incremental filter control by name."),
-            ("enable modules <a,b> / disable modules <a,b>:", "Incremental module attachable control by catalog selector."),
+            ("enable module <a,b> / disable module <a,b>:", "Incremental module attachable control by catalog selector."),
         )
     )
 
@@ -236,7 +238,7 @@ def show_prompt_help() -> None:
     _example("show frameworks:", "Inspect the local source-profile inventory and architecture references.")
     _example("use fusion:", "Switch prompt context to fusion workflows.")
     _example("surface-kit example.com --preset subdomain-enum --dry-run:", "Preview the translated Silica-X plan for a source recipe.")
-    _example("set plugins threat_conductor,signal_fusion_core:", "Set plugin defaults by name.")
+    _example("enable plugin threat_conductor:", "Add one plugin to the current prompt session.")
     _example("quicktest --seed 7 --html --csv:", "Run deterministic synthetic smoke with reports.")
     print()
 

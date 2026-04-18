@@ -56,9 +56,9 @@ class TestEngineRuntime(unittest.TestCase):
 
         engine = AsyncEngine()
         task_ok = lambda: _ok()
-        setattr(task_ok, "_sylica_task_name", "ok_task")
+        setattr(task_ok, "_silica_x_task_name", "ok_task")
         task_slow = lambda: _slow()
-        setattr(task_slow, "_sylica_task_name", "slow_task")
+        setattr(task_slow, "_silica_x_task_name", "slow_task")
 
         results = asyncio.run(
             engine.run_detailed(

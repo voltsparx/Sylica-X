@@ -39,6 +39,7 @@ Silica-X is a Python intelligence framework for authorized OSINT work. It combin
 ```bash
 pip install silica-x
 silica-x
+silica-x doctor
 ```
 
 ```python
@@ -61,7 +62,7 @@ pip install ".[reports]"
 pip install ".[ocr]"
 ```
 
-`pytesseract` is a Python wrapper, but OCR still depends on a reachable `tesseract` binary. Silica-X now reports which OCR/image backends were actually available during the run.
+`pytesseract` is a Python wrapper, but OCR still depends on a reachable `tesseract` binary. Silica-X now reports which OCR/image backends were actually available during the run, and `silica-x doctor` gives a quick local diagnostic pass for OCR, Tor, Reporter backends, output settings, and runtime inventory.
 
 ## Quick examples
 
@@ -71,6 +72,7 @@ silica-x surface example.com --html
 silica-x fusion alice example.com --html
 silica-x ocr ./captures/poster.png --url https://example.com/image.png --html
 silica-x profile alice --plugin media_recon_engine --plugin post_signal_intel --plugin stego_signal_probe --html
+silica-x doctor
 ```
 
 ## Reporter outputs
@@ -91,9 +93,9 @@ Reporter is designed to make the result easier to triage by grouping identity fi
 In prompt mode, attachables can be configured as session defaults with commands like:
 
 ```text
-enable plugins threat_conductor
-enable filters contact_canonicalizer
-enable modules source-pack-01-module-1
+enable plugin threat_conductor
+enable filter contact_canonicalizer
+enable module source-pack-01-module-1
 config
 ```
 
@@ -132,6 +134,7 @@ python -m ruff check .
 python -m mypy
 python -m compileall -q core filters modules plugins tests silica-x.py
 python scripts/smoke_suite.py
+silica-x doctor
 ```
 
 Core package naming:

@@ -32,7 +32,7 @@ _SOURCE_OPTION_LABELS: dict[str, str] = {
     "yes": "Skip interactive scan confirmation",
 }
 
-_RECIPE_TO_SYLICA: dict[str, dict[str, Any]] = {
+_RECIPE_TO_silica_x: dict[str, dict[str, Any]] = {
     "subdomain-enum": {
         "surface_preset": "deep",
         "recon_mode": "passive",
@@ -522,7 +522,7 @@ def build_surface_recipe_plan(
         }
     )
 
-    recipe_defaults = dict(_RECIPE_TO_SYLICA.get(recipe_name, {}))
+    recipe_defaults = dict(_RECIPE_TO_silica_x.get(recipe_name, {}))
     resolved_recon_mode = normalize_recon_mode(recon_mode or str(recipe_defaults.get("recon_mode", "hybrid")))
     surface_preset = str(recipe_defaults.get("surface_preset", "balanced"))
     include_ct = bool(recipe_defaults.get("include_ct", True))
@@ -570,7 +570,7 @@ def build_surface_recipe_plan(
         "partial_capabilities": partial_capabilities,
         "unsupported_capabilities": unsupported_capabilities,
         "unsupported_modules_preview": unsupported_modules[:20],
-        "sylica_mapping": {
+        "silica_x_mapping": {
             "surface_preset": surface_preset,
             "recon_mode": resolved_recon_mode,
             "include_ct": include_ct,

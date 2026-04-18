@@ -84,7 +84,7 @@ def write_sqlite_report(path: Path, payload: dict[str, Any]) -> str:
                 payload_json,
             ),
         )
-        run_id = int(cursor.lastrowid)
+        run_id = int(cursor.lastrowid or 0)
 
         def _insert_rows(kind: str, rows: list[dict[str, Any]], identifier_key: str, summary_key: str) -> None:
             for row in rows:

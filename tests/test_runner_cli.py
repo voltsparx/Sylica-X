@@ -52,6 +52,13 @@ class TestRunnerCli(unittest.TestCase):
             status = asyncio.run(run(["ocr"]))
         self.assertEqual(status, EXIT_USAGE)
 
+    def test_run_doctor_returns_success(self):
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            status = asyncio.run(run(["doctor", "--json"]))
+        self.assertEqual(status, 0)
+        self.assertIn('"summary"', buffer.getvalue())
+
     def test_keyword_mapping_supports_prompt_shortcuts(self):
         self.assertEqual(_keyword_to_command("social"), "profile")
         self.assertEqual(_keyword_to_command("domain"), "surface")
@@ -120,6 +127,12 @@ class TestRunnerCli(unittest.TestCase):
         args = parser.parse_args(["profile", "alice", "--preset", "max"])
         self.assertEqual(args.command, "profile")
         self.assertEqual(args.preset, "max")
+
+    def test_root_doctor_parser_parses_json_flag(self):
+        parser = build_root_parser()
+        args = parser.parse_args(["doctor", "--json"])
+        self.assertEqual(args.command, "doctor")
+        self.assertTrue(args.json)
 
     def test_root_surface_parser_parses_flags(self):
         parser = build_root_parser()

@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 $ScriptName = Split-Path -Leaf $PSCommandPath
 $ScriptDir = Split-Path -Parent $PSCommandPath
 
-$TorConfig = Join-Path $ScriptDir 'torrc.sylica'
+$TorConfig = Join-Path $ScriptDir 'torrc.silica_x'
 $TorDataDir = if ($env:TOR_DATA_DIR) { $env:TOR_DATA_DIR } else { Join-Path $env:TEMP 'tor-data' }
 $NoInstall = $false
 $TorArgs = [System.Collections.Generic.List[string]]::new()
@@ -38,7 +38,7 @@ Usage:
 
 Wrapper options:
   --help               Show this help.
-  --config <path>      Tor config file path (default: docker/torrc.sylica).
+  --config <path>      Tor config file path (default: docker/torrc.silica_x).
   --data-dir <path>    Tor data dir (default: %TEMP%\tor-data).
   --no-install         Never install Tor automatically.
 

@@ -162,7 +162,7 @@ class OCRImageScanEngine(EngineBase):
                         )
 
                     task_name = f"ocr-local:{Path(source.source).name}"
-                setattr(_task, "_sylica_task_name", task_name)
+                setattr(_task, "_silica_x_task_name", task_name)
                 task_factories.append((source, _task))
 
             batch = await self._async_engine.run_detailed(

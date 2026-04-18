@@ -28,7 +28,7 @@
       <span id="topbar-tagline">OSINT orchestration and correlation framework</span>
     </span>
   </button>
-  <div id="topbar-version">v10.0 Â· Python 3.11+ Â· Ember</div>
+  <div id="topbar-version">v10.0 | Python 3.11+ | Ember</div>
   <div class="topbar-search">
     <input id="docs-search-input" type="search" placeholder="Search the docs">
     <div id="docs-search-results" class="topbar-search-results" hidden></div>
@@ -129,6 +129,12 @@
         <div class="card-copy"><p>List saved targets and launch a local live dashboard for stored results.</p></div>
         <div class="command-snippet mono">silica-x history</div>
       </article>
+      <article class="card">
+        <div class="command-card-head"><span class="icon-chip">D</span><div class="command-name">doctor</div></div>
+        <div class="command-aliases">runtime diagnostics</div>
+        <div class="card-copy"><p>Check local OCR tooling, Reporter backends, Tor reachability, output config, and runtime inventory without starting a scan.</p></div>
+        <div class="command-snippet mono">silica-x doctor</div>
+      </article>
     </div>
   </section>
 
@@ -146,6 +152,7 @@
       <div class="table-mini-row"><div class="table-mini-key"><span class="mono">--profile-preset</span> / <span class="mono">--surface-preset</span></div><div>Split preset controls for fusion workflows.</div></div>
       <div class="table-mini-row"><div class="table-mini-key"><span class="mono">--ct</span> / <span class="mono">--rdap</span></div><div>Surface-oriented enrichment toggles documented in the README examples and tables.</div></div>
       <div class="table-mini-row"><div class="table-mini-key"><span class="mono">--about</span> / <span class="mono">--explain</span></div><div>Project description and plain-language help surfaces for onboarding.</div></div>
+      <div class="table-mini-row"><div class="table-mini-key"><span class="mono">doctor --json</span></div><div>Emit a machine-readable environment and dependency diagnostic snapshot.</div></div>
     </div>
     <div class="callout callout-info section-block">
       <div class="callout-title">Output configuration is also command-driven</div>
@@ -188,6 +195,7 @@
 <span class="cmd">silica-x</span> <span class="arg">profile alice --html --plugin threat_conductor --filter contact_canonicalizer</span>
 <span class="cmd">silica-x</span> <span class="arg">surface example.com --ct --rdap --module source-pack-01-module-1 --html</span>
 <span class="cmd">silica-x</span> <span class="arg">fusion alice example.com --profile-preset deep --surface-preset balanced --out-type json,html,sql,docx,pdf</span>
+<span class="cmd">silica-x</span> <span class="arg">doctor --json</span>
 <span class="cmd">silica-x</span> <span class="arg">prompt</span></pre>
     </article>
   </section>
@@ -209,11 +217,11 @@
             <span class="code-dot"></span>
             <span class="code-lang">text</span>
           </div>
-          <pre class="code-body">enable plugins threat_conductor
-enable filters contact_canonicalizer
-enable modules source-pack-01-module-1
+          <pre class="code-body">enable plugin threat_conductor
+enable filter contact_canonicalizer
+enable module source-pack-01-module-1
 config
-disable modules source-pack-01-module-1</pre>
+disable module source-pack-01-module-1</pre>
         </div>
         <ul class="simple-list">
           <li><span class="list-label">Session scope</span>Attachables stay in the prompt session until you change or clear them.</li>

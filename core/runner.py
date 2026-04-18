@@ -21,6 +21,7 @@ import argparse
 from collections.abc import Iterable, Sequence
 import difflib
 import html
+import importlib.util
 import json
 import os
 import shlex
@@ -95,9 +96,7 @@ from core.intel.prompt_engine import PromptEngine
 from core.artifacts.reporting import ReportGenerator
 from core.intel.capability_matrix import (
     build_capability_pack,
-    build_runtime_inventory_snapshot,
     write_capability_report,
-    write_runtime_inventory_snapshot,
 )
 from core.intel.recon_sources import (
     build_surface_recipe_plan,
@@ -158,6 +157,7 @@ def _prompt_command_catalog() -> list[str]:
         "capability-pack",
         "clear",
         "default-out-print",
+        "doctor",
         "disable",
         "enable",
         "exit",
@@ -1059,7 +1059,7 @@ def _print_framework_inventory(
 
 def _print_surface_recipe_plan(plan: dict[str, Any]) -> None:
     preset = plan.get("recipe", {}) if isinstance(plan.get("recipe"), dict) else {}
-    mapping = plan.get("sylica_mapping", {}) if isinstance(plan.get("sylica_mapping"), dict) else {}
+    mapping = plan.get("silica_x_mapping", {}) if isinstance(plan.get("silica_x_mapping"), dict) else {}
 
     print(c(f"\n{symbol('major')} Surface Kit Plan", Colors.BLUE))
     print(c("-" * 36, Colors.BLUE))
@@ -1097,7 +1097,7 @@ def _print_surface_recipe_plan(plan: dict[str, Any]) -> None:
     unsupported_modules = plan.get("unsupported_modules_preview", [])
     if isinstance(unsupported_modules, list) and unsupported_modules:
         print(c(f"  unsupported_modules_preview: {', '.join(unsupported_modules)}", Colors.WHITE))
-    print(c(f"  sylica_command: {plan.get('execution_preview', '-')}", Colors.CYAN))
+    print(c(f"  silica_x_command: {plan.get('execution_preview', '-')}", Colors.CYAN))
     print()
 
 
@@ -1227,6 +1227,94 @@ def _collect_runtime_inventory() -> RuntimeInventorySummary:
     return run_with_spinner("[*] Loading Silica-X runtime inventory... ", _build)
 
 
+def _module_available(module_name: str) -> bool:
+    return importlib.util.find_spec(module_name) is not None
+
+
+def _build_doctor_snapshot() -> dict[str, Any]:
+    inventory = _collect_runtime_inventory()
+    output_settings = describe_output_settings()
+    tor_status = probe_tor_status()
+    ocr_tooling = detect_image_tooling()
+    report_backends = {
+        "matplotlib": {"available": _module_available("matplotlib")},
+        "python_docx": {"available": _module_available("docx")},
+        "reportlab": {"available": _module_available("reportlab")},
+        "sqlite3": {"available": True},
+    }
+
+    warnings: list[str] = []
+    errors: list[str] = []
+
+    if inventory.plugin_errors:
+        warnings.append(f"Plugin discovery reported {len(inventory.plugin_errors)} warning(s).")
+    if inventory.filter_errors:
+        warnings.append(f"Filter discovery reported {len(inventory.filter_errors)} warning(s).")
+    if inventory.platform_error:
+        errors.append(f"Platform inventory failed: {inventory.platform_error}")
+    if inventory.module_error:
+        errors.append(f"Module catalog failed: {inventory.module_error}")
+    if str(ocr_tooling.get("preferred_engine") or "none") == "none":
+        warnings.append("No usable OCR engine is currently available.")
+    if not bool((ocr_tooling.get("pytesseract") or {}).get("tesseract_binary_found")):
+        warnings.append("Tesseract binary was not found on PATH.")
+    if not report_backends["matplotlib"]["available"]:
+        warnings.append("matplotlib is unavailable; portable report charts may be reduced.")
+    if not report_backends["python_docx"]["available"]:
+        warnings.append("python-docx is unavailable; DOCX output will be unavailable.")
+    if not report_backends["reportlab"]["available"]:
+        warnings.append("reportlab is unavailable; PDF output will be unavailable.")
+    if not tor_status.binary_found:
+        warnings.append("Tor binary is not installed on this machine.")
+
+    return {
+        "silica_x": {
+            "name": PROJECT_NAME,
+            "version": VERSION,
+            "signature": framework_signature(),
+        },
+        "generated_at_utc": utc_timestamp(),
+        "runtime_inventory": {
+            "plugins": inventory.plugin_count,
+            "filters": inventory.filter_count,
+            "platforms": inventory.platform_count,
+            "modules": inventory.module_count,
+            "plugin_scope_counts": inventory.plugin_scope_counts,
+            "filter_scope_counts": inventory.filter_scope_counts,
+            "plugin_warning_count": len(inventory.plugin_errors),
+            "filter_warning_count": len(inventory.filter_errors),
+            "platform_error": inventory.platform_error,
+            "module_error": inventory.module_error,
+            "hybrid_architecture": inventory.hybrid_architecture,
+        },
+        "output": {
+            "root": str(output_settings.get("output_root") or ""),
+            "types": str(output_settings.get("output_types") or ""),
+            "default_base_dir": str(output_settings.get("default_base_dir") or ""),
+            "current_base_dir": str(output_settings.get("current_base_dir") or ""),
+            "config_path": str(output_settings.get("config_path") or ""),
+        },
+        "ocr_tooling": ocr_tooling,
+        "report_backends": report_backends,
+        "tor": {
+            "binary_found": tor_status.binary_found,
+            "binary_path": tor_status.binary_path,
+            "socks_host": TOR_HOST,
+            "socks_port": TOR_SOCKS_PORT,
+            "socks_reachable": tor_status.socks_reachable,
+            "install_supported": tor_status.install_supported,
+            "notes": list(tor_status.notes),
+        },
+        "warnings": warnings,
+        "errors": errors,
+        "summary": {
+            "status": "ok" if not errors else "issues",
+            "warning_count": len(warnings),
+            "error_count": len(errors),
+        },
+    }
+
+
 def _print_runtime_loaded_inventory() -> None:
     inventory = _collect_runtime_inventory()
 
@@ -1260,25 +1348,77 @@ def _print_runtime_loaded_inventory() -> None:
         print(c(f"{symbol('warn')} platform inventory unavailable: {inventory.platform_error}", Colors.EMBER))
     if inventory.module_error:
         print(c(f"{symbol('warn')} module catalog unavailable: {inventory.module_error}", Colors.EMBER))
-
-    snapshot = build_runtime_inventory_snapshot(
-        plugin_count=inventory.plugin_count,
-        filter_count=inventory.filter_count,
-        platform_count=inventory.platform_count,
-        module_count=inventory.module_count,
-        plugin_scope_counts=inventory.plugin_scope_counts,
-        filter_scope_counts=inventory.filter_scope_counts,
-        plugin_error_count=len(inventory.plugin_errors),
-        filter_error_count=len(inventory.filter_errors),
-        platform_error=inventory.platform_error,
-        module_error=inventory.module_error,
-        hybrid_architecture=inventory.hybrid_architecture,
-    )
-    try:
-        write_runtime_inventory_snapshot(snapshot)
-    except Exception as exc:  # pragma: no cover - diagnostics-only path
-        print(c(f"{symbol('warn')} runtime inventory snapshot failed: {exc}", Colors.EMBER))
     print()
+
+
+def _print_doctor_report(snapshot: dict[str, Any]) -> None:
+    summary_raw = snapshot.get("summary")
+    runtime_inventory_raw = snapshot.get("runtime_inventory")
+    output_raw = snapshot.get("output")
+    ocr_tooling_raw = snapshot.get("ocr_tooling")
+    report_backends_raw = snapshot.get("report_backends")
+    tor_data_raw = snapshot.get("tor")
+    summary: dict[str, Any] = summary_raw if isinstance(summary_raw, dict) else {}
+    runtime_inventory: dict[str, Any] = runtime_inventory_raw if isinstance(runtime_inventory_raw, dict) else {}
+    output: dict[str, Any] = output_raw if isinstance(output_raw, dict) else {}
+    ocr_tooling: dict[str, Any] = ocr_tooling_raw if isinstance(ocr_tooling_raw, dict) else {}
+    report_backends: dict[str, Any] = report_backends_raw if isinstance(report_backends_raw, dict) else {}
+    tor_data: dict[str, Any] = tor_data_raw if isinstance(tor_data_raw, dict) else {}
+    warnings = snapshot.get("warnings") if isinstance(snapshot.get("warnings"), list) else []
+    errors = snapshot.get("errors") if isinstance(snapshot.get("errors"), list) else []
+
+    status_text = "OK" if str(summary.get("status") or "issues") == "ok" else "ISSUES"
+    status_color = Colors.GREEN if status_text == "OK" else Colors.RED
+
+    print(c(f"\n{symbol('major')} Silica-X Doctor", Colors.BLUE))
+    print(c("-" * 36, Colors.BLUE))
+    print(c(f"{symbol('action')} status={status_text} warnings={summary.get('warning_count', 0)} errors={summary.get('error_count', 0)}", status_color))
+    print(c(f"{symbol('bullet')} generated_at={snapshot.get('generated_at_utc', '-')}", Colors.CYAN))
+
+    print(c("\nruntime inventory:", Colors.BLUE))
+    print(c(f"  plugins={runtime_inventory.get('plugins', 0)} filters={runtime_inventory.get('filters', 0)} platforms={runtime_inventory.get('platforms', 0)} modules={runtime_inventory.get('modules', 0)}", Colors.CYAN))
+    print(c(f"  plugin warnings={runtime_inventory.get('plugin_warning_count', 0)} filter warnings={runtime_inventory.get('filter_warning_count', 0)}", Colors.CYAN))
+
+    print(c("\noutput:", Colors.BLUE))
+    print(c(f"  root={output.get('root', '-')}", Colors.CYAN))
+    print(c(f"  types={output.get('types', '-')}", Colors.CYAN))
+    print(c(f"  current base={output.get('current_base_dir', '-')}", Colors.CYAN))
+    print(c(f"  config={output.get('config_path', '-')}", Colors.CYAN))
+
+    print(c("\nocr tooling:", Colors.BLUE))
+    print(c(f"  preferred_engine={ocr_tooling.get('preferred_engine', 'none')}", Colors.CYAN))
+    print(c(f"  pillow={bool((ocr_tooling.get('pillow') or {}).get('available'))}", Colors.CYAN))
+    print(c(f"  easyocr={bool((ocr_tooling.get('easyocr') or {}).get('available'))}", Colors.CYAN))
+    print(c(f"  pytesseract={bool((ocr_tooling.get('pytesseract') or {}).get('available'))}", Colors.CYAN))
+    print(c(f"  tesseract_binary_found={bool((ocr_tooling.get('pytesseract') or {}).get('tesseract_binary_found'))}", Colors.CYAN))
+
+    print(c("\nreport backends:", Colors.BLUE))
+    for key, value in report_backends.items():
+        available = bool(value.get("available")) if isinstance(value, dict) else False
+        print(c(f"  {key}={available}", Colors.CYAN))
+
+    print(c("\ntor:", Colors.BLUE))
+    print(c(f"  binary_found={bool(tor_data.get('binary_found'))} socks_reachable={bool(tor_data.get('socks_reachable'))}", Colors.CYAN))
+    print(c(f"  binary_path={tor_data.get('binary_path') or '-'}", Colors.CYAN))
+
+    if warnings:
+        print(c("\nwarnings:", Colors.EMBER))
+        for item in warnings:
+            print(c(f"  - {item}", Colors.EMBER))
+    if errors:
+        print(c("\nerrors:", Colors.RED))
+        for item in errors:
+            print(c(f"  - {item}", Colors.RED))
+    print()
+
+
+async def _handle_doctor_command(args: argparse.Namespace) -> int:
+    snapshot = _build_doctor_snapshot()
+    if bool(getattr(args, "json", False)):
+        print(json.dumps(snapshot, indent=2))
+    else:
+        _print_doctor_report(snapshot)
+    return EXIT_FAILURE if int((snapshot.get("summary") or {}).get("error_count", 0) or 0) > 0 else EXIT_SUCCESS
 
 
 def launch_live_dashboard(
@@ -4272,7 +4412,7 @@ async def _handle_surface_kit_command(args: argparse.Namespace, state: RunnerSta
     if bool(getattr(args, "dry_run", False)):
         return EXIT_SUCCESS
 
-    mapping = plan.get("sylica_mapping", {}) if isinstance(plan.get("sylica_mapping"), dict) else {}
+    mapping = plan.get("silica_x_mapping", {}) if isinstance(plan.get("silica_x_mapping"), dict) else {}
     resolved_preset = str(mapping.get("surface_preset", "balanced"))
     resolved_recon_mode = str(mapping.get("recon_mode", "hybrid"))
     timeout_seconds, max_subdomains, _ = _resolve_surface_runtime(
@@ -5029,6 +5169,8 @@ async def _dispatch(args: argparse.Namespace, state: RunnerState, prompt_mode: b
         return await _handle_live_command(args, prompt_mode=prompt_mode)
     if args.command == "anonymity":
         return await _handle_anonymity_command(args, state=state, prompt_mode=prompt_mode)
+    if args.command == "doctor":
+        return await _handle_doctor_command(args)
     if args.command == "keywords":
         _print_keyword_inventory()
         return EXIT_SUCCESS
@@ -5323,4 +5465,3 @@ async def run(argv: Sequence[str] | None = None) -> int:
         return EXIT_FAILURE
     append_framework_log("framework_exit", f"status={status}")
     return status
-

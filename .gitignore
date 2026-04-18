@@ -44,6 +44,16 @@ output/**
 !output/cli/.gitkeep
 !output/logs/
 !output/logs/.gitkeep
+!output/sql/
+!output/sql/.gitkeep
+!output/pdf/
+!output/pdf/.gitkeep
+!output/json/
+!output/json/.gitkeep
+!output/docx/
+!output/docx/.gitkeep
+!output/csv/
+!output/csv/.gitkeep
 
 # =========================================
 # Local test scratch

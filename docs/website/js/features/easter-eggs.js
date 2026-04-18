@@ -14,7 +14,7 @@ const EasterEgg = (() => {
     threatconductor: () => showToast("Threat conductor armed", "Priority signal stack elevated."),
     orbitmatrix: () => showToast("Orbit link matrix", "Outbound link constellation projected."),
     ember: () => toggleBlueprintMode(),
-    sylica: () => showToast("Legacy alias detected", "Public naming stays Silica-X.")
+    silica_x: () => showToast("Legacy alias detected", "Public naming stays Silica-X.")
   };
 
   function ensureToast() {

@@ -13,7 +13,7 @@
 # and conditions defined in the LICENSE file.
 # ──────────────────────────────────────────────────────────────
 
-"""Sylica source-intel module catalog and integration utilities."""
+"""silica_x source-intel module catalog and integration utilities."""
 
 from modules.catalog import (
     DEFAULT_MODULES_ROOT,

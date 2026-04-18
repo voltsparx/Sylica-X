@@ -13,7 +13,7 @@
 # and conditions defined in the LICENSE file.
 # ──────────────────────────────────────────────────────────────
 
-"""Sylica source-intel module catalog builder and query helpers."""
+"""silica_x source-intel module catalog builder and query helpers."""
 
 from __future__ import annotations
 
@@ -174,7 +174,7 @@ SORTABLE_FIELDS = {
 TEXT_SORT_FIELDS = {"framework", "file", "kind"}
 
 
-def _sylica_meta() -> dict[str, str]:
+def _silica_x_meta() -> dict[str, str]:
     return {
         "project": PROJECT_NAME,
         "version": VERSION,
@@ -634,7 +634,7 @@ def _kind_payload(
         avg_power = round(total_power / float(len(selected)), 2)
 
     return {
-        "sylica": _sylica_meta(),
+        "silica_x": _silica_x_meta(),
         "generated_at_utc": _now_utc(),
         "kind": kind,
         "source_root": source_root.as_posix(),
@@ -676,7 +676,7 @@ def build_module_catalog(
 
     module_rows: list[dict[str, Any]]
     if jobs and resolved_max_workers > 1:
-        with ThreadPoolExecutor(max_workers=resolved_max_workers, thread_name_prefix="sylica-modcat") as executor:
+        with ThreadPoolExecutor(max_workers=resolved_max_workers, thread_name_prefix="silica_x-modcat") as executor:
             module_rows = list(
                 executor.map(
                     lambda job: _analyze_source_file(
@@ -790,7 +790,7 @@ def build_module_catalog(
 
     scan_duration_ms = int((time.perf_counter() - scan_started) * 1000)
     payload = {
-        "sylica": _sylica_meta(),
+        "silica_x": _silica_x_meta(),
         "catalog_version": DEFAULT_CATALOG_VERSION,
         "generated_at_utc": _now_utc(),
         "source_root": source.as_posix(),

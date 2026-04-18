@@ -2,4 +2,4 @@
 set -eu
 
 mkdir -p /tmp/tor-data
-exec /usr/bin/tor -f /etc/tor/torrc.sylica "$@"
+exec /usr/bin/tor -f /etc/tor/torrc.silica_x "$@"

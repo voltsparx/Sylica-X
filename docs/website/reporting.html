@@ -28,7 +28,7 @@
       <span id="topbar-tagline">OSINT orchestration and correlation framework</span>
     </span>
   </button>
-  <div id="topbar-version">v10.0 Â· Python 3.11+ Â· Ember</div>
+  <div id="topbar-version">v10.0 | Python 3.11+ | Ember</div>
   <div class="topbar-search">
     <input id="docs-search-input" type="search" placeholder="Search the docs">
     <div id="docs-search-results" class="topbar-search-results" hidden></div>
@@ -203,6 +203,7 @@
 <span class="cmd">python -m mypy</span>
 <span class="cmd">python -m compileall -q core filters modules plugins platforms wordlists silica_x tests silica-x.py</span>
 <span class="cmd">python scripts/smoke_suite.py</span>
+<span class="cmd">silica-x doctor</span>
 <span class="cmd">silica-x --about</span>
 <span class="cmd">python -m silica_x --about</span>
 <span class="cmd">python -c "import silica_x"</span></pre>
@@ -238,12 +239,12 @@
         </div>
         <pre class="code-body">{
   "ocr_tooling": {
-    "preferred_engine": "pytesseract",
+    "preferred_engine": "none",
     "pillow": {"available": true},
     "easyocr": {"available": false},
     "pytesseract": {
       "available": true,
-      "tesseract_binary_found": true
+      "tesseract_binary_found": false
     }
   }
 }</pre>
@@ -251,7 +252,7 @@
     </div>
     <div class="callout callout-info section-block">
       <div class="callout-title">Troubleshooting mental model</div>
-      If OCR results are unexpectedly empty, first check whether Reporter recorded <span class="mono">preferred_engine: none</span>. If it did, the issue is usually missing Python-side OCR packages or a missing <span class="mono">tesseract</span> binary rather than a report-rendering failure. If <span class="mono">pytesseract</span> is available but <span class="mono">tesseract_binary_found</span> is false, install or expose the system binary before expecting usable OCR output.
+      If OCR results are unexpectedly empty, first check whether Reporter recorded <span class="mono">preferred_engine: none</span>. If it did, the issue is usually missing Python-side OCR packages or a missing <span class="mono">tesseract</span> binary rather than a report-rendering failure. If <span class="mono">pytesseract</span> is available but <span class="mono">tesseract_binary_found</span> is false, install or expose the system binary before expecting usable OCR output. The quickest local check is <span class="mono">silica-x doctor</span>.
     </div>
   </section>
 </main>

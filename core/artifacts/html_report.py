@@ -20,6 +20,7 @@ from __future__ import annotations
 import html
 import json
 from datetime import datetime
+from typing import Any
 
 from core.foundation.metadata import AUTHOR, PROJECT_NAME, VERSION, framework_signature
 from core.analyze.profile_summary import (
@@ -657,7 +658,8 @@ def _render_ocr_scan(ocr_scan: dict | None) -> str:
     if not isinstance(ocr_scan, dict) or not ocr_scan:
         return ""
 
-    summary = ocr_scan.get("summary") if isinstance(ocr_scan.get("summary"), dict) else {}
+    summary_raw = ocr_scan.get("summary")
+    summary: dict[str, Any] = summary_raw if isinstance(summary_raw, dict) else {}
     items = _safe_dict_rows(ocr_scan.get("items"))
     failures = _safe_dict_rows(ocr_scan.get("failures"))
 

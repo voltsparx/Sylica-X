@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 
 FILTER_SPEC = {
     "id": "ocr_signal_classifier",
@@ -11,6 +13,21 @@ FILTER_SPEC = {
     "aliases": ["ocr_classifier", "ocr_triage"],
     "version": "1.0",
 }
+
+
+def _coerce_int(value: object) -> int:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(value.strip())
+        except ValueError:
+            return 0
+    return 0
 
 
 def run(context: dict) -> dict:
@@ -25,11 +42,13 @@ def run(context: dict) -> dict:
                 payload = data
                 break
 
-    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
-    signal_totals = summary.get("signal_totals") if isinstance(summary.get("signal_totals"), dict) else {}
-    processed = int(summary.get("processed_count") or 0)
-    ocr_hits = int(summary.get("ocr_hits") or 0)
-    signal_score = sum(int(value or 0) for value in signal_totals.values())
+    summary_raw = payload.get("summary")
+    summary: dict[str, Any] = summary_raw if isinstance(summary_raw, dict) else {}
+    signal_totals_raw = summary.get("signal_totals")
+    signal_totals: dict[str, Any] = signal_totals_raw if isinstance(signal_totals_raw, dict) else {}
+    processed = _coerce_int(summary.get("processed_count"))
+    ocr_hits = _coerce_int(summary.get("ocr_hits"))
+    signal_score = sum(_coerce_int(value) for value in signal_totals.values())
 
     if signal_score >= 6 or ocr_hits >= 2:
         severity = "MEDIUM"
@@ -58,6 +77,6 @@ def run(context: dict) -> dict:
             "processed_count": processed,
             "ocr_hits": ocr_hits,
             "signal_score": signal_score,
-            "signal_totals": {str(key): int(value or 0) for key, value in signal_totals.items()},
+            "signal_totals": {str(key): _coerce_int(value) for key, value in signal_totals.items()},
         },
     }

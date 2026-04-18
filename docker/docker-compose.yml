@@ -1,23 +1,23 @@
-x-sylica-common: &sylica-common
+x-silica_x-common: &silica_x-common
   stdin_open: true
   tty: true
   init: true
   read_only: true
   tmpfs:
     - /tmp
-    - /home/sylica
+    - /home/silica_x
   cap_drop:
     - ALL
   security_opt:
     - no-new-privileges:true
-  pids_limit: ${SYLICA_DOCKER_PIDS_LIMIT:-256}
-  mem_limit: ${SYLICA_DOCKER_MEM_LIMIT:-1g}
+  pids_limit: ${silica_x_DOCKER_PIDS_LIMIT:-256}
+  mem_limit: ${silica_x_DOCKER_MEM_LIMIT:-1g}
   stop_grace_period: 15s
   volumes:
     - ../output:/app/output
   environment:
     PYTHONUNBUFFERED: "1"
-    SYLICA_RUNTIME: docker
+    silica_x_RUNTIME: docker
   healthcheck:
     test: ["CMD", "python", "-c", "import core; import core.runner; print('ok')"]
     interval: 30s
@@ -27,20 +27,20 @@ x-sylica-common: &sylica-common
 
 services:
   silica-x:
-    <<: *sylica-common
+    <<: *silica_x-common
     build:
       context: ..
       dockerfile: docker/Dockerfile
       args:
-        PYTHON_VERSION: ${SYLICA_PYTHON_VERSION:-3.13}
+        PYTHON_VERSION: ${silica_x_PYTHON_VERSION:-3.13}
     container_name: silica-x
 
   silica-x-tor:
-    <<: *sylica-common
+    <<: *silica_x-common
     profiles: ["tor"]
     build:
       context: ..
       dockerfile: docker/Dockerfile.tor
       args:
-        PYTHON_VERSION: ${SYLICA_PYTHON_VERSION:-3.13}
+        PYTHON_VERSION: ${silica_x_PYTHON_VERSION:-3.13}
     container_name: silica-x-tor

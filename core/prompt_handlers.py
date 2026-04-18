@@ -649,7 +649,7 @@ def handle_prompt_control_command(
     if verb not in {"select", "add", "remove", "enable", "disable"}:
         return False
     if len(tokens) < 3:
-        _emit("Usage: select|add|remove|enable|disable <module|plugins|filters|modules> <value>", Colors.EMBER)
+        _emit("Usage: select|add|remove|enable|disable <module|plugin|filter> <value>", Colors.EMBER)
         return True
 
     normalized_verb = {"enable": "add", "disable": "remove"}.get(verb, verb)

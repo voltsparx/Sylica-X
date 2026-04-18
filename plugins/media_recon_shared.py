@@ -50,8 +50,14 @@ def media_recon_result_from_dict(payload: dict[str, Any]) -> MediaReconResult:
         VideoEndpointObservation,
     )
 
-    targets_raw = payload.get("targets") if isinstance(payload.get("targets"), dict) else {}
-    text_signals_raw = payload.get("text_signals") if isinstance(payload.get("text_signals"), dict) else {}
+    targets_payload = payload.get("targets")
+    text_signals_payload = payload.get("text_signals")
+    image_assets_raw = payload.get("image_assets")
+    video_assets_raw = payload.get("video_assets")
+    frame_observations_raw = payload.get("frame_observations")
+    engine_results_raw = payload.get("engine_results")
+    targets_raw: dict[str, Any] = targets_payload if isinstance(targets_payload, dict) else {}
+    text_signals_raw: dict[str, Any] = text_signals_payload if isinstance(text_signals_payload, dict) else {}
 
     targets = MediaReconTargets(
         image_urls=tuple(str(item) for item in (targets_raw.get("image_urls") or []) if str(item).strip()),
@@ -63,7 +69,7 @@ def media_recon_result_from_dict(payload: dict[str, Any]) -> MediaReconResult:
                 field=str(item.get("field") or ""),
                 text=str(item.get("text") or ""),
             )
-            for item in (targets_raw.get("text_fragments") or [])
+            for item in ((targets_raw.get("text_fragments") if isinstance(targets_raw.get("text_fragments"), list) else []) or [])
             if isinstance(item, dict)
         ),
     )
@@ -98,7 +104,7 @@ def media_recon_result_from_dict(payload: dict[str, Any]) -> MediaReconResult:
             stego_score=float(item.get("stego_score") or 0.0),
             stego_flags=tuple(str(value) for value in (item.get("stego_flags") or []) if str(value).strip()),
         )
-        for item in (payload.get("image_assets") or [])
+        for item in (image_assets_raw if isinstance(image_assets_raw, list) else [])
         if isinstance(item, dict)
     )
     video_assets = tuple(
@@ -115,7 +121,7 @@ def media_recon_result_from_dict(payload: dict[str, Any]) -> MediaReconResult:
             },
             notes=tuple(str(value) for value in (item.get("notes") or []) if str(value).strip()),
         )
-        for item in (payload.get("video_assets") or [])
+        for item in (video_assets_raw if isinstance(video_assets_raw, list) else [])
         if isinstance(item, dict)
     )
     frame_observations = tuple(
@@ -130,11 +136,13 @@ def media_recon_result_from_dict(payload: dict[str, Any]) -> MediaReconResult:
             ocr_excerpt=str(item.get("ocr_excerpt") or ""),
             tags=tuple(str(value) for value in (item.get("tags") or []) if str(value).strip()),
         )
-        for item in (payload.get("frame_observations") or [])
+        for item in (frame_observations_raw if isinstance(frame_observations_raw, list) else [])
         if isinstance(item, dict)
     )
-    coverage_raw = payload.get("coverage") if isinstance(payload.get("coverage"), dict) else {}
-    fusion_raw = payload.get("fusion_summary") if isinstance(payload.get("fusion_summary"), dict) else {}
+    coverage_payload = payload.get("coverage")
+    fusion_payload = payload.get("fusion_summary")
+    coverage_raw: dict[str, Any] = coverage_payload if isinstance(coverage_payload, dict) else {}
+    fusion_raw: dict[str, Any] = fusion_payload if isinstance(fusion_payload, dict) else {}
     coverage = (
         MediaReconCoverage(
             image_targets=int(coverage_raw.get("image_targets") or 0),
@@ -178,7 +186,7 @@ def media_recon_result_from_dict(payload: dict[str, Any]) -> MediaReconResult:
                 "error": item.get("error"),
                 "execution_time": float(item.get("execution_time") or 0.0),
             }
-            for item in (payload.get("engine_results") or [])
+            for item in (engine_results_raw if isinstance(engine_results_raw, list) else [])
             if isinstance(item, dict)
         ),
         notes=tuple(str(item) for item in (payload.get("notes") or []) if str(item).strip()),

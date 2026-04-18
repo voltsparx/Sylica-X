@@ -60,9 +60,18 @@ def _to_bool(raw_value: object, default: bool = False) -> bool:
 
 
 def _to_int(raw_value: object, *, default: int, minimum: int, maximum: int) -> int:
-    try:
+    if isinstance(raw_value, bool):
         value = int(raw_value)
-    except (TypeError, ValueError):
+    elif isinstance(raw_value, int):
+        value = raw_value
+    elif isinstance(raw_value, float):
+        value = int(raw_value)
+    elif isinstance(raw_value, (str, bytes, bytearray)):
+        try:
+            value = int(raw_value)
+        except (TypeError, ValueError):
+            return default
+    else:
         return default
     return max(minimum, min(maximum, value))
 

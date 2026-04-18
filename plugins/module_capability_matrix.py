@@ -13,7 +13,7 @@
 # and conditions defined in the LICENSE file.
 # ──────────────────────────────────────────────────────────────
 
-"""Plugin: module capability matrix derived from Sylica source-intel catalogs."""
+"""Plugin: module capability matrix derived from silica_x source-intel catalogs."""
 
 from __future__ import annotations
 

@@ -24,7 +24,7 @@ RUNNER_PYTHON_VERSION=""
 RUNNER_CONTEXT=""
 RUNNER_SERVICE_SET=0
 RUNNER_PROFILE_SET=0
-SYLICA_ARGS=()
+silica_x_ARGS=()
 COMPOSE_VARIANT=""
 
 info() {
@@ -43,8 +43,8 @@ die() {
 show_help() {
   cat <<EOF
 Usage:
-  ./${SCRIPT_NAME} [runner-options] [sylica-args...]
-  ./${SCRIPT_NAME} [runner-options] -- [sylica-args...]
+  ./${SCRIPT_NAME} [runner-options] [silica_x-args...]
+  ./${SCRIPT_NAME} [runner-options] -- [silica_x-args...]
 
 Runner options (reserved for this script):
   --runner-help              Show this help message.
@@ -53,8 +53,8 @@ Runner options (reserved for this script):
   --runner-no-cache          Build with --no-cache.
   --runner-upgrade           Upgrade container runtime (implies --runner-build --runner-pull --runner-no-cache).
   --runner-upgrade-host      Upgrade host Docker Desktop/components.
-  --runner-stop              Stop/remove Sylica containers.
-  --runner-stop-docker       Stop/remove Sylica containers and stop Docker Desktop.
+  --runner-stop              Stop/remove silica_x containers.
+  --runner-stop-docker       Stop/remove silica_x containers and stop Docker Desktop.
   --runner-show-contexts     List Docker contexts and exit.
   --runner-diagnose          Run non-interactive environment diagnostics and exit.
   --runner-context <name>    Use a specific Docker context.
@@ -63,12 +63,12 @@ Runner options (reserved for this script):
   --runner-profile <name>    Override compose profile (default: auto).
   --runner-python-version <v>  Override Docker build arg PYTHON_VERSION (e.g., 3.13).
   --runner-no-install        Never install missing Docker components.
-  --runner-prompt            Force Sylica prompt mode (ignore sylica-args).
+  --runner-prompt            Force silica_x prompt mode (ignore silica_x-args).
 
-Sylica args:
+silica_x args:
   Any argument not prefixed with --runner- is passed to silica-x.
-  If no sylica args are passed, silica-x starts in prompt mode.
-  If sylica args include --tor (without --no-tor), this script auto-selects
+  If no silica_x args are passed, silica-x starts in prompt mode.
+  If silica_x args include --tor (without --no-tor), this script auto-selects
   service 'silica-x-tor' and profile 'tor' unless you override it.
 
 Examples:
@@ -198,13 +198,13 @@ parse_args() {
       --)
         shift
         while (($#)); do
-          SYLICA_ARGS+=("$1")
+          silica_x_ARGS+=("$1")
           shift
         done
         break
         ;;
       *)
-        SYLICA_ARGS+=("$1")
+        silica_x_ARGS+=("$1")
         ;;
     esac
     shift
@@ -213,7 +213,7 @@ parse_args() {
 
 configure_mode_and_service() {
   if [[ "$RUNNER_PROMPT" -eq 1 ]]; then
-    SYLICA_ARGS=()
+    silica_x_ARGS=()
   fi
 
   if [[ "$RUNNER_FORCE_TOR_SERVICE" -eq 1 ]]; then
@@ -231,7 +231,7 @@ configure_mode_and_service() {
     local wants_tor=0
     local disables_tor=0
     local arg
-    for arg in "${SYLICA_ARGS[@]}"; do
+    for arg in "${silica_x_ARGS[@]}"; do
       if [[ "$arg" == "--tor" ]]; then
         wants_tor=1
       elif [[ "$arg" == "--no-tor" ]]; then
@@ -558,7 +558,7 @@ ensure_output_dirs() {
     "${REPO_ROOT}/output/logs"
 }
 
-stop_sylica_compose_stack() {
+stop_silica_x_compose_stack() {
   if ! command -v docker >/dev/null 2>&1 && ! command -v docker-compose >/dev/null 2>&1; then
     warn "Docker CLI is not available. Nothing to stop."
     return
@@ -569,7 +569,7 @@ stop_sylica_compose_stack() {
     return
   fi
 
-  info "Stopping Sylica compose services..."
+  info "Stopping silica_x compose services..."
   if ! compose_exec_with_profile "" down --remove-orphans; then
     warn "Compose down reported an issue for default profile."
   fi
@@ -592,20 +592,20 @@ stop_docker_host() {
 }
 
 perform_shutdown() {
-  if [[ "${#SYLICA_ARGS[@]}" -gt 0 ]]; then
-    warn "Ignoring forwarded Sylica args during shutdown."
+  if [[ "${#silica_x_ARGS[@]}" -gt 0 ]]; then
+    warn "Ignoring forwarded silica_x args during shutdown."
   fi
 
-  stop_sylica_compose_stack
+  stop_silica_x_compose_stack
 
   if [[ "$RUNNER_STOP_DOCKER" -eq 1 ]]; then
     stop_docker_host
   else
-    info "Sylica containers stopped. Docker daemon left running."
+    info "silica_x containers stopped. Docker daemon left running."
   fi
 }
 
-run_sylica() {
+run_silica_x() {
   if [[ "$RUNNER_UPGRADE" -eq 1 ]]; then
     RUNNER_BUILD=1
     RUNNER_PULL=1
@@ -632,14 +632,14 @@ run_sylica() {
     compose_exec "${build_args[@]}"
   fi
 
-  if [[ "${#SYLICA_ARGS[@]}" -eq 0 ]]; then
+  if [[ "${#silica_x_ARGS[@]}" -eq 0 ]]; then
     info "Starting Silica-X in prompt mode via Docker service: $RUNNER_SERVICE"
     compose_exec run --rm "$RUNNER_SERVICE"
     return
   fi
 
   info "Running Silica-X via Docker service: $RUNNER_SERVICE"
-  compose_exec run --rm "$RUNNER_SERVICE" "${SYLICA_ARGS[@]}"
+  compose_exec run --rm "$RUNNER_SERVICE" "${silica_x_ARGS[@]}"
 }
 
 main() {
@@ -670,7 +670,7 @@ main() {
   start_docker_daemon
   ensure_compose_available
   ensure_output_dirs
-  run_sylica
+  run_silica_x
 }
 
 main "$@"

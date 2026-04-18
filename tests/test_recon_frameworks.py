@@ -117,13 +117,13 @@ class TestReconFrameworks(unittest.TestCase):
         names = {str(row.get("name")) for row in rows if isinstance(row, dict)}
         self.assertIn("web-basic", names)
 
-    def test_build_surface_recipe_plan_translates_to_sylica_surface(self):
+    def test_build_surface_recipe_plan_translates_to_silica_x_surface(self):
         payload = build_surface_recipe_plan(
             domain="example.com",
             recipe_name="subdomain-enum",
             reference_root=self.temp_root / "recursive-source",
         )
-        mapping = payload.get("sylica_mapping", {})
+        mapping = payload.get("silica_x_mapping", {})
         self.assertEqual(mapping.get("recon_mode"), "passive")
         self.assertEqual(mapping.get("surface_preset"), "deep")
         self.assertTrue(mapping.get("include_ct"))

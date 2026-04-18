@@ -19,7 +19,7 @@ class TestHybridArchitecture(unittest.TestCase):
         self.assertIn("Tor only", text)
         self.assertIn("Authorized research only.", text)
 
-    def test_hybrid_architecture_snapshot_is_native_to_sylica(self):
+    def test_hybrid_architecture_snapshot_is_native_to_silica_x(self):
         snapshot = build_hybrid_architecture_snapshot()
         self.assertEqual(snapshot["identity"], "silica-x-hybrid")
         self.assertEqual(len(snapshot["lanes"]), 4)

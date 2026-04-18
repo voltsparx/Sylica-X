@@ -95,6 +95,7 @@ PROMPT_KEYWORDS = {
     "quicktest": {"quicktest", "qtest", "smoke", "smoketest", "demo"},
     "history": {"history", "targets", "recent", "scans", "scanned"},
     "config": {"config", "settings", "options"},
+    "doctor": {"doctor", "diag", "diagnostics", "health"},
     "wizard": {"wizard", "guide", "guided", "assist"},
     "about": {"about", "info", "details"},
     "explain": {"explain", "understand", "describe"},

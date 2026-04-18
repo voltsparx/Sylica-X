@@ -52,12 +52,17 @@ def ocr_scan_result_from_dict(payload: dict[str, Any]) -> OCRImageScanResult:
         OCRScanSummary,
     )
 
+    sources_raw = payload.get("sources")
+    items_raw = payload.get("items")
+    failures_raw = payload.get("failures")
+    engine_results_raw = payload.get("engine_results")
+
     sources = tuple(
         OCRScanSource(
             source=str(item.get("source") or ""),
             source_kind=str(item.get("source_kind") or "local_path"),
         )
-        for item in (payload.get("sources") or [])
+        for item in (sources_raw if isinstance(sources_raw, list) else [])
         if isinstance(item, dict)
     )
     items = tuple(
@@ -82,7 +87,7 @@ def ocr_scan_result_from_dict(payload: dict[str, Any]) -> OCRImageScanResult:
             confidence_hint=str(item.get("confidence_hint") or "low"),
             notes=tuple(str(value) for value in (item.get("notes") or []) if str(value).strip()),
         )
-        for item in (payload.get("items") or [])
+        for item in (items_raw if isinstance(items_raw, list) else [])
         if isinstance(item, dict)
     )
     failures = tuple(
@@ -91,20 +96,21 @@ def ocr_scan_result_from_dict(payload: dict[str, Any]) -> OCRImageScanResult:
             source_kind=str(item.get("source_kind") or "local_path"),
             error=str(item.get("error") or ""),
         )
-        for item in (payload.get("failures") or [])
+        for item in (failures_raw if isinstance(failures_raw, list) else [])
         if isinstance(item, dict)
     )
-    summary_raw = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    summary_payload = payload.get("summary")
+    summary_raw: dict[str, Any] = summary_payload if isinstance(summary_payload, dict) else {}
     summary = OCRScanSummary(
         image_count=int(summary_raw.get("image_count") or 0),
         processed_count=int(summary_raw.get("processed_count") or 0),
         failed_count=int(summary_raw.get("failed_count") or 0),
         ocr_hits=int(summary_raw.get("ocr_hits") or 0),
-        signal_totals={str(key): int(value) for key, value in (summary_raw.get("signal_totals") or {}).items()},
-        languages={str(key): int(value) for key, value in (summary_raw.get("languages") or {}).items()},
-        confidence_hints={str(key): int(value) for key, value in (summary_raw.get("confidence_hints") or {}).items()},
-        engines={str(key): int(value) for key, value in (summary_raw.get("engines") or {}).items()},
-        source_kinds={str(key): int(value) for key, value in (summary_raw.get("source_kinds") or {}).items()},
+        signal_totals={str(key): int(value) for key, value in ((summary_raw.get("signal_totals") if isinstance(summary_raw.get("signal_totals"), dict) else {}) or {}).items()},
+        languages={str(key): int(value) for key, value in ((summary_raw.get("languages") if isinstance(summary_raw.get("languages"), dict) else {}) or {}).items()},
+        confidence_hints={str(key): int(value) for key, value in ((summary_raw.get("confidence_hints") if isinstance(summary_raw.get("confidence_hints"), dict) else {}) or {}).items()},
+        engines={str(key): int(value) for key, value in ((summary_raw.get("engines") if isinstance(summary_raw.get("engines"), dict) else {}) or {}).items()},
+        source_kinds={str(key): int(value) for key, value in ((summary_raw.get("source_kinds") if isinstance(summary_raw.get("source_kinds"), dict) else {}) or {}).items()},
     )
     return OCRImageScanResult(
         target=str(payload.get("target") or "ocr_scan"),
@@ -121,7 +127,7 @@ def ocr_scan_result_from_dict(payload: dict[str, Any]) -> OCRImageScanResult:
                 "error": item.get("error"),
                 "execution_time": float(item.get("execution_time") or 0.0),
             }
-            for item in (payload.get("engine_results") or [])
+            for item in (engine_results_raw if isinstance(engine_results_raw, list) else [])
             if isinstance(item, dict)
         ),
     )

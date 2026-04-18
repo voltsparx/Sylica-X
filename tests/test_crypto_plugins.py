@@ -24,7 +24,7 @@ class TestCryptoPlugins(unittest.TestCase):
             "mode": "profile",
             "target": "alice",
             "attachments": ["alpha@example.com", "beta@example.org"],
-            "crypto_key": "sylica-key",
+            "crypto_key": "silica_x-key",
             "crypto_operation": "encrypt",
         }
         results, errors = execute_plugins(

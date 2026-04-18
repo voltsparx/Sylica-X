@@ -47,7 +47,6 @@ _STOPWORDS = {
     "profile",
     "public",
     "scan",
-    "silica",
     "still",
     "text",
     "that",
@@ -382,7 +381,7 @@ def _detect_language(raw_text: str) -> str:
     if len(text) < 24:
         return ""
     try:
-        from langdetect import LangDetectException, detect  # type: ignore[import]
+        from langdetect import LangDetectException, detect
     except Exception:
         return ""
     try:
@@ -513,8 +512,8 @@ def build_ocr_scan_summary(
         engines[item.ocr_engine] += 1
         source_kinds[item.source_kind] += 1
 
-    for item in failures:
-        source_kinds[item.source_kind] += 1
+    for failure in failures:
+        source_kinds[failure.source_kind] += 1
 
     return OCRScanSummary(
         image_count=source_count,

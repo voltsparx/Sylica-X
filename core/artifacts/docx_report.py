@@ -253,5 +253,5 @@ def generate_docx_report(path: Path, payload: dict[str, Any]) -> str:
         if chart_dir is not None:
             chart_dir.cleanup()
 
-    document.save(path)
+    document.save(str(path))
     return str(path)

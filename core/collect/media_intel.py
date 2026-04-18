@@ -22,6 +22,7 @@ from dataclasses import dataclass
 import hashlib
 import importlib.util
 import io
+from pathlib import Path
 import re
 import shutil
 from typing import Any
@@ -60,11 +61,7 @@ def detect_image_tooling() -> dict[str, Any]:
             pytesseract_available = False
             pytesseract_cmd = ""
 
-    resolved_tesseract = ""
-    if pytesseract_cmd:
-        resolved_tesseract = pytesseract_cmd
-    else:
-        resolved_tesseract = str(shutil.which("tesseract") or "").strip()
+    resolved_tesseract = _resolve_tesseract_binary(pytesseract_cmd)
 
     if easyocr_available:
         preferred_engine = "easyocr"
@@ -84,6 +81,21 @@ def detect_image_tooling() -> dict[str, Any]:
         },
         "preferred_engine": preferred_engine,
     }
+
+
+def _resolve_tesseract_binary(command_hint: str) -> str:
+    hint = str(command_hint or "").strip().strip('"')
+    candidates = [hint] if hint else []
+    candidates.append("tesseract")
+    for candidate in candidates:
+        if not candidate:
+            continue
+        if Path(candidate).is_file():
+            return candidate
+        resolved = str(shutil.which(candidate) or "").strip()
+        if resolved:
+            return resolved
+    return ""
 
 
 @dataclass(frozen=True)

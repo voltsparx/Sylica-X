@@ -167,7 +167,7 @@ async def _fetch_frame_source(
 
 def _sample_video_frames(video_bytes: bytes, *, source_url: str, max_frames: int = 3) -> tuple[list[MediaFrameObservation], str | None]:
     try:
-        import cv2  # type: ignore[import]
+        import cv2
     except Exception:
         return [], "opencv_unavailable"
 
@@ -337,7 +337,7 @@ class MediaReconEngine(EngineBase):
                         proxy_url=proxy_url,
                     )
 
-                setattr(_task, "_sylica_task_name", f"media-image:{asset_kind}:{media_url}")
+                setattr(_task, "_silica_x_task_name", f"media-image:{asset_kind}:{media_url}")
                 image_task_factories.append(_task)
 
             image_batch = await self._async_engine.run_detailed(image_task_factories, runtime)
@@ -353,7 +353,7 @@ class MediaReconEngine(EngineBase):
 
             video_task_factories = []
             for media_url in targets.video_urls[:8]:
-                async def _task(media_url: str = media_url) -> Any:
+                async def _video_task(media_url: str = media_url) -> Any:
                     return await _fetch_video_endpoint(
                         session,
                         media_url,
@@ -362,8 +362,8 @@ class MediaReconEngine(EngineBase):
                         proxy_url=proxy_url,
                     )
 
-                setattr(_task, "_sylica_task_name", f"media-video:{media_url}")
-                video_task_factories.append(_task)
+                setattr(_video_task, "_silica_x_task_name", f"media-video:{media_url}")
+                video_task_factories.append(_video_task)
 
             video_batch = await self._async_engine.run_detailed(video_task_factories, runtime)
             engine_results.extend(_serialize_engine_result(item) for item in video_batch)
@@ -384,7 +384,7 @@ class MediaReconEngine(EngineBase):
             for media_url in frame_sources:
                 origin_kind = "video_thumbnail" if media_url in {item.thumbnail_url for item in video_assets if item.thumbnail_url} else "image_preview"
 
-                async def _task(media_url: str = media_url, origin_kind: str = origin_kind) -> Any:
+                async def _frame_task(media_url: str = media_url, origin_kind: str = origin_kind) -> Any:
                     return await _fetch_frame_source(
                         session,
                         media_url,
@@ -393,8 +393,8 @@ class MediaReconEngine(EngineBase):
                         proxy_url=proxy_url,
                     )
 
-                setattr(_task, "_sylica_task_name", f"media-frame:{origin_kind}:{media_url}")
-                frame_task_factories.append(_task)
+                setattr(_frame_task, "_silica_x_task_name", f"media-frame:{origin_kind}:{media_url}")
+                frame_task_factories.append(_frame_task)
 
             frame_batch = await self._async_engine.run_detailed(frame_task_factories, runtime)
             engine_results.extend(_serialize_engine_result(item) for item in frame_batch)

@@ -16,6 +16,7 @@ Silica-X is centered around a small set of operator workflows that share the sam
 - install with `pip install silica-x`
 - run with `silica-x`
 - import with `import silica_x`
+- diagnose local readiness with `silica-x doctor`
 
 ## Output strategy
 
@@ -32,9 +33,9 @@ silica-x out-type cli,json,html,sql,docx,pdf
 Prompt mode now treats plugins, filters, and modules as attachables you can enable per session:
 
 ```text
-enable plugins threat_conductor
-enable filters contact_canonicalizer
-enable modules source-pack-01-module-1
+enable plugin threat_conductor
+enable filter contact_canonicalizer
+enable module source-pack-01-module-1
 config
 ```
 

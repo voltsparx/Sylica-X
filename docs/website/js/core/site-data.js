@@ -28,6 +28,7 @@ const DocsData = (() => {
     { id: "pipeline", title: "Execution Pipeline", page: "workflow.html", hint: "Policy, engine, capability, filter, fusion, and report flow.", group: "Architecture" },
     { id: "modules", title: "Plugin / Filter System", page: "workflow.html", hint: "How extensions, scopes, and catalogs fit together.", group: "Architecture" },
     { id: "commands", title: "Commands", page: "cli-reference.html", hint: "Primary commands, aliases, and what they do.", group: "Operator" },
+    { id: "doctor", title: "Doctor Command", page: "cli-reference.html", hint: "Local diagnostics for OCR, Tor, Reporter backends, and runtime inventory.", group: "Operator" },
     { id: "flags", title: "Flags", page: "cli-reference.html", hint: "High-value output, explain, and scope controls.", group: "Operator" },
     { id: "syntax", title: "Syntax Patterns", page: "cli-reference.html", hint: "Prompt, flag, and example command grammar.", group: "Operator" },
     { id: "attachables", title: "Attachables", page: "cli-reference.html", hint: "Plugins, filters, modules, and conflict handling.", group: "Operator" },

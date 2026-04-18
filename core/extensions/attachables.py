@@ -150,7 +150,7 @@ def resolve_module_attachments(
             f"Select at most {MAX_ATTACHED_MODULES} module entries."
         )
 
-    warnings = ()
+    warnings: tuple[str, ...] = ()
     if selected_ids:
         warnings = (
             "Attached modules are catalog-backed research context. They are tracked in configuration and reports, but they do not execute directly like plugins or filters.",

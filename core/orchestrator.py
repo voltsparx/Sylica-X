@@ -118,7 +118,7 @@ class Orchestrator:
                     context,
                 )
             )
-            setattr(factory, "_sylica_task_name", capability.capability_id)
+            setattr(factory, "_silica_x_task_name", capability.capability_id)
             task_factories.append(factory)
         runtime_context = {"max_workers": self.policy.max_workers, "timeout": self.policy.timeout}
 

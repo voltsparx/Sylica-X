@@ -421,7 +421,7 @@ def _extract_image_details(media_bytes: bytes) -> tuple[int | None, int | None, 
                 "mode": str(getattr(image_handle, "mode", "") or ""),
                 "info_keys": sorted(str(key) for key in getattr(image_handle, "info", {}).keys()),
             }
-            exif = getattr(image_handle, "getexif", lambda: {})()
+            exif: Any = getattr(image_handle, "getexif", lambda: {})()
             if exif:
                 exif_items: dict[str, str] = {}
                 for tag_id, value in exif.items():

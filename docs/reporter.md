@@ -2,6 +2,8 @@
 
 Reporter is the v10.0 reporting layer for Silica-X.
 
+Use `silica-x doctor` when you want to confirm local OCR/Tor/report-backend readiness before assuming a reporting or extraction failure is caused by the scan itself.
+
 ## Goals
 
 - make cases readable without losing raw detail

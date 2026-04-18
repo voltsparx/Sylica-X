@@ -21,7 +21,7 @@ function initSearch() {
         return `
           <a class="search-result" href="${pageLink(item.page, item.id)}">
             <span class="search-result-title">${escapeHtml(item.title)}</span>
-            <span class="search-result-meta">${escapeHtml(item.group)} · ${escapeHtml(DocsData.pages[item.page]?.title || item.page)} · ${escapeHtml(item.hint)}</span>
+            <span class="search-result-meta">${escapeHtml(item.group)} | ${escapeHtml(DocsData.pages[item.page]?.title || item.page)} | ${escapeHtml(item.hint)}</span>
           </a>
         `;
       })
@@ -58,4 +58,3 @@ function initSearch() {
     }
   });
 }
-

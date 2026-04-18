@@ -528,6 +528,14 @@ def _add_anonymity_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_doctor_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the diagnostic snapshot as JSON.",
+    )
+
+
 def _add_surface_scan_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--scan-type",
@@ -1083,6 +1091,11 @@ def build_root_parser(
         help="Show or update Tor/proxy settings for this session.",
     )
     _add_anonymity_args(anonymity_parser)
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        help="Run local runtime, dependency, report-backend, and OCR/Tor diagnostics.",
+    )
+    _add_doctor_args(doctor_parser)
 
     subparsers.add_parser("keywords", help="List prompt keyword mappings.")
     plugins_parser = subparsers.add_parser("plugins", help="List discovered plugins from plugins/ directory.")
@@ -1215,6 +1228,8 @@ def build_prompt_parser(*, default_dashboard_port: int) -> InteractiveArgumentPa
 
     anonymity_parser = subparsers.add_parser("anonymity", add_help=False)
     _add_anonymity_args(anonymity_parser)
+    doctor_parser = subparsers.add_parser("doctor", add_help=False)
+    _add_doctor_args(doctor_parser)
 
     subparsers.add_parser("keywords", add_help=False)
     plugins_parser = subparsers.add_parser("plugins", add_help=False)

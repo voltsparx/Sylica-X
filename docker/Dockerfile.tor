@@ -9,8 +9,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-ENV SYLICA_OUTPUT_DIR=/app/output
-ENV SYLICA_RUNTIME=docker
+ENV silica_x_OUTPUT_DIR=/app/output
+ENV silica_x_RUNTIME=docker
 
 WORKDIR /app
 
@@ -28,16 +28,16 @@ COPY filters ./filters
 COPY modules ./modules
 COPY intel ./intel
 COPY docs ./docs
-COPY docker/torrc.sylica /etc/tor/torrc.sylica
+COPY docker/torrc.silica_x /etc/tor/torrc.silica_x
 COPY docker/tor-wrapper.sh /usr/local/bin/tor
 COPY silica-x.py LICENSE README.md ./
 
 RUN chmod 0755 /usr/local/bin/tor \
-    && useradd --create-home --shell /usr/sbin/nologin sylica \
+    && useradd --create-home --shell /usr/sbin/nologin silica_x \
     && mkdir -p /app/output/json /app/output/html /app/output/cli /app/output/csv /app/output/logs \
-    && chown -R sylica:sylica /app
+    && chown -R silica_x:silica_x /app
 
-USER sylica
+USER silica_x
 
 VOLUME ["/app/output"]
 
