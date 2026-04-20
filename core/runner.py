@@ -1311,6 +1311,18 @@ def _build_engine_health_snapshot() -> dict[str, Any]:
     except Exception as exc:
         health["subdomain_harvest_binary"] = {"available": False, "error": str(exc)}
 
+    try:
+        from core.setup.docker_runtime import docker_daemon_running, find_docker_binary
+
+        _db = find_docker_binary()
+        health["docker_runtime"] = {
+            "available": _db is not None,
+            "path": _db,
+            "daemon_running": docker_daemon_running() if _db else False,
+        }
+    except Exception as exc:
+        health["docker_runtime"] = {"available": False, "error": str(exc)}
+
     return health
 
 
@@ -1329,6 +1341,15 @@ def _build_kb_snapshot() -> dict[str, Any]:
         return {"available": False, "error": str(exc)}
 
 
+def _build_docker_snapshot() -> dict[str, Any]:
+    try:
+        from core.setup.docker_runtime import docker_status
+
+        return docker_status()
+    except Exception as exc:
+        return {"available": False, "error": str(exc)}
+
+
 def _build_doctor_snapshot() -> dict[str, Any]:
     inventory = _collect_runtime_inventory()
     output_settings = describe_output_settings()
@@ -1336,6 +1357,7 @@ def _build_doctor_snapshot() -> dict[str, Any]:
     ocr_tooling = detect_image_tooling()
     engine_health = _build_engine_health_snapshot()
     knowledge_base = _build_kb_snapshot()
+    docker_snapshot = _build_docker_snapshot()
     report_backends = {
         "matplotlib": {"available": _module_available("matplotlib")},
         "python_docx": {"available": _module_available("docx")},
@@ -1402,6 +1424,7 @@ def _build_doctor_snapshot() -> dict[str, Any]:
         "ocr_tooling": ocr_tooling,
         "engine_health": engine_health,
         "knowledge_base": knowledge_base,
+        "docker": docker_snapshot,
         "report_backends": report_backends,
         "tor": {
             "binary_found": tor_status.binary_found,
@@ -1465,6 +1488,7 @@ def _print_doctor_report(snapshot: dict[str, Any]) -> None:
     ocr_tooling_raw = snapshot.get("ocr_tooling")
     engine_health_raw = snapshot.get("engine_health")
     knowledge_base_raw = snapshot.get("knowledge_base")
+    docker_raw = snapshot.get("docker")
     report_backends_raw = snapshot.get("report_backends")
     tor_data_raw = snapshot.get("tor")
     summary: dict[str, Any] = summary_raw if isinstance(summary_raw, dict) else {}
@@ -1473,6 +1497,7 @@ def _print_doctor_report(snapshot: dict[str, Any]) -> None:
     ocr_tooling: dict[str, Any] = ocr_tooling_raw if isinstance(ocr_tooling_raw, dict) else {}
     engine_health: dict[str, Any] = engine_health_raw if isinstance(engine_health_raw, dict) else {}
     knowledge_base: dict[str, Any] = knowledge_base_raw if isinstance(knowledge_base_raw, dict) else {}
+    docker_data: dict[str, Any] = docker_raw if isinstance(docker_raw, dict) else {}
     report_backends: dict[str, Any] = report_backends_raw if isinstance(report_backends_raw, dict) else {}
     tor_data: dict[str, Any] = tor_data_raw if isinstance(tor_data_raw, dict) else {}
     warnings = snapshot.get("warnings") if isinstance(snapshot.get("warnings"), list) else []
@@ -1529,6 +1554,15 @@ def _print_doctor_report(snapshot: dict[str, Any]) -> None:
         if available:
             print(c(f"  target_count={knowledge_base.get('target_count', 0)}", Colors.CYAN))
             print(c(f"  db_path={knowledge_base.get('db_path', '-')}", Colors.CYAN))
+
+    if isinstance(docker_raw, dict):
+        print(c("\ndocker:", Colors.BLUE))
+        print(c(f"  binary_found={docker_data.get('binary_found', False)}", Colors.CYAN))
+        print(c(f"  daemon_running={docker_data.get('daemon_running', False)}", Colors.CYAN))
+        print(c(f"  image_built={docker_data.get('image_built', False)}", Colors.CYAN))
+        print(c(f"  image={docker_data.get('image_name', '-')}", Colors.CYAN))
+        if not docker_data.get("binary_found"):
+            print(c("  tip: run silica-x --docker to auto-install Docker", Colors.EMBER))
 
     if warnings:
         print(c("\nwarnings:", Colors.EMBER))
@@ -5552,6 +5586,16 @@ async def run_prompt_mode(initial_state: RunnerState | None = None) -> int:
     session = PromptSessionState()
     clear_screen()
     show_banner(get_anonymity_status(state))
+    if os.environ.get("SILICA_X_DOCKER") == "1":
+        print(
+            c(
+                f"{symbol('ok')} Running inside Docker container. "
+                "Output is persisted to /app/output (mounted from host).",
+                Colors.GREEN,
+            )
+        )
+        if os.environ.get("SILICA_X_TOR") == "1":
+            print(c(f"{symbol('ok')} Tor routing is active inside container.", Colors.GREEN))
     _print_runtime_loaded_inventory()
     prompt_parser = build_prompt_parser()
 
@@ -5745,6 +5789,52 @@ async def run(argv: Sequence[str] | None = None) -> int:
         print(c(f"{symbol('tip')} Invalid command. Use `help` command.", Colors.EMBER))
         append_framework_log("framework_exit", f"status={EXIT_USAGE} reason=parse_error")
         return EXIT_USAGE
+    if getattr(args, "docker", False):
+        from core.setup.docker_runtime import (
+            build_image,
+            docker_status,
+            ensure_docker_ready,
+            launch_container,
+        )
+
+        print(c("[Silica-X] Docker mode requested.", Colors.CYAN))
+        docker_runtime_status = docker_status()
+        print(c(f"[Silica-X] Docker binary: {'found' if docker_runtime_status['binary_found'] else 'not found'}", Colors.CYAN))
+        print(c(f"[Silica-X] Daemon running: {docker_runtime_status['daemon_running']}", Colors.CYAN))
+        print(c(f"[Silica-X] Image built: {docker_runtime_status['image_built']}", Colors.CYAN))
+        force_rebuild = bool(getattr(args, "docker_rebuild", False))
+        ready, message = ensure_docker_ready(prompt_user=_can_prompt_user())
+        if not ready:
+            print(c(f"[Silica-X] Docker setup failed: {message}", Colors.RED))
+            print(c("[Silica-X] Install Docker manually from https://docs.docker.com/get-docker/", Colors.EMBER))
+            return EXIT_FAILURE
+        if force_rebuild:
+            ok, msg = build_image(force_rebuild=True)
+            if not ok:
+                print(c(f"[Silica-X] Image rebuild failed: {msg}", Colors.RED))
+                return EXIT_FAILURE
+            print(c(f"[Silica-X] {msg}", Colors.GREEN))
+        print(c("[Silica-X] Docker is ready. Launching container...", Colors.GREEN))
+        container_argv = [
+            token for token in argv_tokens if token not in {"--docker", "--docker-rebuild"}
+        ]
+        if not container_argv:
+            container_argv = ["prompt"]
+        use_tor = bool(getattr(args, "tor", False))
+        use_proxy = bool(getattr(args, "proxy", False))
+        port_map: dict[int, int] = {}
+        if "--live" in container_argv or getattr(args, "live", False):
+            live_port = int(getattr(args, "live_port", DEFAULT_DASHBOARD_PORT))
+            port_map[live_port] = live_port
+        exit_code = launch_container(
+            command=container_argv,
+            use_tor=use_tor,
+            use_proxy=use_proxy,
+            interactive=True,
+            port_map=port_map,
+        )
+        append_framework_log("docker_session_done", f"exit_code={exit_code}")
+        return exit_code
     setattr(args, "_explicit_flags", _extract_explicit_flags(argv_tokens))
     _normalize_multi_select_args(args)
     rendered_argv = " ".join(str(item) for item in argv_tokens)

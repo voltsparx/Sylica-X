@@ -1,40 +1,42 @@
-ARG PYTHON_VERSION=3.13
-FROM python:${PYTHON_VERSION}-slim-bookworm
+# Silica-X Intelligence Framework — Docker Image
+# Build: docker build -f docker/Dockerfile -t silica-x:latest .
+# Run:   docker run -it --rm silica-x:latest
 
-LABEL org.opencontainers.image.title="Silica-X" \
-      org.opencontainers.image.description="Silica-X multi-OSINT runtime container" \
-      org.opencontainers.image.source="https://github.com/voltsparx/Silica-X"
+FROM python:3.12-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-ENV silica_x_OUTPUT_DIR=/app/output
-ENV silica_x_RUNTIME=docker
+LABEL maintainer="voltsparx@gmail.com"
+LABEL org.opencontainers.image.title="Silica-X"
+LABEL org.opencontainers.image.description="Multi-engine OSINT orchestration framework"
+LABEL org.opencontainers.image.source="https://github.com/voltsparx/Silica-X"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    tor \
+    curl \
+    wget \
+    git \
+    nmap \
+    dnsutils \
+    iputils-ping \
+    ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY requirements.txt ./
-RUN pip install --upgrade pip && pip install -r requirements.txt
+COPY requirements.txt requirements-dev.txt pyproject.toml ./
 
-COPY core ./core
-COPY platforms ./platforms
-COPY plugins ./plugins
-COPY filters ./filters
-COPY modules ./modules
-COPY intel ./intel
-COPY docs ./docs
-COPY silica-x.py LICENSE README.md ./
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-RUN useradd --create-home --shell /usr/sbin/nologin silica_x \
-    && mkdir -p /app/output/json /app/output/html /app/output/cli /app/output/csv /app/output/logs \
-    && chown -R silica_x:silica_x /app
+COPY . .
 
-USER silica_x
+RUN pip install --no-cache-dir -e .
 
-VOLUME ["/app/output"]
+COPY docker/torrc.silica_x /etc/tor/torrc
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD python -c "import core; import core.runner; print('ok')" || exit 1
+RUN mkdir -p /app/output
 
-ENTRYPOINT ["python", "silica-x.py"]
+ENTRYPOINT ["silica-x"]
+CMD ["--help"]

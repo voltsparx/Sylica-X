@@ -1039,6 +1039,20 @@ def build_root_parser(
         action="store_true",
         help="Show plain-language command/plugin/filter explanations and exit.",
     )
+    parser.add_argument(
+        "--docker",
+        action="store_true",
+        default=False,
+        dest="docker",
+        help="Run Silica-X inside a Docker container. Installs Docker if not present.",
+    )
+    parser.add_argument(
+        "--docker-rebuild",
+        action="store_true",
+        default=False,
+        dest="docker_rebuild",
+        help="Force rebuild of the Docker image before launching.",
+    )
     subparsers = parser.add_subparsers(dest="command")
 
     profile_parser = subparsers.add_parser(
@@ -1179,6 +1193,13 @@ def build_root_parser(
     )
     _add_toggle_flags(prompt_parser, "tor", "Tor routing")
     _add_toggle_flags(prompt_parser, "proxy", "HTTP proxy routing")
+    prompt_parser.add_argument(
+        "--docker",
+        action="store_true",
+        default=False,
+        dest="docker",
+        help="Run prompt mode inside a Docker container.",
+    )
 
     return parser
 
